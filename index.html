@@ -6,15 +6,38 @@
     <script type="text/javascript">
       function draw() {
         var canvas = document.getElementById( 'tutorial' );
-        if ( canvas.getContext ) {
+        if ( canvas.getContext )
+        {
           var ctx = canvas.getContext( '2d' );
         }
 
-        ctx.fillStyle = "rgb(200,0,0)";
-        ctx.fillRect( 10, 10, 55, 50 );
+        var num_cols = 10;
+        var num_rows = 10;
+        var display_width = 300;
+        var display_height = 300;
+        var cell_width = display_width / num_cols;
+        var cell_height = display_height / num_rows;
 
-        ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
-        ctx.fillRect( 30, 30, 55, 50 );
+        for ( var y = 0; y < num_rows; y++ )
+        {
+          for ( var x = 0.0; x < num_cols; x++ )
+          {
+            var red = ( 256.0 * ( x / num_cols ) ).toFixed(0);
+            var green = 0;//( 256.0 * ( x / num_cols ) ).toFixed(0);
+            var blue = 0;//( 256.0 * ( x / num_cols ) ).toFixed(0);
+            // ctx.fillStyle = "rgb(" + red + "," + green + "," + blue ")";
+            ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+            ctx.fillRect( x * cell_width, y * cell_height, cell_width, cell_height );
+          }
+        }
+
+        // space is divided into grid
+        // blocks move through empty space in grid
+        // ctx.fillStyle = "rgb(200,0,0)";
+        // ctx.fillRect( 10, 10, 55, 50 );
+        //
+        // ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
+        // ctx.fillRect( 30, 30, 55, 50 );
       }
     </script>
     <style type="text/css">
