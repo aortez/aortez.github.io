@@ -4,48 +4,56 @@
     <meta charset="utf-8"/>
     <title>pizza</title>
     <script type="text/javascript">
-      function draw() {
-        var canvas = document.getElementById( 'tutorial' );
-        if ( canvas.getContext )
+      var FPS = 30;
+      function init()
+      {
+        setInterval( function() { draw(); }, 1000 / FPS );
+      }
+
+      var counter = 0;
+      var dir = 1;
+
+      function draw()
+      {
+        var canvas = document.getElementById( 'pizza' );
+        if ( !canvas.getContext )
         {
-          var ctx = canvas.getContext( '2d' );
+          return;
         }
+        var ctx = canvas.getContext( '2d' );
+
+        counter += dir;
+        if ( counter > 40 ) dir = -1;
+        if ( counter <= 0 ) dir = 1;
+
+        canvas.width  = window.innerWidth * 0.9;
+        canvas.height = window.innerHeight * 0.9;
 
         var num_cols = 10;
         var num_rows = 10;
-        var display_width = 300;
-        var display_height = 300;
-        var cell_width = display_width / num_cols;
-        var cell_height = display_height / num_rows;
+        var cell_width = canvas.width / num_cols;
+        var cell_height = canvas.height / num_rows;
 
         for ( var y = 0; y < num_rows; y++ )
         {
           for ( var x = 0.0; x < num_cols; x++ )
           {
-            var red = ( 256.0 * ( x / num_cols ) ).toFixed(0);
-            var green = 0;//( 256.0 * ( x / num_cols ) ).toFixed(0);
+            var red = ( 256.0 * ( ( x + counter * 0.25 ) / num_cols ) ).toFixed(0);
+            var green = counter;//( 256.0 * ( x / num_cols ) ).toFixed(0);
             var blue = 0;//( 256.0 * ( x / num_cols ) ).toFixed(0);
             // ctx.fillStyle = "rgb(" + red + "," + green + "," + blue ")";
             ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
             ctx.fillRect( x * cell_width, y * cell_height, cell_width, cell_height );
           }
         }
-
-        // space is divided into grid
-        // blocks move through empty space in grid
-        // ctx.fillStyle = "rgb(200,0,0)";
-        // ctx.fillRect( 10, 10, 55, 50 );
-        //
-        // ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
-        // ctx.fillRect( 30, 30, 55, 50 );
       }
     </script>
     <style type="text/css">
       canvas { border: 1px solid black; }
     </style>
   </head>
-  <body onload="draw();">
+  <body onload="init();">
+    <canvas id="pizza" width="1" height="1"></canvas>
     <p>pizza</p>
-    <canvas id="tutorial" width="300" height="300"></canvas>
   </body>
 </html>
