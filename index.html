@@ -38,7 +38,7 @@
         {
           for ( var x = 0.0; x < num_cols; x++ )
           {
-            var red = ( 256.0 * ( ( x + counter * 0.25 ) / num_cols ) ).toFixed(0);
+            var red = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + counter * 0.25 ) / num_cols ) ).toFixed(0);
             var green = counter;//( 256.0 * ( x / num_cols ) ).toFixed(0);
             var blue = 0;//( 256.0 * ( x / num_cols ) ).toFixed(0);
             // ctx.fillStyle = "rgb(" + red + "," + green + "," + blue ")";
