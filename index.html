@@ -4,14 +4,100 @@
     <meta charset="utf-8"/>
     <title>pizza</title>
     <script type="text/javascript">
+
+      function writeMessage( canvas, message )
+      {
+        var context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.font = '18pt Calibri';
+        context.fillStyle = 'black';
+        context.fillText(message, 10, 25);
+      }
+
+      function getMousePos( canvas, evt )
+      {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: evt.clientX - rect.left,
+          y: evt.clientY - rect.top
+        };
+      }
+
       var FPS = 30;
       function init()
       {
-        setInterval( function() { draw(); }, 1000 / FPS );
+        setInterval( function() { draw2(); }, 1000 / FPS );
+
+        document.onmousemove = getMouseXY;
       }
+
+      // Temporary variables to hold mouse x-y pos.s
+      var tempX = 0
+      var tempY = 0
 
       var counter = 0;
       var dir = 1;
+
+      function getMouseXY(e)
+      {
+        if (IE) { // grab the x-y pos.s if browser is IE
+          tempX = event.clientX + document.body.scrollLeft
+          tempY = event.clientY + document.body.scrollTop
+        } else {  // grab the x-y pos.s if browser is NS
+          tempX = e.pageX
+          tempY = e.pageY
+        }
+        // catch possible negative values in NS4
+        if (tempX < 0){tempX = 0}
+        if (tempY < 0){tempY = 0}
+
+        return true
+      }
+
+      function draw2()
+      {
+        var canvas = document.getElementById( 'pizza' );
+        if ( !canvas.getContext )
+        {
+          return;
+        }
+        var ctx = canvas.getContext( '2d' );
+
+        counter += dir;
+        if ( counter > 40 ) dir = -1;
+        if ( counter <= 0 ) dir = 1;
+
+        canvas.width  = window.innerWidth * 0.9;
+        canvas.height = window.innerHeight * 0.9;
+
+        var num_cols = 10;
+        var num_rows = 10;
+        var cell_width = canvas.width / num_cols;
+        var cell_height = canvas.height / num_rows;
+
+        for ( var y = 0; y < num_rows; y++ )
+        {
+          for ( var x = 0.0; x < num_cols; x++ )
+          {
+            var red = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + counter * 0.25 ) / num_cols ) ).toFixed(0);
+            var green = counter;//( 256.0 * ( x / num_cols ) ).toFixed(0);
+            var blue = red;//( 256.0 * ( x / num_cols ) ).toFixed(0);
+            red = 0;
+            ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+            ctx.fillRect( x * cell_width, y * cell_height, cell_width, cell_height );
+          }
+        }
+
+        canvas.addEventListener( 'mousemove', function( evt ) {
+          var mousePos = getMousePos( canvas, evt );
+          // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+          // writeMessage( canvas, message );
+          ctx.fillRect( mousePos.x, mousePos.y, cell_width, cell_height );
+          // ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+        }, false);
+
+      }
+
 
       function draw()
       {
@@ -41,11 +127,19 @@
             var red = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + counter * 0.25 ) / num_cols ) ).toFixed(0);
             var green = counter;//( 256.0 * ( x / num_cols ) ).toFixed(0);
             var blue = 0;//( 256.0 * ( x / num_cols ) ).toFixed(0);
-            // ctx.fillStyle = "rgb(" + red + "," + green + "," + blue ")";
             ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
             ctx.fillRect( x * cell_width, y * cell_height, cell_width, cell_height );
           }
         }
+
+        canvas.addEventListener( 'mousemove', function( evt ) {
+          var mousePos = getMousePos( canvas, evt );
+          // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+          // writeMessage( canvas, message );
+          ctx.fillRect( mousePos.x, mousePos.y, cell_width, cell_height );
+          // ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+        }, false);
+
       }
     </script>
     <style type="text/css">
