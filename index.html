@@ -68,28 +68,28 @@
         var ctx = getContext();
 
         counter += dir;
-        if ( counter > 100 ) dir = -1;
+        if ( counter > 20 ) dir = -1;
         if ( counter <= 0 ) dir = 1;
-        counter2 = ( Math.sqrt( Math.pow( mousePos.x, 2 ) +  Math.pow( mousePos.y, 2 ) ) / 20 );
+        counter2 = ( Math.sqrt( Math.pow( mousePos.x, 2 ) +  Math.pow( mousePos.y, 2 ) ) / 50 );
 
         canvas.width  = window.innerWidth * 0.9;
         canvas.height = window.innerHeight * 0.9;
 
-        // var num_cols = 10;
-        // var num_rows = 10;
-        // var cell_width = canvas.width / num_cols;
-        // var cell_height = canvas.height / num_rows;
+        var num_cols = 10;
+        var num_rows = 10;
+        var cell_width = canvas.width / num_cols;
+        var cell_height = canvas.height / num_rows;
 
-        var cell_width = 50;
-        var cell_height = 20;
-        var num_cols = ( canvas.width / cell_width ).toFixed( 0 );
-        var num_rows = ( canvas.height / cell_height ).toFixed( 0 );
+        // var cell_width = 50;
+        // var cell_height = 20;
+        // var num_cols = ( canvas.width / cell_width ).toFixed( 0 );
+        // var num_rows = ( canvas.height / cell_height ).toFixed( 0 );
 
         for ( var y = 0; y < num_rows; y++ )
         {
           for ( var x = 0.0; x < num_cols; x++ )
           {
-            var red = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + ( counter + counter2 ) ) / num_cols ) ).toFixed(0);
+            var red = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + ( counter + counter2 ) * 0.5 ) / num_cols ) ).toFixed(0);
             var green = counter.toFixed(0);//( 256.0 * ( x / num_cols ) ).toFixed(0);
             var blue = red;//( 256.0 * ( x / num_cols ) ).toFixed(0);
             red = ( blue * 0.5 ).toFixed(0);
