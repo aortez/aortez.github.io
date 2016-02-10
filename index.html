@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -23,7 +24,7 @@
         };
       }
 
-      var FPS = 30;
+      var FPS = 60;
       function init()
       {
         setInterval( function() { draw(); }, 1000 / FPS );
@@ -33,7 +34,7 @@
       var tempX = 0
       var tempY = 0
 
-      var counter = 0;
+      var counter = -100;
       var dir = 1;
 
       var mousePos = { x: 0, y: 0 };
@@ -51,12 +52,13 @@
           mousePos = getMousePos( canvas, evt );
           // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
           // writeMessage( canvas, message );
-          // ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
         }, false);
 
         var ctx = canvas.getContext( '2d' );
         return ctx;
       }
+
+      var ctx;
 
       function draw()
       {
@@ -65,40 +67,53 @@
         {
           return;
         }
-        var ctx = getContext();
+        if ( !ctx )
+        {
+          ctx = getContext();
+        }
 
         counter += dir;
-        if ( counter > 20 ) dir = -1;
-        if ( counter <= 0 ) dir = 1;
-        counter2 = ( Math.sqrt( Math.pow( mousePos.x, 2 ) +  Math.pow( mousePos.y, 2 ) ) / 50 );
+        if ( counter > 60 ) dir = -1;
+        if ( counter <= -100 ) dir = 1;
+        counter2 = 0;//( Math.sqrt( Math.pow( mousePos.x, 2 ) +  Math.pow( mousePos.y, 2 ) ) / 50 );
 
         canvas.width  = window.innerWidth * 0.9;
         canvas.height = window.innerHeight * 0.9;
+        ratio = canvas.height / canvas.width;
 
-        var num_cols = 10;
-        var num_rows = 10;
+        var num_cols = 20;
+        var num_rows = ratio * num_cols;
         var cell_width = canvas.width / num_cols;
         var cell_height = canvas.height / num_rows;
 
-        // var cell_width = 50;
+        // var cell_width = 100;
         // var cell_height = 20;
         // var num_cols = ( canvas.width / cell_width ).toFixed( 0 );
         // var num_rows = ( canvas.height / cell_height ).toFixed( 0 );
-
+        var red = 0;
+        var green = 0;
+        var blue = 0;
         for ( var y = 0; y < num_rows; y++ )
         {
           for ( var x = 0.0; x < num_cols; x++ )
           {
-            var red = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + ( counter + counter2 ) * 0.5 ) / num_cols ) ).toFixed(0);
-            var green = counter.toFixed(0);//( 256.0 * ( x / num_cols ) ).toFixed(0);
-            var blue = red;//( 256.0 * ( x / num_cols ) ).toFixed(0);
-            red = ( blue * 0.5 ).toFixed(0);
-            ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+            red = 0;
+            green = counter.toFixed(0);//( 256.0 * ( x / num_cols ) ).toFixed(0);
+            blue = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + ( counter + counter2 ) * 0.5 ) / num_cols ) ).toFixed(0);
+            // red = ( blue * 0.5 ).toFixed(0);
+            var alpha = 1;
+            ctx.fillStyle = "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
             ctx.fillRect( x * cell_width, y * cell_height, cell_width, cell_height );
           }
         }
+        red += 50 + Math.abs( counter );
+        ctx.fillStyle = "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
 
-        ctx.fillRect( mousePos.x, mousePos.y, cell_width, cell_height );
+        ctx.beginPath();
+        ctx.arc( mousePos.x, mousePos.y, 50, 0, 2 * Math.PI, false );
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
       }
 
     </script>
