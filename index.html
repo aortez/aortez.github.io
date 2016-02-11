@@ -5,6 +5,36 @@
     <meta charset="utf-8"/>
     <title>pizza</title>
     <script type="text/javascript">
+      "use strict";
+      var FPS = 60;
+      var counter = -100;
+      var ctx;
+      var frameDuration = 0;
+      var dir = 1;
+      var mousePos = { x: 0, y: 0 };
+      var mouseIsDown = false;
+
+      class Ball
+      {
+        constructor( x, y, r, c )
+        {
+          this.x = x;
+          this.y = y;
+          this.r = r;
+          this.c = c;
+        }
+
+        draw( ctx )
+        {
+          ctx.fillStyle = this.c;
+
+          ctx.beginPath();
+          ctx.arc( this.x, this.y, this.r, 0, 2 * Math.PI, false );
+          ctx.fill();
+          ctx.stroke();
+          ctx.closePath();
+        }
+      }
 
       function writeMessage( canvas, message )
       {
@@ -24,29 +54,27 @@
         };
       }
 
-      var FPS = 60;
       function init()
       {
         setInterval( function() { draw(); }, 1000 / FPS );
-      }
 
-      // Temporary variables to hold mouse x-y pos.s
-      var tempX = 0
-      var tempY = 0
-
-      var counter = -100;
-      var dir = 1;
-
-      var mousePos = { x: 0, y: 0 };
-
-      function getContext()
-      {
         var canvas = document.getElementById( 'pizza' );
         if ( !canvas.getContext )
         {
           return;
         }
 
+        canvas.onmousedown = function(e) {
+            // dragOffset.x = e.x - mainLayer.trans.x;
+            // dragOffset.y = e.y - mainLayer.trans.y;
+            console.log( "mouse down" );
+            mouseIsDown = true;
+        }
+        canvas.onmouseup = function(e) {
+            // if(mouseIsDown) mouseClick(e);
+            console.log( "mouse up" );
+            mouseIsDown = false;
+        }
         canvas.addEventListener( 'mousemove', function( evt )
         {
           mousePos = getMousePos( canvas, evt );
@@ -54,17 +82,12 @@
           // writeMessage( canvas, message );
         }, false);
 
-        var ctx = canvas.getContext( '2d' );
-        return ctx;
+        ctx = canvas.getContext( '2d' );
       }
-
-      var ctx;
-
-      var frameRate = 0;
 
       function draw()
       {
-        start = window.performance.now();
+        var start = window.performance.now();
 
         var canvas = document.getElementById( 'pizza' );
         if ( !canvas.getContext )
@@ -83,7 +106,7 @@
 
         canvas.width  = window.innerWidth * 0.9;
         canvas.height = window.innerHeight * 0.9;
-        ratio = canvas.height / canvas.width;
+        var ratio = canvas.height / canvas.width;
 
         var num_cols = 20;
         var num_rows = ratio * num_cols;
@@ -105,29 +128,34 @@
           for ( var x = 0.0; x < num_cols; x++ )
           {
             red = 0;
-            green = counter.toFixed(0);//( 256.0 * ( x / num_cols ) ).toFixed(0);
+            green = counter.toFixed(0);
             blue = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + counter * 0.5 ) / num_cols ) ).toFixed(0);
-            // red = ( blue * 0.5 ).toFixed(0);
-            var alpha = 1;
-            cell_size = Math.pow(blue / 256, 0.1);
+            var cell_size = Math.pow( blue / 256, 0.1 );
             ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
             ctx.fillRect( x * cell_width, y * cell_height, cell_width * cell_size, cell_height * cell_size );
           }
         }
-        red += 90 + Math.abs( counter );
-        ctx.fillStyle = "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
 
-        ctx.beginPath();
-        ctx.arc( mousePos.x, mousePos.y, cell_width * 0.5, 0, 2 * Math.PI, false );
-        ctx.fill();
-        ctx.stroke();
-        ctx.closePath();
+        if ( mouseIsDown )
+        {
+          red += 90 + Math.abs( counter );
+          var c = "rgb(" + red + "," + green + "," + blue + ")";
+          var ball = new Ball( mousePos.y, mousePos.x, 50, c );
+          ball.draw( ctx );
 
-        stop = window.performance.now();
-        elapsed = stop - start;
-        frameRate = 0.99 * frameRate + 0.01 * elapsed;
-        // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-        // writeMessage( canvas, frameRate );
+          ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+
+          ctx.beginPath();
+          ctx.arc( mousePos.x, mousePos.y, cell_width * 0.5, 0, 2 * Math.PI, false );
+          ctx.fill();
+          ctx.stroke();
+          ctx.closePath();
+        }
+
+        var stop = window.performance.now();
+        var elapsed = stop - start;
+        frameDuration = 0.99 * frameDuration + 0.01 * elapsed;
+        if ( counter % 50 == 0 ) { console.log( "frame duration: " + frameDuration ); }
       }
 
     </script>
