@@ -13,9 +13,9 @@
       var dir = 1;
       var mousePos = { x: 0, y: 0 };
       var mouseIsDown = false;
+      var world;
 
       var ball;
-      var balls = [];
       var c = "rgb(255,0,0)";
 
       class Ball
@@ -24,6 +24,8 @@
         {
           this.x = x;
           this.y = y;
+          this.xv = 0;
+          this.yv = 0;
           this.r = r;
           this.c = c;
         }
@@ -37,6 +39,42 @@
           ctx.fill();
           ctx.stroke();
           ctx.closePath();
+        }
+      }
+
+      class World
+      {
+        constructor()
+        {
+          this.balls = [];
+          this.height = 100;
+          this.width = 100;
+        }
+
+        addBall( b )
+        {
+          if ( b )
+          {
+            this.balls.push( b );
+          }
+        }
+
+        draw( ctx )
+        {
+          for ( var i = 0; i < this.balls.length; i++ )
+          {
+            this.balls[ i ].draw( ctx );
+          }
+        }
+
+        doPhysics()
+        {
+          for ( var i = 0; i < this.balls.length; i++ )
+          {
+            var b = this.balls[ i ];
+            b.x = b.x + b.xv;
+            b.y = b.y + b.yv;
+          }
         }
       }
 
@@ -60,6 +98,8 @@
 
       function init()
       {
+        world = new World();
+
         setInterval( function() { draw(); }, 1000 / FPS );
 
         var canvas = document.getElementById( 'pizza' );
@@ -68,7 +108,7 @@
           return;
         }
 
-        canvas.onmousedown = function(e) {
+        canvas.onmousedown = function( e ) {
             // dragOffset.x = e.x - mainLayer.trans.x;
             // dragOffset.y = e.y - mainLayer.trans.y;
             console.log( "mouse down" );
@@ -76,17 +116,18 @@
 
             ball = new Ball( mousePos.x, mousePos.y, 50, c );
         }
-        canvas.onmouseup = function(e) {
-            // if(mouseIsDown) mouseClick(e);
-            console.log( "mouse up" );
-            mouseIsDown = false;
 
-            if ( ball )
-            {
-              balls.push( ball );
-              ball = undefined;
-            }
+        canvas.onmouseup = function( e ) {
+          console.log( "mouse up" );
+          mouseIsDown = false;
+
+          if ( ball )
+          {
+            world.addBall( ball );
+            ball = undefined;
+          }
         }
+
         canvas.addEventListener( 'mousemove', function( evt )
         {
           mousePos = getMousePos( canvas, evt );
@@ -118,6 +159,8 @@
 
         canvas.width  = window.innerWidth * 0.9;
         canvas.height = window.innerHeight * 0.9;
+        world.width = canvas.width;
+        world.height = canvas.height;
         var ratio = canvas.height / canvas.width;
 
         var num_cols = 20;
@@ -149,17 +192,18 @@
           red += 90 + Math.abs( counter );
           c = "rgb(" + red + "," + green + "," + blue + ")";
           ball.c = c;
-
-          ball.x = mousePos.x;
-          ball.y = mousePos.y;
+          var alpha = 0.05;
+          ball.xv = ( 1 - alpha ) * ball.xv + alpha * ( mousePos.x - ball.x );
+          ball.yv = ( 1 - alpha ) * ball.yv + alpha * ( mousePos.y - ball.y );
+          
+          ball.x += ball.xv;
+          ball.y += ball.yv;
 
           ball.draw( ctx );
         }
 
-        for ( var i = 0; i < balls.length; i++ )
-        {
-          balls[i].draw( ctx );
-        }
+        world.doPhysics();
+        world.draw( ctx );
 
         var stop = window.performance.now();
         var elapsed = stop - start;
