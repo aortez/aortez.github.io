@@ -14,6 +14,10 @@
       var mousePos = { x: 0, y: 0 };
       var mouseIsDown = false;
 
+      var ball;
+      var balls = [];
+      var c = "rgb(255,0,0)";
+
       class Ball
       {
         constructor( x, y, r, c )
@@ -69,11 +73,19 @@
             // dragOffset.y = e.y - mainLayer.trans.y;
             console.log( "mouse down" );
             mouseIsDown = true;
+
+            ball = new Ball( mousePos.x, mousePos.y, 50, c );
         }
         canvas.onmouseup = function(e) {
             // if(mouseIsDown) mouseClick(e);
             console.log( "mouse up" );
             mouseIsDown = false;
+
+            if ( ball )
+            {
+              balls.push( ball );
+              ball = undefined;
+            }
         }
         canvas.addEventListener( 'mousemove', function( evt )
         {
@@ -113,10 +125,6 @@
         var cell_width = canvas.width / num_cols;
         var cell_height = canvas.height / num_rows;
 
-        // var cell_width = 100;
-        // var cell_height = 20;
-        // var num_cols = ( canvas.width / cell_width ).toFixed( 0 );
-        // var num_rows = ( canvas.height / cell_height ).toFixed( 0 );
         var red = 0;
         var green = 0;
         var blue = 0;
@@ -139,17 +147,18 @@
         if ( mouseIsDown )
         {
           red += 90 + Math.abs( counter );
-          var c = "rgb(" + red + "," + green + "," + blue + ")";
-          var ball = new Ball( mousePos.y, mousePos.x, 50, c );
+          c = "rgb(" + red + "," + green + "," + blue + ")";
+          ball.c = c;
+
+          ball.x = mousePos.x;
+          ball.y = mousePos.y;
+
           ball.draw( ctx );
+        }
 
-          ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
-
-          ctx.beginPath();
-          ctx.arc( mousePos.x, mousePos.y, cell_width * 0.5, 0, 2 * Math.PI, false );
-          ctx.fill();
-          ctx.stroke();
-          ctx.closePath();
+        for ( var i = 0; i < balls.length; i++ )
+        {
+          balls[i].draw( ctx );
         }
 
         var stop = window.performance.now();
