@@ -130,19 +130,25 @@
           console.log( "mouse up" );
           mouseIsDown = false;
 
-          if ( ball )
-          {
+          if ( ball ) {
             world.addBall( ball );
             ball = undefined;
           }
         }
 
-        canvas.addEventListener( 'mousemove', function( evt )
-        {
+        canvas.onmousemove = function( evt ) {
           mousePos = getMousePos( canvas, evt );
           // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
           // writeMessage( canvas, message );
-        }, false);
+        }
+
+        canvas.onmouseout = function( evt ) {
+          mouseIsDown = false;
+          if ( ball ) {
+            world.addBall( ball );
+            ball = undefined;
+          }
+        }
 
         ctx = canvas.getContext( '2d' );
       }
