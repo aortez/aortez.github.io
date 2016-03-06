@@ -20,8 +20,7 @@
 
       class Ball
       {
-        constructor( x, y, r, c )
-        {
+        constructor( x, y, r, c ) {
           this.x = x;
           this.y = y;
           this.xv = 0;
@@ -30,8 +29,7 @@
           this.c = c;
         }
 
-        draw( ctx )
-        {
+        draw( ctx ) {
           ctx.fillStyle = this.c;
 
           ctx.beginPath();
@@ -44,47 +42,60 @@
 
       class World
       {
-        constructor()
-        {
+        constructor() {
           this.balls = [];
           this.min_x = 0;
           this.min_y = 0;
           this.max_x = 100;
           this.max_y = 100;
-          this.g = 0.1;
+          this.g = 0.2;
         }
 
-        addBall( b )
-        {
-          if ( b )
-          {
+        addBall( b ) {
+          if ( b ) {
             this.balls.push( b );
           }
         }
 
-        draw( ctx )
-        {
-          for ( var i = 0; i < this.balls.length; i++ )
-          {
+        draw( ctx ) {
+          for ( var i = 0; i < this.balls.length; i++ ) {
             this.balls[ i ].draw( ctx );
           }
         }
 
-        doPhysics()
-        {
-          for ( var i = 0; i < this.balls.length; i++ )
-          {
+        doPhysics() {
+          for ( var i = 0; i < this.balls.length; i++ ) {
             var b = this.balls[ i ];
+
+            // move ball
             b.yv += this.g;
             b.x += b.xv;
             b.y += b.yv;
+
+            // bounce off walls
             var damp_factor = 0.9;
             if ( b.x + b.r > this.max_x ) { b.x = this.max_x - b.r; b.xv = -b.xv * damp_factor; }
             if ( b.y + b.r > this.max_y ) { b.y = this.max_y - b.r; b.yv = -b.yv * damp_factor; }
             if ( b.x - b.r < this.min_x ) { b.x = this.min_x + b.r; b.xv = -b.xv * damp_factor; }
             if ( b.y - b.r < this.min_y ) { b.y = this.min_y + b.r; b.yv = -b.yv * damp_factor; }
+
+            // bounce off other balls
+            for ( var j = i + 1; j < this.balls.length; j++ ) {
+              var b2 = this.balls[ j ];
+              if ( this.distance( b, b2 ) < b.r + b2.r ) {
+                b.xv = -b.xv;
+                b.yv = -b.yv;
+              }
+            }
+
           }
         }
+
+        distance( a, b ) {
+          var d = Math.sqrt( ( a.x - b.x ) * ( a.x - b.x ) + ( a.y - b.y ) * ( a.y - b.y ) );
+          return d;
+        }
+
       }
 
       function writeMessage( canvas, message )
