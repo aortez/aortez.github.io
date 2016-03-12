@@ -24,7 +24,7 @@ class Ball
     // test to see if circles are in the exact same spot
     var delta = D.mag();
     // or if they are sitting exactly on top of each other
-    var offset = Math.abs( this.center.x - b.center.x ) < 0.001 );
+    var offset = Math.abs( this.center.x - b.center.x );
     while ( delta === 0 || offset < 0.001 ) {
       var max_jitter = 0.01;
       // give the other object a small random jitter
@@ -32,7 +32,7 @@ class Ball
       b.center.y += Math.random() * max_jitter;
       D = this.center.copy().minus( b.center );
       delta = D.mag();
-      offset = Math.abs( this.center.x - b.center.x ) < 0.001 );
+      offset = Math.abs( this.center.x - b.center.x );
     }
 
     // normalize vector between centers
