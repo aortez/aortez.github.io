@@ -3,7 +3,7 @@ class vec2
   constructor( x, y ) {
     this.x = x;
     this.y = y;
-    console.log( "x, y: " + x + ", " + y );
+    // console.log( "x, y: " + x + ", " + y );
   }
 
   copy() {
@@ -19,8 +19,8 @@ class vec2
   }
 
   plus( a ) {
-    this.x = this.x + a.x;
-    this.y = this.y + a.y;
+    this.x += a.x;
+    this.y += a.y;
     return this;
   }
 
@@ -31,8 +31,8 @@ class vec2
   }
 
   times( scalar ) {
-    this.x = this.x * scalar;
-    this.y = this.y * scalar;
+    this.x *= scalar;
+    this.y *= scalar;
     return this;
   }
 
@@ -41,15 +41,15 @@ class vec2
     return m;
   }
 
-  dot( a, b ) {
-    var scalarProduct = a.x * b.x + a.y * b.y;
+  dot( b ) {
+    var scalarProduct = this.x * b.x + this.y * b.y;
     return scalarProduct;
   }
 
   normalize() {
     var m = this.mag();
-    this.x = this.x / m;
-    this.y = this.y / m;
+    this.x /= m;
+    this.y /= m;
     return this;
   }
 

@@ -119,7 +119,7 @@ function draw()
     {
       red = 0;
       green = counter.toFixed(0);
-      blue = ( 256.0 * ( (  x + ( x % 2 == 0 ? y : -y ) + counter * 0.5 ) / num_cols ) ).toFixed(0);
+      blue = ( 256.0 * ( (  x + ( x % 2 === 0 ? y : -y ) + counter * 0.5 ) / num_cols ) ).toFixed(0);
       var cell_size = Math.pow( blue / 256, 0.1 );
       ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
       ctx.fillRect( x * cell_width, y * cell_height, cell_width * cell_size, cell_height * cell_size );
@@ -147,5 +147,5 @@ function draw()
   var stop = window.performance.now();
   var elapsed = stop - start;
   frameDuration = 0.99 * frameDuration + 0.01 * elapsed;
-  if ( counter % 50 == 0 ) { console.log( "frame duration: " + frameDuration ); }
+  if ( counter % 50 === 0 ) { console.log( "frame duration: " + frameDuration ); }
 }

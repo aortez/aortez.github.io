@@ -40,10 +40,6 @@ class World
       for ( var j = i + 1; j < this.balls.length; j++ ) {
         var b2 = this.balls[ j ];
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
-          b.v.x = -b.v.x;
-          b.v.y = -b.v.y;
-          b2.v.x = -b2.v.x;
-          b2.v.y = -b2.v.y;
           b.collide( b2 );
         }
       }
