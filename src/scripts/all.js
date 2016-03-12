@@ -48,30 +48,33 @@ function init()
       mouseIsDown = true;
 
       ball = new Ball( mousePos.x, mousePos.y, 50, c );
+
+      world.addBall( ball );
   };
 
   canvas.onmouseup = function( e ) {
     console.log( "mouse up" );
     mouseIsDown = false;
-
-    if ( ball ) {
-      world.addBall( ball );
-      ball = undefined;
-    }
   };
 
   canvas.onmousemove = function( evt ) {
     mousePos = getMousePos( canvas, evt );
-    // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-    // writeMessage( canvas, message );
+    var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+    console.log( message );
   };
 
   canvas.onmouseout = function( evt ) {
     mouseIsDown = false;
-    if ( ball ) {
-      world.addBall( ball );
-      ball = undefined;
-    }
+    ball = undefined;
+    // if ( ball ) {
+      // world.addBall( ball );
+      // ball = undefined;
+    // }
+  };
+
+  canvas.onmousein = function( evt ) {
+    mouseIsDown = false;
+    ball = undefined;
   };
 
   ctx = canvas.getContext( '2d' );
@@ -126,17 +129,14 @@ function draw()
     }
   }
 
-  if ( mouseIsDown )
+  if ( mouseIsDown && ball )
   {
     red += 90 + Math.abs( counter );
     c = "rgb(" + red + "," + green + "," + blue + ")";
     ball.c = c;
     var alpha = 0.05;
-    ball.xv = ( 1 - alpha ) * ball.xv + alpha * ( mousePos.x - ball.x );
-    ball.yv = ( 1 - alpha ) * ball.yv + alpha * ( mousePos.y - ball.y );
-
-    ball.x += ball.xv;
-    ball.y += ball.yv;
+    ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
+    ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
 
     ball.draw( ctx );
   }

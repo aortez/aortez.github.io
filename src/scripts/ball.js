@@ -7,16 +7,6 @@ class Ball
     this.c = c;
   }
 
-  draw( ctx ) {
-    ctx.fillStyle = this.c;
-
-    ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
-    ctx.fill();
-    ctx.stroke();
-    ctx.closePath();
-  }
-
   collide( b ) {
     // distance between centers
     var D = this.center.copy().minus( b.center );
@@ -68,6 +58,16 @@ class Ball
     var dv2t = Dn.times( ( m2 - m1 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
     this.v = v1t.plus( dv1t.times( elastic_factor ) );
     b.v = v2t.minus( dv2t.times( elastic_factor ) );
+  }
+
+  draw( ctx ) {
+    ctx.fillStyle = this.c;
+
+    ctx.beginPath();
+    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    ctx.fill();
+    ctx.stroke();
+    ctx.closePath();
   }
 
 }
