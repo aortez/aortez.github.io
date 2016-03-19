@@ -1,3 +1,4 @@
+
 class vec2
 {
   constructor( x, y ) {

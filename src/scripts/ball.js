@@ -5,6 +5,8 @@ class Ball
     this.v = new vec2( 0, 0 );
     this.r = r;
     this.c = c;
+    this.hp = r * r;
+    this.hp_max = r * r;
   }
 
   collide( b ) {
@@ -58,16 +60,50 @@ class Ball
     var dv2t = Dn.times( ( m2 - m1 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
     this.v = v1t.plus( dv1t.times( elastic_factor ) );
     b.v = v2t.minus( dv2t.times( elastic_factor ) );
+
+    // damage life based upon change in momemtum
+    var damage_scalar = 0.001;
+    this.hp -= ( dv1t.mag() * m1 * damage_scalar );
+    b.hp -= ( dv2t.mag() * m2  * damage_scalar );
+    // console.log( "this.hp: " + this.hp );
   }
 
   draw( ctx ) {
-    ctx.fillStyle = this.c;
-
+    // var alpha = Math.pow( this.hp / this.hp_max, 0.1 );
+    var alpha = 1;
+    ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
     ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    ctx.arc( this.center.x, this.center.y, this.r * alpha, 0, 2 * Math.PI, false );
     ctx.fill();
     ctx.stroke();
     ctx.closePath();
+  }
+
+  explode() {
+    var EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
+    var EXPLODER_SIZE_FACTOR = 0.4;
+    var EXPLODE_V_FACTOR = 0.2;
+    var EXPLODER_SIZE_RANGE_FACTOR = 0.5;
+    var N_DIVS = 7;
+
+    var frags = [];
+    for ( var y = this.center.y - this.r; y < this.center.y + this.r; y += this.r / N_DIVS ) {
+      for ( var x = this.center.x - this.r; x < this.center.x + this.r; x += this.r / N_DIVS ) {
+        var new_center = new vec2( x, y );
+        if ( new_center.distance( this.center ) > this.r ) continue;
+
+        var r = Math.min( Math.random() + ( 1 - EXPLODER_SIZE_RANGE_FACTOR ) ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
+        var new_ball = new Ball( x, y, r, this.c );
+        // new_ball.v = this.v;
+        var v = new_ball.center.copy().minus( this.center );
+        v.times( EXPLODE_V_FACTOR );
+        v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
+        new_ball.v = v;
+
+        frags.push( new_ball );
+      }
+    }
+    return frags;
   }
 
 }

@@ -17,6 +17,7 @@ var concat = require('gulp-concat');
 // JS concat, strip debugging and minify
 gulp.task('scripts', function() {
   gulp.src([
+    './src/scripts/vec3.js',
     './src/scripts/all.js',
     './src/scripts/ball.js',
     './src/scripts/vec2.js',
