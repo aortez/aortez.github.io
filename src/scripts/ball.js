@@ -10,6 +10,8 @@ class Ball
   }
 
   collide( b ) {
+    var DAMAGE_SCALAR = 0.005;
+
     // distance between centers
     var D = this.center.copy().minus( b.center );
 
@@ -62,9 +64,8 @@ class Ball
     b.v = v2t.minus( dv2t.times( elastic_factor ) );
 
     // damage life based upon change in momemtum
-    var damage_scalar = 0.001;
-    this.hp -= ( dv1t.mag() * m1 * damage_scalar );
-    b.hp -= ( dv2t.mag() * m2  * damage_scalar );
+    this.hp -= ( dv1t.mag() * m1 * DAMAGE_SCALAR );
+    b.hp -= ( dv2t.mag() * m2  * DAMAGE_SCALAR );
     // console.log( "this.hp: " + this.hp );
   }
 

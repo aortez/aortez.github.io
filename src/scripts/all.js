@@ -62,10 +62,6 @@ function init()
   canvas.onmouseout = function( evt ) {
     mouseIsDown = false;
     ball = undefined;
-    // if ( ball ) {
-      // world.addBall( ball );
-      // ball = undefined;
-    // }
   };
 
   canvas.onmousein = function( evt ) {
@@ -97,7 +93,7 @@ function advance() {
 
   draw( dt * 0.05 );
 
-  world.doPhysics( dt * 0.01 );
+  world.doPhysics( dt * 0.05 );
   world.draw( ctx );
 }
 

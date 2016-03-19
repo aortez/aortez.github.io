@@ -55,7 +55,7 @@ class World
   }
 
   doPhysics( dt ) {
-    var MAX_BALLS = 1000;
+    var MAX_BALLS = 800;
     var MIN_EXPLODER_RADIUS = 10;
     var NEW_PARTICLE_HP = 1;
     var WALL_ELASTIC_FACTOR = 0.9;

@@ -127,10 +127,6 @@ function init()
   canvas.onmouseout = function( evt ) {
     mouseIsDown = false;
     ball = undefined;
-    // if ( ball ) {
-      // world.addBall( ball );
-      // ball = undefined;
-    // }
   };
 
   canvas.onmousein = function( evt ) {
@@ -162,7 +158,7 @@ function advance() {
 
   draw( dt * 0.05 );
 
-  world.doPhysics( dt * 0.01 );
+  world.doPhysics( dt * 0.05 );
   world.draw( ctx );
 }
 
@@ -241,6 +237,8 @@ class Ball
   }
 
   collide( b ) {
+    var DAMAGE_SCALAR = 0.005;
+
     // distance between centers
     var D = this.center.copy().minus( b.center );
 
@@ -293,9 +291,8 @@ class Ball
     b.v = v2t.minus( dv2t.times( elastic_factor ) );
 
     // damage life based upon change in momemtum
-    var damage_scalar = 0.001;
-    this.hp -= ( dv1t.mag() * m1 * damage_scalar );
-    b.hp -= ( dv2t.mag() * m2  * damage_scalar );
+    this.hp -= ( dv1t.mag() * m1 * DAMAGE_SCALAR );
+    b.hp -= ( dv2t.mag() * m2  * DAMAGE_SCALAR );
     // console.log( "this.hp: " + this.hp );
   }
 
@@ -454,7 +451,7 @@ class World
   }
 
   doPhysics( dt ) {
-    var MAX_BALLS = 1000;
+    var MAX_BALLS = 800;
     var MIN_EXPLODER_RADIUS = 10;
     var NEW_PARTICLE_HP = 1;
     var WALL_ELASTIC_FACTOR = 0.9;
