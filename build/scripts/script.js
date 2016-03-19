@@ -237,7 +237,7 @@ class Ball
   }
 
   collide( b ) {
-    var DAMAGE_SCALAR = 0.005;
+    var DAMAGE_SCALAR = 0.002;
 
     // distance between centers
     var D = this.center.copy().minus( b.center );
