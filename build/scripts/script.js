@@ -103,13 +103,12 @@ function init()
   }
 
   canvas.onmousedown = function( e ) {
-      // dragOffset.x = e.x - mainLayer.trans.x;
-      // dragOffset.y = e.y - mainLayer.trans.y;
       console.log( "mouse down" );
       mouseIsDown = true;
-      var c = new vec3( 255, 0, 0 );
-      ball = new Ball( mousePos.x, mousePos.y, 50, c );
 
+      var c = new vec3( 0, 100, 0 );
+      var r = 50 + 50 * Math.pow( Math.random(), 0.5 );
+      ball = new Ball( mousePos.x, mousePos.y, r, world.c.copy() );
       world.addBall( ball );
   };
 
@@ -120,8 +119,6 @@ function init()
 
   canvas.onmousemove = function( evt ) {
     mousePos = getMousePos( canvas, evt );
-    // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-    // console.log( message );
   };
 
   canvas.onmouseout = function( evt ) {
@@ -159,6 +156,7 @@ function advance() {
   draw( dt * 0.05 );
 
   world.doPhysics( dt * 0.05 );
+
   world.draw( ctx );
 }
 
@@ -203,19 +201,18 @@ function draw( dt )
     }
   }
 
-  world.c.x = red + 90 + Math.abs( counter );
-  world.c.y = green;
-  world.c.z = blue;
-
   if ( mouseIsDown && ball ) {
-    world.c.x = red;
-    world.c.y = green;
-    world.c.z = blue;
+    // red += 190 + Math.abs( counter );
+    console.log( "red: " + red + ", counter: " + counter );
+
+    ball.c.x = red + 190;// + Math.abs(counter) + 100;
+    console.log( "ball.c.x: " + ball.c.x );
+    ball.c.y = green;
+    ball.c.z = blue;
     var alpha = 0.05;
     ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
     ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
-    ball.hp += ball.hp_max * 0.01;
-    ball.hp = Math.min( ball.hp, ball.hp_max );
+    ball.hp = 1000;
   }
 
 
@@ -297,9 +294,9 @@ class Ball
   }
 
   draw( ctx ) {
+    ctx.fillStyle = this.c.toRGB();
     // var alpha = Math.pow( this.hp / this.hp_max, 0.1 );
     var alpha = 1;
-    ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
     ctx.beginPath();
     ctx.arc( this.center.x, this.center.y, this.r * alpha, 0, 2 * Math.PI, false );
     ctx.fill();
@@ -404,7 +401,6 @@ class World
     this.max_x = 100;
     this.max_y = 100;
     this.g = 0.2;
-    this.dt = 0.2;
     this.c = new vec3( 0, 0, 255 );
 
     this.setupBalls();
@@ -551,13 +547,11 @@ class World
 
       // remove the dead ones
       if ( p.hp <= 0 ) {
-        // console.log( "removing dead particle, hp: " + p.hp );
         this.particles.splice( i, 1 );
       }
 
     }
 
   }
-
 
 }

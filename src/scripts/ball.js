@@ -70,9 +70,9 @@ class Ball
   }
 
   draw( ctx ) {
+    ctx.fillStyle = this.c.toRGB();
     // var alpha = Math.pow( this.hp / this.hp_max, 0.1 );
     var alpha = 1;
-    ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
     ctx.beginPath();
     ctx.arc( this.center.x, this.center.y, this.r * alpha, 0, 2 * Math.PI, false );
     ctx.fill();

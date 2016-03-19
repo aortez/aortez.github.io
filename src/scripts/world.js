@@ -8,7 +8,6 @@ class World
     this.max_x = 100;
     this.max_y = 100;
     this.g = 0.2;
-    this.dt = 0.2;
     this.c = new vec3( 0, 0, 255 );
 
     this.setupBalls();
@@ -155,13 +154,11 @@ class World
 
       // remove the dead ones
       if ( p.hp <= 0 ) {
-        // console.log( "removing dead particle, hp: " + p.hp );
         this.particles.splice( i, 1 );
       }
 
     }
 
   }
-
 
 }

@@ -38,13 +38,12 @@ function init()
   }
 
   canvas.onmousedown = function( e ) {
-      // dragOffset.x = e.x - mainLayer.trans.x;
-      // dragOffset.y = e.y - mainLayer.trans.y;
       console.log( "mouse down" );
       mouseIsDown = true;
-      var c = new vec3( 255, 0, 0 );
-      ball = new Ball( mousePos.x, mousePos.y, 50, c );
 
+      var c = new vec3( 0, 100, 0 );
+      var r = 50 + 50 * Math.pow( Math.random(), 0.5 );
+      ball = new Ball( mousePos.x, mousePos.y, r, world.c.copy() );
       world.addBall( ball );
   };
 
@@ -55,8 +54,6 @@ function init()
 
   canvas.onmousemove = function( evt ) {
     mousePos = getMousePos( canvas, evt );
-    // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-    // console.log( message );
   };
 
   canvas.onmouseout = function( evt ) {
@@ -94,6 +91,7 @@ function advance() {
   draw( dt * 0.05 );
 
   world.doPhysics( dt * 0.05 );
+
   world.draw( ctx );
 }
 
@@ -138,19 +136,18 @@ function draw( dt )
     }
   }
 
-  world.c.x = red + 90 + Math.abs( counter );
-  world.c.y = green;
-  world.c.z = blue;
-
   if ( mouseIsDown && ball ) {
-    world.c.x = red;
-    world.c.y = green;
-    world.c.z = blue;
+    // red += 190 + Math.abs( counter );
+    console.log( "red: " + red + ", counter: " + counter );
+
+    ball.c.x = red + 190;// + Math.abs(counter) + 100;
+    console.log( "ball.c.x: " + ball.c.x );
+    ball.c.y = green;
+    ball.c.z = blue;
     var alpha = 0.05;
     ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
     ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
-    ball.hp += ball.hp_max * 0.01;
-    ball.hp = Math.min( ball.hp, ball.hp_max );
+    ball.hp = 1000;
   }
 
 
