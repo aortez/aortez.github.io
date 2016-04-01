@@ -115,7 +115,7 @@ class World
           p.hp = NEW_PARTICLE_HP;
           // p.r = 50;
           // if ( p.r < 50 ) { p.hp = 0; }
-          if ( p.r < 1 ) { new_particles.splice( p_index, 1 ); }
+          if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
         }
         this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
@@ -158,10 +158,22 @@ class World
         // console.log( "removing dead particle, hp: " + p.hp );
         this.particles.splice( i, 1 );
       }
-
     }
-
   }
 
+  retrieveBall( x, y ) {
+    var pos = new vec2( x, y );
+
+    for( var i = 0; i < this.balls.length; i++ ) {
+      var b = this.balls[ i ];
+      
+      var dist = pos.distance( b.center );
+      if ( dist <= b.r ) {
+        return b;
+      }
+    }
+
+    return null;
+  }
 
 }

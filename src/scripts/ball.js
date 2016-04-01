@@ -9,6 +9,11 @@ class Ball
     this.hp_max = r * r;
   }
 
+  calcHp() {
+    var hp = this.r * this.r;
+    return hp;
+  }
+
   collide( b ) {
     var DAMAGE_SCALAR = 0.002;
 
@@ -70,11 +75,9 @@ class Ball
   }
 
   draw( ctx ) {
-    // var alpha = Math.pow( this.hp / this.hp_max, 0.1 );
-    var alpha = 1;
     ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
     ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, this.r * alpha, 0, 2 * Math.PI, false );
+    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
     ctx.fill();
     ctx.stroke();
     ctx.closePath();
@@ -94,8 +97,12 @@ class Ball
         if ( new_center.distance( this.center ) > this.r ) continue;
 
         var r = Math.min( Math.random() + ( 1 - EXPLODER_SIZE_RANGE_FACTOR ) ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
-        var new_ball = new Ball( x, y, r, this.c );
-        // new_ball.v = this.v;
+        var c = new vec3(
+          Math.min( 255, this.c.x * Math.random() + 255 * 0.5 ),
+          this.c.y * Math.random() + 255 * 0.5,
+          this.c.z * Math.random() + 255 * 0.5 );
+        var new_ball = new Ball( x, y, r, c );
+
         var v = new_ball.center.copy().minus( this.center );
         v.times( EXPLODE_V_FACTOR );
         v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );

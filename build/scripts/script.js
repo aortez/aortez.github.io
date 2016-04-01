@@ -91,6 +91,34 @@ function getMousePos( canvas, evt )
   };
 }
 
+function mouseDown( e ) {
+  console.log( "mouse down" );
+  mouseIsDown = true;
+
+  // check if cursor is over any balls
+  var grabbed_ball = world.retrieveBall( mousePos.x, mousePos.y );
+  if ( grabbed_ball ) {
+    ball = grabbed_ball;
+  }
+  else {
+    var r = Math.random() * 50 + 50;
+    var c = new vec3( 255, 0, 0 );
+    ball = new Ball( mousePos.x, mousePos.y, r, c );
+    world.addBall( ball );
+  }
+
+  window.removeEventListener( "mousedown", mouseDown, false );
+  window.addEventListener( "mouseup", mouseUp, false );
+  e.preventDefault();
+}
+
+function mouseUp( e ) {
+  console.log( "mouse up" );
+  mouseIsDown = false;
+  window.addEventListener( "mousedown", mouseDown, false );
+  ball.hp = ball.calcHp();
+}
+
 function init()
 {
   world = new World();
@@ -102,36 +130,12 @@ function init()
     return;
   }
 
-  canvas.onmousedown = function( e ) {
-      // dragOffset.x = e.x - mainLayer.trans.x;
-      // dragOffset.y = e.y - mainLayer.trans.y;
-      console.log( "mouse down" );
-      mouseIsDown = true;
-      var c = new vec3( 255, 0, 0 );
-      ball = new Ball( mousePos.x, mousePos.y, 50, c );
-
-      world.addBall( ball );
-  };
-
-  canvas.onmouseup = function( e ) {
-    console.log( "mouse up" );
-    mouseIsDown = false;
-  };
+  canvas.addEventListener( "mousedown", mouseDown, false );
 
   canvas.onmousemove = function( evt ) {
     mousePos = getMousePos( canvas, evt );
     // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
     // console.log( message );
-  };
-
-  canvas.onmouseout = function( evt ) {
-    mouseIsDown = false;
-    ball = undefined;
-  };
-
-  canvas.onmousein = function( evt ) {
-    mouseIsDown = false;
-    ball = undefined;
   };
 
   ctx = canvas.getContext( '2d' );
@@ -208,14 +212,12 @@ function draw( dt )
   world.c.z = blue;
 
   if ( mouseIsDown && ball ) {
-    world.c.x = red;
-    world.c.y = green;
-    world.c.z = blue;
-    var alpha = 0.05;
-    ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
-    ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
-    ball.hp += ball.hp_max * 0.01;
-    ball.hp = Math.min( ball.hp, ball.hp_max );
+    ball.c.x = 255;
+    ball.c.y = green;
+    ball.c.z = blue;
+    ball.center.x = mousePos.x;
+    ball.center.y = mousePos.y;
+    ball.hp = ball.calcHp() * 1000;
   }
 
 
@@ -234,6 +236,11 @@ class Ball
     this.c = c;
     this.hp = r * r;
     this.hp_max = r * r;
+  }
+
+  calcHp() {
+    var hp = this.r * this.r;
+    return hp;
   }
 
   collide( b ) {
@@ -297,11 +304,9 @@ class Ball
   }
 
   draw( ctx ) {
-    // var alpha = Math.pow( this.hp / this.hp_max, 0.1 );
-    var alpha = 1;
     ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
     ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, this.r * alpha, 0, 2 * Math.PI, false );
+    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
     ctx.fill();
     ctx.stroke();
     ctx.closePath();
@@ -321,8 +326,12 @@ class Ball
         if ( new_center.distance( this.center ) > this.r ) continue;
 
         var r = Math.min( Math.random() + ( 1 - EXPLODER_SIZE_RANGE_FACTOR ) ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
-        var new_ball = new Ball( x, y, r, this.c );
-        // new_ball.v = this.v;
+        var c = new vec3(
+          Math.min( 255, this.c.x * Math.random() + 255 * 0.5 ),
+          this.c.y * Math.random() + 255 * 0.5,
+          this.c.z * Math.random() + 255 * 0.5 );
+        var new_ball = new Ball( x, y, r, c );
+
         var v = new_ball.center.copy().minus( this.center );
         v.times( EXPLODE_V_FACTOR );
         v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
@@ -511,7 +520,7 @@ class World
           p.hp = NEW_PARTICLE_HP;
           // p.r = 50;
           // if ( p.r < 50 ) { p.hp = 0; }
-          if ( p.r < 1 ) { new_particles.splice( p_index, 1 ); }
+          if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
         }
         this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
@@ -554,10 +563,22 @@ class World
         // console.log( "removing dead particle, hp: " + p.hp );
         this.particles.splice( i, 1 );
       }
-
     }
-
   }
 
+  retrieveBall( x, y ) {
+    var pos = new vec2( x, y );
+
+    for( var i = 0; i < this.balls.length; i++ ) {
+      var b = this.balls[ i ];
+      
+      var dist = pos.distance( b.center );
+      if ( dist <= b.r ) {
+        return b;
+      }
+    }
+
+    return null;
+  }
 
 }

@@ -26,6 +26,34 @@ function getMousePos( canvas, evt )
   };
 }
 
+function mouseDown( e ) {
+  console.log( "mouse down" );
+  mouseIsDown = true;
+
+  // check if cursor is over any balls
+  var grabbed_ball = world.retrieveBall( mousePos.x, mousePos.y );
+  if ( grabbed_ball ) {
+    ball = grabbed_ball;
+  }
+  else {
+    var r = Math.random() * 50 + 50;
+    var c = new vec3( 255, 0, 0 );
+    ball = new Ball( mousePos.x, mousePos.y, r, c );
+    world.addBall( ball );
+  }
+
+  window.removeEventListener( "mousedown", mouseDown, false );
+  window.addEventListener( "mouseup", mouseUp, false );
+  e.preventDefault();
+}
+
+function mouseUp( e ) {
+  console.log( "mouse up" );
+  mouseIsDown = false;
+  window.addEventListener( "mousedown", mouseDown, false );
+  ball.hp = ball.calcHp();
+}
+
 function init()
 {
   world = new World();
@@ -37,36 +65,12 @@ function init()
     return;
   }
 
-  canvas.onmousedown = function( e ) {
-      // dragOffset.x = e.x - mainLayer.trans.x;
-      // dragOffset.y = e.y - mainLayer.trans.y;
-      console.log( "mouse down" );
-      mouseIsDown = true;
-      var c = new vec3( 255, 0, 0 );
-      ball = new Ball( mousePos.x, mousePos.y, 50, c );
-
-      world.addBall( ball );
-  };
-
-  canvas.onmouseup = function( e ) {
-    console.log( "mouse up" );
-    mouseIsDown = false;
-  };
+  canvas.addEventListener( "mousedown", mouseDown, false );
 
   canvas.onmousemove = function( evt ) {
     mousePos = getMousePos( canvas, evt );
     // var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
     // console.log( message );
-  };
-
-  canvas.onmouseout = function( evt ) {
-    mouseIsDown = false;
-    ball = undefined;
-  };
-
-  canvas.onmousein = function( evt ) {
-    mouseIsDown = false;
-    ball = undefined;
   };
 
   ctx = canvas.getContext( '2d' );
@@ -143,14 +147,12 @@ function draw( dt )
   world.c.z = blue;
 
   if ( mouseIsDown && ball ) {
-    world.c.x = red;
-    world.c.y = green;
-    world.c.z = blue;
-    var alpha = 0.05;
-    ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
-    ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
-    ball.hp += ball.hp_max * 0.01;
-    ball.hp = Math.min( ball.hp, ball.hp_max );
+    ball.c.x = 255;
+    ball.c.y = green;
+    ball.c.z = blue;
+    ball.center.x = mousePos.x;
+    ball.center.y = mousePos.y;
+    ball.hp = ball.calcHp() * 1000;
   }
 
 
