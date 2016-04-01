@@ -52,6 +52,9 @@ function mouseUp( e ) {
   mouseIsDown = false;
   window.addEventListener( "mousedown", mouseDown, false );
   ball.hp = ball.calcHp();
+  var alpha = 1;
+  ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
+  ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
 }
 
 function init()
@@ -146,9 +149,12 @@ function draw( dt )
     ball.c.x = 255;
     ball.c.y = green;
     ball.c.z = blue;
+    ball.hp = ball.calcHp() * 1000;
+    var alpha = 0.05;
+    ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
+    ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
     ball.center.x = mousePos.x;
     ball.center.y = mousePos.y;
-    ball.hp = ball.calcHp() * 1000;
   }
 
 
