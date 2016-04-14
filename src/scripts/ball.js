@@ -83,12 +83,13 @@ class Ball
     ctx.closePath();
   }
 
-  explode() {
+  explode( n_divs ) {
     var EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     var EXPLODER_SIZE_FACTOR = 0.4;
     var EXPLODE_V_FACTOR = 0.2;
     var EXPLODER_SIZE_RANGE_FACTOR = 0.5;
     var N_DIVS = 7;
+    if ( n_divs ) { N_DIVS = n_divs; console.log( "n_divs: " + n_divs ); }
 
     var frags = [];
     for ( var y = this.center.y - this.r; y < this.center.y + this.r; y += this.r / N_DIVS ) {

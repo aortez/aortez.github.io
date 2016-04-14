@@ -1,0 +1,23 @@
+{
+  "name": "aortez.github.io",
+  "homepage": "https://github.com/aortez/aortez.github.io",
+  "authors": [
+    "Allan Ortiz <aortez@gmail.com>"
+  ],
+  "description": "pizza",
+  "main": "pizza",
+  "moduleType": [],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "paper-slider": "PolymerElements/paper-slider#^1.0.10",
+    "polymer": "Polymer/polymer#^1.4.0"
+  }
+}

@@ -59,7 +59,22 @@ function mouseUp( e ) {
 
 function init()
 {
+  // var slider = document.getElementById('slider');
+  // slider.addEventListener( 'value-change', world.sliding, false );
+  // if ( slider ) {
+  //   console.log('slider value' + slider.value);
+  //   slider.addEventListener( 'value-change', function() {
+  //     console.log("slider.value: " + slider.value);
+  //   });
+  // }
+  // else {
+  //   console.log('no slider');
+  // }
+
   world = new World();
+
+  var slider = document.getElementById('slider');
+  slider.addEventListener( 'value-change', world.sliding, false );
 
   setInterval( function() { advance(); }, 1000 / FPS );
 
@@ -67,7 +82,6 @@ function init()
   if ( !canvas.getContext ) {
     return;
   }
-
 
   canvas.addEventListener( "mousedown", mouseDown, false );
 
@@ -89,7 +103,7 @@ function advance() {
   }
 
   canvas.width  = window.innerWidth * 0.9;
-  canvas.height = window.innerHeight * 0.9;
+  canvas.height = window.innerHeight * 0.8;
   world.max_x = canvas.width;
   world.max_y = canvas.height;
 
@@ -156,7 +170,6 @@ function draw( dt )
     ball.center.x = mousePos.x;
     ball.center.y = mousePos.y;
   }
-
 
   var stop = window.performance.now();
   var elapsed = stop - start;

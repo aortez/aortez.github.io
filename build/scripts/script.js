@@ -124,7 +124,22 @@ function mouseUp( e ) {
 
 function init()
 {
+  // var slider = document.getElementById('slider');
+  // slider.addEventListener( 'value-change', world.sliding, false );
+  // if ( slider ) {
+  //   console.log('slider value' + slider.value);
+  //   slider.addEventListener( 'value-change', function() {
+  //     console.log("slider.value: " + slider.value);
+  //   });
+  // }
+  // else {
+  //   console.log('no slider');
+  // }
+
   world = new World();
+
+  var slider = document.getElementById('slider');
+  slider.addEventListener( 'value-change', world.sliding, false );
 
   setInterval( function() { advance(); }, 1000 / FPS );
 
@@ -132,7 +147,6 @@ function init()
   if ( !canvas.getContext ) {
     return;
   }
-
 
   canvas.addEventListener( "mousedown", mouseDown, false );
 
@@ -154,7 +168,7 @@ function advance() {
   }
 
   canvas.width  = window.innerWidth * 0.9;
-  canvas.height = window.innerHeight * 0.9;
+  canvas.height = window.innerHeight * 0.8;
   world.max_x = canvas.width;
   world.max_y = canvas.height;
 
@@ -221,7 +235,6 @@ function draw( dt )
     ball.center.x = mousePos.x;
     ball.center.y = mousePos.y;
   }
-
 
   var stop = window.performance.now();
   var elapsed = stop - start;
@@ -314,12 +327,13 @@ class Ball
     ctx.closePath();
   }
 
-  explode() {
+  explode( n_divs ) {
     var EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     var EXPLODER_SIZE_FACTOR = 0.4;
     var EXPLODE_V_FACTOR = 0.2;
     var EXPLODER_SIZE_RANGE_FACTOR = 0.5;
     var N_DIVS = 7;
+    if ( n_divs ) { N_DIVS = n_divs; console.log( "n_divs: " + n_divs ); }
 
     var frags = [];
     for ( var y = this.center.y - this.r; y < this.center.y + this.r; y += this.r / N_DIVS ) {
@@ -416,7 +430,7 @@ class World
     this.max_y = 100;
     this.g = 0.2;
     this.c = new vec3( 0, 0, 255 );
-
+    this.n_divs = 5;
     this.setupBalls();
   }
 
@@ -510,9 +524,9 @@ class World
       // if they are big enough, then lets blow them into smaller pieces
       if ( ball.r > MIN_EXPLODER_RADIUS ) {
         // console.log( "exploded - r: " + ball.r );
-        new_balls = new_balls.concat( ball.explode() );
+        new_balls = new_balls.concat( ball.explode( this.n_divs ) );
         // console.log( "new_balls.length: " + new_balls.length );
-      } else {
+      } else if (false) {
         // if they are smaller then they go into the particle loop
         var new_particles = ball.explode();
         for ( var p_index = new_particles.length; p_index--; ) {
@@ -581,6 +595,11 @@ class World
     }
 
     return null;
+  }
+
+  sliding() {
+    this.n_divs = slider.value;
+    console.log( "sliding: " + this.n_divs );
   }
 
 }

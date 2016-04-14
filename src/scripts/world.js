@@ -9,7 +9,7 @@ class World
     this.max_y = 100;
     this.g = 0.2;
     this.c = new vec3( 0, 0, 255 );
-
+    this.n_divs = 5;
     this.setupBalls();
   }
 
@@ -103,9 +103,9 @@ class World
       // if they are big enough, then lets blow them into smaller pieces
       if ( ball.r > MIN_EXPLODER_RADIUS ) {
         // console.log( "exploded - r: " + ball.r );
-        new_balls = new_balls.concat( ball.explode() );
+        new_balls = new_balls.concat( ball.explode( this.n_divs ) );
         // console.log( "new_balls.length: " + new_balls.length );
-      } else {
+      } else if (false) {
         // if they are smaller then they go into the particle loop
         var new_particles = ball.explode();
         for ( var p_index = new_particles.length; p_index--; ) {
@@ -174,6 +174,11 @@ class World
     }
 
     return null;
+  }
+
+  sliding() {
+    this.n_divs = slider.value;
+    console.log( "sliding: " + this.n_divs );
   }
 
 }
