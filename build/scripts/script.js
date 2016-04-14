@@ -421,22 +421,24 @@ class World
   }
 
   setupBalls() {
-    var b1 = new Ball( 50, 150, 50, new vec3( 0, 255, 0 ) );
+    var pink = new vec3( 255, 50, 50 );
+    var blue = new vec3( 0, 0, 255 );
+    var b1 = new Ball( 50, 150, 50, pink );
     b1.v.x = 20;
     b1.hp *= 0.5;
     this.addBall( b1 );
 
-    var b2 = new Ball( 650, 150, 50, new vec3( 255, 255, 0 ) );
+    var b2 = new Ball( 650, 150, 50, blue );
     b2.v.x = -20;
     b2.hp *= 0.5;
     this.addBall( b2 );
 
-    var b3 = new Ball( 50, 500, 100, new vec3( 0, 255, 0 ) );
+    var b3 = new Ball( 50, 500, 100, pink );
     b3.v.x = 20;
     b3.hp *= 0.5;
     this.addBall( b3 );
 
-    var b4 = new Ball( 650, 500, 100, new vec3( 255, 255, 0 ) );
+    var b4 = new Ball( 650, 500, 100, blue );
     b4.v.x = -20;
     b4.hp *= 0.5;
     this.addBall( b4 );
@@ -571,7 +573,7 @@ class World
 
     for( var i = 0; i < this.balls.length; i++ ) {
       var b = this.balls[ i ];
-      
+
       var dist = pos.distance( b.center );
       if ( dist <= b.r ) {
         return b;
