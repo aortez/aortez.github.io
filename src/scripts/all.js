@@ -3,104 +3,49 @@ var counter = -100;
 var ctx;
 var frameDuration = 0;
 var dir = 1;
-var mousePos = { x: 0, y: 0 };
-var mouseIsDown = false;
 var world;
 var ball;
-
-function writeMessage( canvas, message )
-{
-  var context = canvas.getContext('2d');
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.font = '18pt Calibri';
-  context.fillStyle = 'black';
-  context.fillText(message, 10, 25);
-}
-
-function getMousePos( canvas, evt )
-{
-  var rect = canvas.getBoundingClientRect();
-  return {
-    x: evt.clientX - rect.left,
-    y: evt.clientY - rect.top
-  };
-}
+var controller;
+var canvas;
 
 function mouseDown( e ) {
-  console.log( "mouse down" );
-  mouseIsDown = true;
-
-  // check if cursor is over any balls
-  var grabbed_ball = world.retrieveBall( mousePos.x, mousePos.y );
-  if ( grabbed_ball ) {
-    ball = grabbed_ball;
-  }
-  else {
-    var r = Math.random() * 50 + 50;
-    var c = new vec3( 255, 0, 0 );
-    ball = new Ball( mousePos.x, mousePos.y, r, c );
-    world.addBall( ball );
-  }
-
-  window.removeEventListener( "mousedown", mouseDown, false );
-  window.addEventListener( "mouseup", mouseUp, false );
-  e.preventDefault();
+  controller.mouseDown( e );
+  canvas.removeEventListener( "mousedown", mouseDown, false );
+  canvas.addEventListener( "mouseup", mouseUp, false );
+  // re-enable to fix mouseDown event when cursor leaves canvas
+  // e.preventDefault();
 }
 
 function mouseUp( e ) {
-  console.log( "mouse up" );
-  mouseIsDown = false;
-  window.addEventListener( "mousedown", mouseDown, false );
-  ball.hp = ball.calcHp();
-  var alpha = 1;
-  ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
-  ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
+  controller.mouseUp( e );
+  canvas.removeEventListener( "mouseup", mouseUp, false );
+  canvas.addEventListener( "mousedown", mouseDown, false );
 }
 
-function init()
-{
-  // var slider = document.getElementById('slider');
-  // slider.addEventListener( 'value-change', world.sliding, false );
-  // if ( slider ) {
-  //   console.log('slider value' + slider.value);
-  //   slider.addEventListener( 'value-change', function() {
-  //     console.log("slider.value: " + slider.value);
-  //   });
-  // }
-  // else {
-  //   console.log('no slider');
-  // }
+function mouseMove( e ) {
+  controller.mouseMove( canvas, e );
+}
+
+function init() {
 
   world = new World();
+  controller = new Controller( world );
 
   var slider = document.getElementById('slider');
   slider.addEventListener( 'value-change', world.sliding, false );
 
   setInterval( function() { advance(); }, 1000 / FPS );
 
-  var canvas = document.getElementById( 'pizza' );
-  if ( !canvas.getContext ) {
-    return;
-  }
+  canvas = document.getElementById( 'pizza' );
 
   canvas.addEventListener( "mousedown", mouseDown, false );
-
-  canvas.onmousemove = function( evt ) {
-    mousePos = getMousePos( canvas, evt );
-  };
+  canvas.addEventListener( "mousemove", mouseMove, false );
 
   ctx = canvas.getContext( '2d' );
 }
 
 var previous = null;
 function advance() {
-  var canvas = document.getElementById( 'pizza' );
-  if ( !canvas.getContext ) {
-    return;
-  }
-  if ( !ctx ) {
-    ctx = getContext();
-  }
 
   canvas.width  = window.innerWidth * 0.9;
   canvas.height = window.innerHeight * 0.8;
@@ -157,18 +102,6 @@ function draw( dt )
       ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
       ctx.fillRect( x * cell_width, y * cell_height, cell_width * cell_size, cell_height * cell_size );
     }
-  }
-
-  if ( mouseIsDown && ball ) {
-    ball.c.x = 255;
-    ball.c.y = green;
-    ball.c.z = blue;
-    ball.hp = ball.calcHp() * 1000;
-    var alpha = 0.05;
-    ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
-    ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
-    ball.center.x = mousePos.x;
-    ball.center.y = mousePos.y;
   }
 
   var stop = window.performance.now();

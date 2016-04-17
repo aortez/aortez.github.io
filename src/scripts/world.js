@@ -38,8 +38,10 @@ class World
   }
 
   addBall( b ) {
+    console.log("adding ball");
     if ( b ) {
       this.balls.push( b );
+      console.log("ball added");
     }
   }
 
@@ -87,7 +89,7 @@ class World
 
     // remove dead balls from world
     var dead_balls = [];
-    for( i = balls.length; i--; ) {
+    for ( i = balls.length; i--; ) {
       if ( balls[ i ].hp < 0 ) {
         // console.log( "removing dead ball, hp: " + balls.hp );
         dead_balls.push( balls[ i ] );

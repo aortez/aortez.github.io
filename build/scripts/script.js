@@ -63,96 +63,112 @@ class vec3
 
 }
 
+class Controller
+{
+  constructor( world ) {
+    this.ball = null;
+    this.mousePos = new vec2( 0, 0 );
+    this.mouseIsDown = false;
+    this.world = world;
+    console.log("hello from Controller");
+    console.log("this.mousePos: " + this.mousePos);
+  }
+
+  mouseMove( canvas, evt ) {
+    var rect = canvas.getBoundingClientRect();
+    this.mousePos.x = evt.clientX - rect.left;
+    this.mousePos.y = evt.clientY - rect.top;
+
+    var b = this.ball;
+    if ( this.mouseIsDown && b ) {
+    //   ball.c.x = 255;
+    //   ball.c.y = green;
+    //   ball.c.z = blue;
+      b.hp = b.calcHp() * 1000;
+      var alpha = 0.05;
+      b.v.x = ( 1 - alpha ) * b.v.x + alpha * ( this.mousePos.x - b.center.x );
+      b.v.y = ( 1 - alpha ) * b.v.y + alpha * ( this.mousePos.y - b.center.y );
+      b.center.x = this.mousePos.x;
+      b.center.y = this.mousePos.y;
+    }
+    
+  }
+
+  mouseDown( e ) {
+    console.log( "mouse down" );
+    this.mouseIsDown = true;
+
+    // check if cursor is over any balls
+    var grabbed_ball = this.world.retrieveBall( this.mousePos.x, this.mousePos.y );
+    if ( grabbed_ball ) {
+      ball = grabbed_ball;
+    }
+    else {
+      var r = Math.random() * 50 + 50;
+      var c = new vec3( 255, 0, 0 );
+      this.ball = new Ball( this.mousePos.x, this.mousePos.y, r, c );
+      this.world.addBall( this.ball );
+    }
+  }
+
+  mouseUp( e ) {
+    console.log( "mouse up" );
+    this.mouseIsDown = false;
+
+    // what is this stuff doing?
+    this.ball.hp = this.ball.calcHp();
+    var alpha = 1;
+    this.ball.v.x = ( 1 - alpha ) * this.ball.v.x + alpha * ( this.mousePos.x - this.ball.center.x );
+    this.ball.v.y = ( 1 - alpha ) * this.ball.v.y + alpha * ( this.mousePos.y - this.ball.center.y );
+  }
+
+}
+
 var FPS = 60;
 var counter = -100;
 var ctx;
 var frameDuration = 0;
 var dir = 1;
-var mousePos = { x: 0, y: 0 };
-var mouseIsDown = false;
 var world;
 var ball;
-
-function writeMessage( canvas, message )
-{
-  var context = canvas.getContext('2d');
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.font = '18pt Calibri';
-  context.fillStyle = 'black';
-  context.fillText(message, 10, 25);
-}
-
-function getMousePos( canvas, evt )
-{
-  var rect = canvas.getBoundingClientRect();
-  return {
-    x: evt.clientX - rect.left,
-    y: evt.clientY - rect.top
-  };
-}
+var controller;
+var canvas;
 
 function mouseDown( e ) {
-  console.log( "mouse down" );
-  mouseIsDown = true;
-
-  // check if cursor is over any balls
-  var grabbed_ball = world.retrieveBall( mousePos.x, mousePos.y );
-  if ( grabbed_ball ) {
-    ball = grabbed_ball;
-  }
-  else {
-    var r = Math.random() * 50 + 50;
-    var c = new vec3( 255, 0, 0 );
-    ball = new Ball( mousePos.x, mousePos.y, r, c );
-    world.addBall( ball );
-  }
-
-  window.removeEventListener( "mousedown", mouseDown, false );
-  window.addEventListener( "mouseup", mouseUp, false );
-  e.preventDefault();
+  controller.mouseDown( e );
+  canvas.removeEventListener( "mousedown", mouseDown, false );
+  canvas.addEventListener( "mouseup", mouseUp, false );
+  // re-enable to fix mouseDown event when cursor leaves canvas
+  // e.preventDefault();
 }
 
 function mouseUp( e ) {
-  console.log( "mouse up" );
-  mouseIsDown = false;
-  window.addEventListener( "mousedown", mouseDown, false );
-  ball.hp = ball.calcHp();
-  var alpha = 1;
-  ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
-  ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
+  controller.mouseUp( e );
+  canvas.removeEventListener( "mouseup", mouseUp, false );
+  canvas.addEventListener( "mousedown", mouseDown, false );
 }
 
-function init()
-{
-  // var slider = document.getElementById('slider');
-  // slider.addEventListener( 'value-change', world.sliding, false );
-  // if ( slider ) {
-  //   console.log('slider value' + slider.value);
-  //   slider.addEventListener( 'value-change', function() {
-  //     console.log("slider.value: " + slider.value);
-  //   });
-  // }
-  // else {
-  //   console.log('no slider');
-  // }
+function mouseMove( e ) {
+  controller.mouseMove( canvas, e );
+}
+
+function init() {
 
   world = new World();
+  controller = new Controller( world );
 
   var slider = document.getElementById('slider');
   slider.addEventListener( 'value-change', world.sliding, false );
 
   setInterval( function() { advance(); }, 1000 / FPS );
 
-  var canvas = document.getElementById( 'pizza' );
+  canvas = document.getElementById( 'pizza' );
   if ( !canvas.getContext ) {
     return;
   }
 
   canvas.addEventListener( "mousedown", mouseDown, false );
-
-  canvas.onmousemove = function( evt ) {
-    mousePos = getMousePos( canvas, evt );
-  };
+  canvas.addEventListener( "mousemove", mouseMove, false );
 
   ctx = canvas.getContext( '2d' );
 }
@@ -224,17 +240,10 @@ function draw( dt )
     }
   }
 
-  if ( mouseIsDown && ball ) {
-    ball.c.x = 255;
-    ball.c.y = green;
-    ball.c.z = blue;
-    ball.hp = ball.calcHp() * 1000;
-    var alpha = 0.05;
-    ball.v.x = ( 1 - alpha ) * ball.v.x + alpha * ( mousePos.x - ball.center.x );
-    ball.v.y = ( 1 - alpha ) * ball.v.y + alpha * ( mousePos.y - ball.center.y );
-    ball.center.x = mousePos.x;
-    ball.center.y = mousePos.y;
-  }
+  // if ( mouseIsDown && ball ) {
+  //   ball.c.x = 255;
+  //   ball.c.y = green;
+  //   ball.c.z = blue;
 
   var stop = window.performance.now();
   var elapsed = stop - start;
@@ -459,8 +468,10 @@ class World
   }
 
   addBall( b ) {
+    console.log("adding ball");
     if ( b ) {
       this.balls.push( b );
+      console.log("ball added");
     }
   }
 
@@ -508,7 +519,7 @@ class World
 
     // remove dead balls from world
     var dead_balls = [];
-    for( i = balls.length; i--; ) {
+    for ( i = balls.length; i--; ) {
       if ( balls[ i ].hp < 0 ) {
         // console.log( "removing dead ball, hp: " + balls.hp );
         dead_balls.push( balls[ i ] );
