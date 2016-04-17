@@ -13,25 +13,6 @@ class vec3
     return c;
   }
 
-  // distance( b ) {
-  //   var dx = this.x - b.x;
-  //   var dy = this.y - b.y;
-  //   var d = Math.sqrt( dx * dx + dy * dy );
-  //   return d;
-  // }
-  //
-  // plus( a ) {
-  //   this.x += a.x;
-  //   this.y += a.y;
-  //   return this;
-  // }
-  //
-  // minus( a ) {
-  //   this.x -= a.x;
-  //   this.y -= a.y;
-  //   return this;
-  // }
-  //
   times( scalar ) {
     this.x *= scalar;
     this.y *= scalar;
@@ -43,22 +24,15 @@ class vec3
     var rgb = "rgb(" + this.x + "," + this.y + "," + this.z + ")";
     return rgb;
   }
-  //
-  // mag() {
-  //   var m = Math.sqrt( this.x * this.x + this.y * this.y );
-  //   return m;
-  // }
-  //
-  // dot( b ) {
-  //   var scalarProduct = this.x * b.x + this.y * b.y;
-  //   return scalarProduct;
-  // }
-  //
-  // normalize() {
-  //   var m = this.mag();
-  //   this.x /= m;
-  //   this.y /= m;
-  //   return this;
-  // }
+
+  randColor( variation ) {
+    var c = this;
+    c.x += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.y += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.z += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.x = Math.min( 255, c.x ); c.x = Math.max( 0, c.x );
+    c.y = Math.min( 255, c.y ); c.y = Math.max( 0, c.y );
+    c.z = Math.min( 255, c.z ); c.z = Math.max( 0, c.z );
+  }
 
 }

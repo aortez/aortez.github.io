@@ -86,7 +86,7 @@ class Ball
   explode( n_divs ) {
     var EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     var EXPLODER_SIZE_FACTOR = 0.4;
-    var EXPLODE_V_FACTOR = 0.2;
+    var EXPLODE_V_FACTOR = 0.4;
     var EXPLODER_SIZE_RANGE_FACTOR = 0.5;
     var N_DIVS = 7;
     if ( n_divs ) { N_DIVS = n_divs; console.log( "n_divs: " + n_divs ); }
@@ -98,14 +98,14 @@ class Ball
         if ( new_center.distance( this.center ) > this.r ) continue;
 
         var r = Math.min( Math.random() + ( 1 - EXPLODER_SIZE_RANGE_FACTOR ) ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
-        var c = new vec3(
-          Math.min( 255, this.c.x * Math.random() + 255 * 0.5 ),
-          this.c.y * Math.random() + 255 * 0.5,
-          this.c.z * Math.random() + 255 * 0.5 );
+        if ( r < 4 ) continue;
+        var c = this.c.copy();
+        c.randColor( 100 );
+
         var new_ball = new Ball( x, y, r, c );
 
         var v = new_ball.center.copy().minus( this.center );
-        v.times( EXPLODE_V_FACTOR );
+        v.times( Math.random() * EXPLODE_V_FACTOR );
         v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         new_ball.v = v;
 

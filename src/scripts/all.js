@@ -11,19 +11,27 @@ var canvas;
 function mouseDown( e ) {
   controller.mouseDown( e );
   canvas.removeEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mouseup", mouseUp, false );
-  // re-enable to fix mouseDown event when cursor leaves canvas
+  window.addEventListener( "mouseup", mouseUp, false );
+
   // e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
-  canvas.removeEventListener( "mouseup", mouseUp, false );
+  window.removeEventListener( "mouseup", mouseUp, false );
   canvas.addEventListener( "mousedown", mouseDown, false );
 }
 
 function mouseMove( e ) {
   controller.mouseMove( canvas, e );
+}
+
+function mouseOut( e ) {
+  controller.mouseOut();
+}
+
+function mouseOver( e ) {
+  controller.mouseOver();
 }
 
 function init() {
@@ -39,7 +47,10 @@ function init() {
   canvas = document.getElementById( 'pizza' );
 
   canvas.addEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mousemove", mouseMove, false );
+  window.addEventListener( "mousemove", mouseMove, false );
+  canvas.addEventListener( "mouseout", mouseOut, false );
+  canvas.addEventListener( "mouseover", mouseOver, false );
+
 
   ctx = canvas.getContext( '2d' );
 }
@@ -57,6 +68,8 @@ function advance() {
   previous = now;
 
   draw( dt * 0.05 );
+
+  controller.advance();
 
   world.doPhysics( dt * 0.05 );
 

@@ -13,25 +13,6 @@ class vec3
     return c;
   }
 
-  // distance( b ) {
-  //   var dx = this.x - b.x;
-  //   var dy = this.y - b.y;
-  //   var d = Math.sqrt( dx * dx + dy * dy );
-  //   return d;
-  // }
-  //
-  // plus( a ) {
-  //   this.x += a.x;
-  //   this.y += a.y;
-  //   return this;
-  // }
-  //
-  // minus( a ) {
-  //   this.x -= a.x;
-  //   this.y -= a.y;
-  //   return this;
-  // }
-  //
   times( scalar ) {
     this.x *= scalar;
     this.y *= scalar;
@@ -43,23 +24,16 @@ class vec3
     var rgb = "rgb(" + this.x + "," + this.y + "," + this.z + ")";
     return rgb;
   }
-  //
-  // mag() {
-  //   var m = Math.sqrt( this.x * this.x + this.y * this.y );
-  //   return m;
-  // }
-  //
-  // dot( b ) {
-  //   var scalarProduct = this.x * b.x + this.y * b.y;
-  //   return scalarProduct;
-  // }
-  //
-  // normalize() {
-  //   var m = this.mag();
-  //   this.x /= m;
-  //   this.y /= m;
-  //   return this;
-  // }
+
+  randColor( variation ) {
+    var c = this;
+    c.x += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.y += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.z += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.x = Math.min( 255, c.x ); c.x = Math.max( 0, c.x );
+    c.y = Math.min( 255, c.y ); c.y = Math.max( 0, c.y );
+    c.z = Math.min( 255, c.z ); c.z = Math.max( 0, c.z );
+  }
 
 }
 
@@ -70,28 +44,37 @@ class Controller
     this.mousePos = new vec2( 0, 0 );
     this.mouseIsDown = false;
     this.world = world;
-    console.log("hello from Controller");
-    console.log("this.mousePos: " + this.mousePos);
+    this.cursor_v = new vec2( 0, 0 );
   }
 
-  mouseMove( canvas, evt ) {
-    var rect = canvas.getBoundingClientRect();
-    this.mousePos.x = evt.clientX - rect.left;
-    this.mousePos.y = evt.clientY - rect.top;
-
+  advance() {
     var b = this.ball;
     if ( this.mouseIsDown && b ) {
     //   ball.c.x = 255;
     //   ball.c.y = green;
     //   ball.c.z = blue;
       b.hp = b.calcHp() * 1000;
-      var alpha = 0.05;
-      b.v.x = ( 1 - alpha ) * b.v.x + alpha * ( this.mousePos.x - b.center.x );
-      b.v.y = ( 1 - alpha ) * b.v.y + alpha * ( this.mousePos.y - b.center.y );
+      // b.center.x = this.mousePos.x;
+      // b.center.y = this.mousePos.y;
+      b.v.x = 0;
+      b.v.y = 0;
+    }
+  }
+
+  mouseMove( canvas, e ) {
+    var rect = canvas.getBoundingClientRect();
+    this.mousePos.x = e.clientX - rect.left;
+    this.mousePos.y = e.clientY - rect.top;
+
+    var b = this.ball;
+    if ( this.mouseIsDown && b ) {
+      b.hp = b.calcHp() * 1000;
       b.center.x = this.mousePos.x;
       b.center.y = this.mousePos.y;
+      b.v.x = 0;
+      b.v.y = 0;
     }
-    
+
   }
 
   mouseDown( e ) {
@@ -101,11 +84,12 @@ class Controller
     // check if cursor is over any balls
     var grabbed_ball = this.world.retrieveBall( this.mousePos.x, this.mousePos.y );
     if ( grabbed_ball ) {
-      ball = grabbed_ball;
+      this.ball = grabbed_ball;
     }
     else {
       var r = Math.random() * 50 + 50;
-      var c = new vec3( 255, 0, 0 );
+      var c = new vec3( 128, 128, 128 );
+      c.randColor( 255 );
       this.ball = new Ball( this.mousePos.x, this.mousePos.y, r, c );
       this.world.addBall( this.ball );
     }
@@ -115,11 +99,17 @@ class Controller
     console.log( "mouse up" );
     this.mouseIsDown = false;
 
-    // what is this stuff doing?
+    // set released ball to full life
     this.ball.hp = this.ball.calcHp();
-    var alpha = 1;
-    this.ball.v.x = ( 1 - alpha ) * this.ball.v.x + alpha * ( this.mousePos.x - this.ball.center.x );
-    this.ball.v.y = ( 1 - alpha ) * this.ball.v.y + alpha * ( this.mousePos.y - this.ball.center.y );
+    this.ball = null;
+  }
+
+  mouseOut( e ) {
+    console.log("mouse out" );
+  }
+
+  mouseOver( e ) {
+    console.log("mouse over" );
   }
 
 }
@@ -137,19 +127,27 @@ var canvas;
 function mouseDown( e ) {
   controller.mouseDown( e );
   canvas.removeEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mouseup", mouseUp, false );
-  // re-enable to fix mouseDown event when cursor leaves canvas
+  window.addEventListener( "mouseup", mouseUp, false );
+
   // e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
-  canvas.removeEventListener( "mouseup", mouseUp, false );
+  window.removeEventListener( "mouseup", mouseUp, false );
   canvas.addEventListener( "mousedown", mouseDown, false );
 }
 
 function mouseMove( e ) {
   controller.mouseMove( canvas, e );
+}
+
+function mouseOut( e ) {
+  controller.mouseOut();
+}
+
+function mouseOver( e ) {
+  controller.mouseOver();
 }
 
 function init() {
@@ -163,25 +161,18 @@ function init() {
   setInterval( function() { advance(); }, 1000 / FPS );
 
   canvas = document.getElementById( 'pizza' );
-  if ( !canvas.getContext ) {
-    return;
-  }
 
   canvas.addEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mousemove", mouseMove, false );
+  window.addEventListener( "mousemove", mouseMove, false );
+  canvas.addEventListener( "mouseout", mouseOut, false );
+  canvas.addEventListener( "mouseover", mouseOver, false );
+
 
   ctx = canvas.getContext( '2d' );
 }
 
 var previous = null;
 function advance() {
-  var canvas = document.getElementById( 'pizza' );
-  if ( !canvas.getContext ) {
-    return;
-  }
-  if ( !ctx ) {
-    ctx = getContext();
-  }
 
   canvas.width  = window.innerWidth * 0.9;
   canvas.height = window.innerHeight * 0.8;
@@ -193,6 +184,8 @@ function advance() {
   previous = now;
 
   draw( dt * 0.05 );
+
+  controller.advance();
 
   world.doPhysics( dt * 0.05 );
 
@@ -239,11 +232,6 @@ function draw( dt )
       ctx.fillRect( x * cell_width, y * cell_height, cell_width * cell_size, cell_height * cell_size );
     }
   }
-
-  // if ( mouseIsDown && ball ) {
-  //   ball.c.x = 255;
-  //   ball.c.y = green;
-  //   ball.c.z = blue;
 
   var stop = window.performance.now();
   var elapsed = stop - start;
@@ -339,7 +327,7 @@ class Ball
   explode( n_divs ) {
     var EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     var EXPLODER_SIZE_FACTOR = 0.4;
-    var EXPLODE_V_FACTOR = 0.2;
+    var EXPLODE_V_FACTOR = 0.4;
     var EXPLODER_SIZE_RANGE_FACTOR = 0.5;
     var N_DIVS = 7;
     if ( n_divs ) { N_DIVS = n_divs; console.log( "n_divs: " + n_divs ); }
@@ -351,14 +339,14 @@ class Ball
         if ( new_center.distance( this.center ) > this.r ) continue;
 
         var r = Math.min( Math.random() + ( 1 - EXPLODER_SIZE_RANGE_FACTOR ) ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
-        var c = new vec3(
-          Math.min( 255, this.c.x * Math.random() + 255 * 0.5 ),
-          this.c.y * Math.random() + 255 * 0.5,
-          this.c.z * Math.random() + 255 * 0.5 );
+        if ( r < 4 ) continue;
+        var c = this.c.copy();
+        c.randColor( 100 );
+
         var new_ball = new Ball( x, y, r, c );
 
         var v = new_ball.center.copy().minus( this.center );
-        v.times( EXPLODE_V_FACTOR );
+        v.times( Math.random() * EXPLODE_V_FACTOR );
         v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         new_ball.v = v;
 
