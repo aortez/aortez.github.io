@@ -114,129 +114,48 @@ class Controller
 
 }
 
-var FPS = 60;
-var counter = -100;
-var ctx;
-var frameDuration = 0;
-var dir = 1;
-var world;
-var ball;
-var controller;
-var canvas;
-
-function mouseDown( e ) {
-  controller.mouseDown( e );
-  canvas.removeEventListener( "mousedown", mouseDown, false );
-  window.addEventListener( "mouseup", mouseUp, false );
-
-  // e.preventDefault();
-}
-
-function mouseUp( e ) {
-  controller.mouseUp( e );
-  window.removeEventListener( "mouseup", mouseUp, false );
-  canvas.addEventListener( "mousedown", mouseDown, false );
-}
-
-function mouseMove( e ) {
-  controller.mouseMove( canvas, e );
-}
-
-function mouseOut( e ) {
-  controller.mouseOut();
-}
-
-function mouseOver( e ) {
-  controller.mouseOver();
-}
-
-function init() {
-
-  world = new World();
-  controller = new Controller( world );
-
-  var slider = document.getElementById('slider');
-  slider.addEventListener( 'value-change', world.sliding, false );
-
-  setInterval( function() { advance(); }, 1000 / FPS );
-
-  canvas = document.getElementById( 'pizza' );
-
-  canvas.addEventListener( "mousedown", mouseDown, false );
-  window.addEventListener( "mousemove", mouseMove, false );
-  canvas.addEventListener( "mouseout", mouseOut, false );
-  canvas.addEventListener( "mouseover", mouseOver, false );
-
-
-  ctx = canvas.getContext( '2d' );
-}
-
-var previous = null;
-function advance() {
-
-  canvas.width  = window.innerWidth * 0.9;
-  canvas.height = window.innerHeight * 0.8;
-  world.max_x = canvas.width;
-  world.max_y = canvas.height;
-
-  var now = window.performance.now();
-  var dt = now - previous;
-  previous = now;
-
-  draw( dt * 0.05 );
-
-  controller.advance();
-
-  world.doPhysics( dt * 0.05 );
-
-  world.draw( ctx );
-}
-
-function draw( dt )
+class Background
 {
-  var start = window.performance.now();
-
-  var canvas = document.getElementById( 'pizza' );
-  if ( !canvas.getContext ) {
-    return;
-  }
-  if ( !ctx ) {
-    ctx = getContext();
+  constructor() {
+    this.counter = -100;
+    this.frameDuration = 0;
+    this.dir = 1;
+    this.counterMax = 70;
   }
 
-  counter += ( dir * dt );
-  var counterMax = 70;
-  if ( counter > counterMax ) dir = -1;
-  if ( counter <= -100 ) dir = 1;
+  advance( dt ) {
+    this.counter += ( this.dir * dt );
+    if ( this.counter > this.counterMax ) this.dir = -1;
+    if ( this.counter <= -100 ) this.dir = 1;
+  }
 
-  var ratio = canvas.height / canvas.width;
+  draw() {
+    var ratio = canvas.height / canvas.width;
 
-  var num_cols = 20;
-  var num_rows = ratio * num_cols;
-  var cell_width = canvas.width / num_cols;
-  var cell_height = canvas.height / num_rows;
+    var num_cols = 20;
+    var num_rows = ratio * num_cols;
+    var cell_width = canvas.width / num_cols;
+    var cell_height = canvas.height / num_rows;
 
-  var red = 0;
-  var green = 0;
-  var blue = 0;
-  var c = ( 255.0 * Math.pow( ( counter + 100 ) / ( counterMax + 100 ), 4 ) ).toFixed(0);
-  ctx.fillStyle = "rgb(" + 0 + "," + c + "," + 0 + ")";
-  ctx.fillRect( 0, 0, canvas.width, canvas.height );
-  for ( var y = 0; y < num_rows; y++ ) {
-    for ( var x = 0.0; x < num_cols; x++ ) {
-      red = 0;
-      green = counter.toFixed(0);
-      blue = ( 256.0 * ( (  x + ( x % 2 === 0 ? y : -y ) + counter * 0.5 ) / num_cols ) ).toFixed(0);
-      var cell_size = Math.pow( blue / 256, 0.1 );
-      ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
-      ctx.fillRect( x * cell_width, y * cell_height, cell_width * cell_size, cell_height * cell_size );
+    var red = 0;
+    var green = 0;
+    var blue = 0;
+    var c = ( 255.0 * Math.pow( ( this.counter + 100 ) / ( this.counterMax + 100 ), 4 ) ).toFixed(0);
+    ctx.fillStyle = "rgb(" + 0 + "," + c + "," + 0 + ")";
+    ctx.fillRect( 0, 0, canvas.width, canvas.height );
+    for ( var y = 0; y < num_rows; y++ ) {
+      for ( var x = 0.0; x < num_cols; x++ ) {
+        red = 0;
+        green = this.counter.toFixed(0);
+        blue = ( 256.0 * ( (  x + ( x % 2 === 0 ? y : -y ) + this.counter * 0.5 ) / num_cols ) ).toFixed(0);
+        var cell_size = Math.pow( blue / 256, 0.1 );
+        ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
+        ctx.fillRect( x * cell_width, y * cell_height, cell_width * cell_size, cell_height * cell_size );
+      }
     }
+
   }
 
-  var stop = window.performance.now();
-  var elapsed = stop - start;
-  frameDuration = 0.99 * frameDuration + 0.01 * elapsed;
-  if ( counter % 50 === 0 ) { console.log( "frame duration: " + frameDuration ); }
 }
 
 class Ball
@@ -429,6 +348,7 @@ class World
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 5;
     this.setupBalls();
+    this.background = new Background();
   }
 
   setupBalls() {
@@ -464,6 +384,8 @@ class World
   }
 
   draw( ctx ) {
+    this.background.draw();
+
     for ( var i = 0; i < this.balls.length; i++ ) {
       var b = this.balls[ i ];
       b.draw( ctx );
@@ -475,7 +397,9 @@ class World
     }
   }
 
-  doPhysics( dt ) {
+  advance( dt ) {
+    this.background.advance( dt );
+
     var MAX_BALLS = 800;
     var MIN_EXPLODER_RADIUS = 10;
     var NEW_PARTICLE_HP = 1;
@@ -502,7 +426,6 @@ class World
           b.collide( b2 );
         }
       }
-
     }
 
     // remove dead balls from world
@@ -601,4 +524,63 @@ class World
     console.log( "sliding: " + this.n_divs );
   }
 
+}
+
+var FPS = 60;
+var ctx;
+var world;
+var ball;
+var controller;
+var canvas;
+
+function mouseDown( e ) {
+  controller.mouseDown( e );
+  canvas.removeEventListener( "mousedown", mouseDown, false );
+  canvas.addEventListener( "mouseup", mouseUp, false );
+  // e.preventDefault();
+}
+
+function mouseUp( e ) {
+  controller.mouseUp( e );
+  canvas.removeEventListener( "mouseup", mouseUp, false );
+  canvas.addEventListener( "mousedown", mouseDown, false );
+}
+
+function mouseMove( e ) {
+  controller.mouseMove( canvas, e );
+}
+
+function init() {
+
+  world = new World();
+  controller = new Controller( world );
+
+  var slider = document.getElementById('slider');
+  slider.addEventListener( 'value-change', world.sliding, false );
+
+  setInterval( function() { advance(); }, 1000 / FPS );
+
+  canvas = document.getElementById( 'pizza' );
+
+  canvas.addEventListener( "mousedown", mouseDown, false );
+  canvas.addEventListener( "mousemove", mouseMove, false );
+
+  ctx = canvas.getContext( '2d' );
+}
+
+var previous = null;
+function advance() {
+
+  canvas.width  = window.innerWidth * 0.9;
+  canvas.height = window.innerHeight * 0.8;
+  world.max_x = canvas.width;
+  world.max_y = canvas.height;
+
+  var now = window.performance.now();
+  var dt = now - previous;
+  previous = now;
+
+  world.advance( dt * 0.05 );
+
+  world.draw( ctx );
 }

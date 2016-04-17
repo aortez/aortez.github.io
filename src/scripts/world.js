@@ -11,6 +11,7 @@ class World
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 5;
     this.setupBalls();
+    this.background = new Background();
   }
 
   setupBalls() {
@@ -46,6 +47,8 @@ class World
   }
 
   draw( ctx ) {
+    this.background.draw();
+
     for ( var i = 0; i < this.balls.length; i++ ) {
       var b = this.balls[ i ];
       b.draw( ctx );
@@ -57,7 +60,9 @@ class World
     }
   }
 
-  doPhysics( dt ) {
+  advance( dt ) {
+    this.background.advance( dt );
+
     var MAX_BALLS = 800;
     var MIN_EXPLODER_RADIUS = 10;
     var NEW_PARTICLE_HP = 1;
@@ -84,7 +89,6 @@ class World
           b.collide( b2 );
         }
       }
-
     }
 
     // remove dead balls from world

@@ -14,10 +14,11 @@ gulp.task('scripts', function() {
   gulp.src([
     './src/scripts/vec3.js',
     './src/scripts/controller.js',
-    './src/scripts/all.js',
+    './src/scripts/background.js',
     './src/scripts/ball.js',
     './src/scripts/vec2.js',
-    './src/scripts/world.js'
+    './src/scripts/world.js',
+    './src/scripts/main.js'
   ])
     .pipe(concat('script.js'))
     .pipe(gulp.dest('./build/scripts/'));
