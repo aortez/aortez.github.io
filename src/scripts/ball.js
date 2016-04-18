@@ -15,7 +15,7 @@ class Ball
   }
 
   collide( b ) {
-    let DAMAGE_SCALAR = 0.2;
+    let DAMAGE_SCALAR = 0.002;
 
     // distance between centers
     let D = this.center.copy().minus( b.center );
@@ -88,7 +88,7 @@ class Ball
     let EXPLODER_SIZE_FACTOR = 0.4;
     let EXPLODE_V_FACTOR = 0.4;
     let EXPLODER_SIZE_RANGE_FACTOR = 0.5;
-    let N_DIVS = 7;
+    let N_DIVS = 6;
     let MIN_FRAG_RADIUS = 4;
     if ( n_divs ) {
       console.log( "ball says: yo: " + n_divs );
@@ -96,12 +96,15 @@ class Ball
     }
 
     let frags = [];
-    for ( let y = this.center.y - this.r; y < this.center.y + this.r; y += this.r / N_DIVS ) {
-      for ( let x = this.center.x - this.r; x < this.center.x + this.r; x += this.r / N_DIVS ) {
-        let new_center = new vec2( x, y );
+    const div_size = this.r / N_DIVS;
+    for ( let y = this.center.y - this.r; y < this.center.y + this.r; y += div_size ) {
+      for ( let x = this.center.x - this.r; x < this.center.x + this.r; x += div_size ) {
+        const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        let r = Math.min( Math.random() + ( 1 - EXPLODER_SIZE_RANGE_FACTOR ) ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
+        // let r = this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
+        let r = div_size * 0.6;
+        // let r = Math.pow( Math.random(), EXPLODER_SIZE_RANGE_FACTOR ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
         if ( r < MIN_FRAG_RADIUS ) continue;
         let c = this.c.copy();
         c.randColor( 100 );
