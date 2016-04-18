@@ -1,9 +1,7 @@
-var FPS = 60;
-var ctx;
-var world;
-var ball;
-var controller;
-var canvas;
+let ctx;
+let world;
+let controller;
+let canvas;
 
 function mouseDown( e ) {
   controller.mouseDown( e );
@@ -23,11 +21,12 @@ function mouseMove( e ) {
 }
 
 function init() {
+  let FPS = 60;
 
   world = new World();
   controller = new Controller( world );
 
-  var slider = document.getElementById('slider');
+  let slider = document.getElementById('slider');
   slider.addEventListener( 'value-change', world.sliding, false );
 
   setInterval( function() { advance(); }, 1000 / FPS );
@@ -40,7 +39,7 @@ function init() {
   ctx = canvas.getContext( '2d' );
 }
 
-var previous = null;
+let previous = null;
 function advance() {
 
   canvas.width  = window.innerWidth * 0.9;
@@ -48,8 +47,8 @@ function advance() {
   world.max_x = canvas.width;
   world.max_y = canvas.height;
 
-  var now = window.performance.now();
-  var dt = now - previous;
+  let now = window.performance.now();
+  let dt = now - previous;
   previous = now;
 
   world.advance( dt * 0.05 );

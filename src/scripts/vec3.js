@@ -9,7 +9,7 @@ class vec3
   }
 
   copy() {
-    var c = new vec3( this.x, this.y, this.z );
+    let c = new vec3( this.x, this.y, this.z );
     return c;
   }
 
@@ -21,12 +21,12 @@ class vec3
   }
 
   toRGB() {
-    var rgb = "rgb(" + this.x + "," + this.y + "," + this.z + ")";
+    let rgb = "rgb(" + this.x + "," + this.y + "," + this.z + ")";
     return rgb;
   }
 
   randColor( variation ) {
-    var c = this;
+    let c = this;
     c.x += Math.floor( variation * ( Math.random() - 0.5 ) );
     c.y += Math.floor( variation * ( Math.random() - 0.5 ) );
     c.z += Math.floor( variation * ( Math.random() - 0.5 ) );

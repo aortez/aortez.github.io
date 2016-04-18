@@ -8,14 +8,14 @@ class vec2
   }
 
   copy() {
-    var c = new vec2( this.x, this.y );
+    let c = new vec2( this.x, this.y );
     return c;
   }
 
   distance( b ) {
-    var dx = this.x - b.x;
-    var dy = this.y - b.y;
-    var d = Math.sqrt( dx * dx + dy * dy );
+    let dx = this.x - b.x;
+    let dy = this.y - b.y;
+    let d = Math.sqrt( dx * dx + dy * dy );
     return d;
   }
 
@@ -38,17 +38,17 @@ class vec2
   }
 
   mag() {
-    var m = Math.sqrt( this.x * this.x + this.y * this.y );
+    let m = Math.sqrt( this.x * this.x + this.y * this.y );
     return m;
   }
 
   dot( b ) {
-    var scalarProduct = this.x * b.x + this.y * b.y;
+    let scalarProduct = this.x * b.x + this.y * b.y;
     return scalarProduct;
   }
 
   normalize() {
-    var m = this.mag();
+    let m = this.mag();
     this.x /= m;
     this.y /= m;
     return this;

@@ -1,3 +1,5 @@
+var NUM_EXPLOD_DIVS = 3;
+
 class World
 {
   constructor() {
@@ -9,68 +11,42 @@ class World
     this.max_y = 100;
     this.g = 0.2;
     this.c = new vec3( 0, 0, 255 );
-    this.n_divs = 5;
-    this.setupBalls();
+    this.n_divs = 3;
+    this.init();
     this.background = new Background();
   }
 
-  setupBalls() {
-    var pink = new vec3( 255, 50, 50 );
-    var blue = new vec3( 0, 0, 255 );
-    var b1 = new Ball( 50, 150, 50, pink );
+  init() {
+    let pink = new vec3( 255, 50, 50 );
+    let blue = new vec3( 0, 0, 255 );
+    let b1 = new Ball( 50, 150, 50, pink );
     b1.v.x = 20;
-    b1.hp *= 0.5;
     this.addBall( b1 );
 
-    var b2 = new Ball( 650, 150, 50, blue );
+    let b2 = new Ball( 1750, 150, 50, blue );
     b2.v.x = -20;
-    b2.hp *= 0.5;
     this.addBall( b2 );
 
-    var b3 = new Ball( 50, 500, 100, pink );
+    let b3 = new Ball( 50, 500, 100, pink );
     b3.v.x = 20;
-    b3.hp *= 0.5;
     this.addBall( b3 );
 
-    var b4 = new Ball( 650, 500, 100, blue );
+    let b4 = new Ball( 2000, 500, 100, blue );
     b4.v.x = -20;
-    b4.hp *= 0.5;
     this.addBall( b4 );
-  }
-
-  addBall( b ) {
-    console.log("adding ball");
-    if ( b ) {
-      this.balls.push( b );
-      console.log("ball added");
-    }
-  }
-
-  draw( ctx ) {
-    this.background.draw();
-
-    for ( var i = 0; i < this.balls.length; i++ ) {
-      var b = this.balls[ i ];
-      b.draw( ctx );
-    }
-
-    for ( i = 0; i < this.particles.length; i++ ) {
-      var p = this.particles[ i ];
-      p.draw( ctx );
-    }
   }
 
   advance( dt ) {
     this.background.advance( dt );
 
-    var MAX_BALLS = 800;
-    var MIN_EXPLODER_RADIUS = 10;
-    var NEW_PARTICLE_HP = 1;
-    var WALL_ELASTIC_FACTOR = 0.9;
+    let MAX_BALLS = 800;
+    let MIN_EXPLODER_RADIUS = 10;
+    let NEW_PARTICLE_HP = 1;
+    let WALL_ELASTIC_FACTOR = 0.9;
 
-    var balls = this.balls;
-    for ( var i = 0; i < balls.length; i++ ) {
-      var b = balls[ i ];
+    let balls = this.balls;
+    for ( let i = 0; i < balls.length; i++ ) {
+      let b = balls[ i ];
 
       // move ball
       b.v.y += this.g * dt;
@@ -83,8 +59,8 @@ class World
       if ( b.center.y - b.r < this.min_y ) { b.center.y = this.min_y + b.r; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
 
       // bounce off other balls
-      for ( var j = i + 1; j < balls.length; j++ ) {
-        var b2 = balls[ j ];
+      for ( let j = i + 1; j < balls.length; j++ ) {
+        let b2 = balls[ j ];
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
         }
@@ -92,8 +68,8 @@ class World
     }
 
     // remove dead balls from world
-    var dead_balls = [];
-    for ( i = balls.length; i--; ) {
+    let dead_balls = [];
+    for ( let i = balls.length; i--; ) {
       if ( balls[ i ].hp < 0 ) {
         // console.log( "removing dead ball, hp: " + balls.hp );
         dead_balls.push( balls[ i ] );
@@ -102,20 +78,21 @@ class World
     }
 
     // ok, now we have these dead balls, what to do with them?
-    var new_balls = [];
-    for ( i = 0; i < dead_balls.length; i++ ) {
-      var ball = dead_balls[ i ];
+    let new_balls = [];
+    for ( let i = 0; i < dead_balls.length; i++ ) {
+      let ball = dead_balls[ i ];
 
       // if they are big enough, then lets blow them into smaller pieces
       if ( ball.r > MIN_EXPLODER_RADIUS ) {
         // console.log( "exploded - r: " + ball.r );
-        new_balls = new_balls.concat( ball.explode( this.n_divs ) );
+        // console.log( "world says: this.n_divs: " + this.n_divs + ", foog: " + foog );
+        new_balls = new_balls.concat( ball.explode( NUM_EXPLOD_DIVS ) );
         // console.log( "new_balls.length: " + new_balls.length );
       } else if (false) {
         // if they are smaller then they go into the particle loop
-        var new_particles = ball.explode();
-        for ( var p_index = new_particles.length; p_index--; ) {
-          var p = new_particles[ p_index ];
+        let new_particles = ball.explode();
+        for ( let p_index = new_particles.length; p_index--; ) {
+          let p = new_particles[ p_index ];
 
           p.c = new vec3( 255, 255, 255 );
           p.hp_max = NEW_PARTICLE_HP;
@@ -131,7 +108,7 @@ class World
     }
 
     // add exploded fragments to the main collection
-    for ( i = 0; i < new_balls.length; i++ ) {
+    for ( let i = 0; i < new_balls.length; i++ ) {
       if ( this.balls.length >= MAX_BALLS ) { break; }
 
       this.balls.push( new_balls[ i ] );
@@ -143,8 +120,8 @@ class World
 
   advanceParticles( dt ) {
     // console.log( "dt: " + dt );
-    for ( var i = this.particles.length; i--; ) {
-      var p = this.particles[ i ];
+    for ( let i = this.particles.length; i--; ) {
+      let p = this.particles[ i ];
 
       // fade em
       p.hp = p.hp - ( p.max_hp * dt );
@@ -154,7 +131,7 @@ class World
       p.center.plus( p.v.copy().times( this.dt ) );
 
       // bounce off walls
-      var WALL_ELASTIC_FACTOR = 1;
+      let WALL_ELASTIC_FACTOR = 1;
       if ( p.center.x + p.r > this.max_x ) { p.center.x = this.max_x - p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
       if ( p.center.y + p.r > this.max_y ) { p.center.y = this.max_y - p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
       if ( p.center.x - p.r < this.min_x ) { p.center.x = this.min_x + p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
@@ -167,13 +144,35 @@ class World
     }
   }
 
+  addBall( b ) {
+    console.log("adding ball");
+    if ( b ) {
+      this.balls.push( b );
+      console.log("ball added");
+    }
+  }
+
+  draw( ctx ) {
+    this.background.draw();
+
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
+      b.draw( ctx );
+    }
+
+    for ( let i = 0; i < this.particles.length; i++ ) {
+      let p = this.particles[ i ];
+      p.draw( ctx );
+    }
+  }
+
   retrieveBall( x, y ) {
-    var pos = new vec2( x, y );
+    let pos = new vec2( x, y );
 
-    for( var i = 0; i < this.balls.length; i++ ) {
-      var b = this.balls[ i ];
+    for( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
 
-      var dist = pos.distance( b.center );
+      let dist = pos.distance( b.center );
       if ( dist <= b.r ) {
         return b;
       }
@@ -182,8 +181,9 @@ class World
     return null;
   }
 
-  sliding() {
-    this.n_divs = slider.value;
+  sliding( e ) {
+    this.n_divs = e.currentTarget.value;
+    NUM_EXPLOD_DIVS = this.n_divs;
     console.log( "sliding: " + this.n_divs );
   }
 

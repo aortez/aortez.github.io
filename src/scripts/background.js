@@ -14,25 +14,25 @@ class Background
   }
 
   draw() {
-    var ratio = canvas.height / canvas.width;
+    let ratio = canvas.height / canvas.width;
 
-    var num_cols = 20;
-    var num_rows = ratio * num_cols;
-    var cell_width = canvas.width / num_cols;
-    var cell_height = canvas.height / num_rows;
+    let num_cols = 20;
+    let num_rows = ratio * num_cols;
+    let cell_width = canvas.width / num_cols;
+    let cell_height = canvas.height / num_rows;
 
-    var red = 0;
-    var green = 0;
-    var blue = 0;
-    var c = ( 255.0 * Math.pow( ( this.counter + 100 ) / ( this.counterMax + 100 ), 4 ) ).toFixed(0);
+    let red = 0;
+    let green = 0;
+    let blue = 0;
+    let c = ( 255.0 * Math.pow( ( this.counter + 100 ) / ( this.counterMax + 100 ), 4 ) ).toFixed(0);
     ctx.fillStyle = "rgb(" + 0 + "," + c + "," + 0 + ")";
     ctx.fillRect( 0, 0, canvas.width, canvas.height );
-    for ( var y = 0; y < num_rows; y++ ) {
-      for ( var x = 0.0; x < num_cols; x++ ) {
+    for ( let y = 0; y < num_rows; y++ ) {
+      for ( let x = 0.0; x < num_cols; x++ ) {
         red = 0;
         green = this.counter.toFixed(0);
         blue = ( 256.0 * ( (  x + ( x % 2 === 0 ? y : -y ) + this.counter * 0.5 ) / num_cols ) ).toFixed(0);
-        var cell_size = Math.pow( blue / 256, 0.1 );
+        let cell_size = Math.pow( blue / 256, 0.1 );
         ctx.fillStyle = "rgb(" + red + "," + green + "," + blue + ")";
         ctx.fillRect( x * cell_width, y * cell_height, cell_width * cell_size, cell_height * cell_size );
       }
