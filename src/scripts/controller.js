@@ -27,6 +27,10 @@ class Controller
 
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
+      // record cursor movement while the button is down
+      this.cursor_v = this.mousePos.copy().minus( b.center );
+
+      // keep the ball alive and move it to follow the cursor
       b.hp = b.calcHp() * 1000;
       b.center.x = this.mousePos.x;
       b.center.y = this.mousePos.y;
@@ -58,8 +62,18 @@ class Controller
     console.log( "mouse up" );
     this.mouseIsDown = false;
 
+    let b = this.ball;
+
     // set released ball to full life
-    this.ball.hp = this.ball.calcHp();
+    b.hp = b.calcHp();
+
+    // toss it in the direction of recent movement
+    b.v = this.cursor_v.copy();
+
+    // clear recent cursor movement so we don't accidentally reuse it
+    this.cursor_v = new vec2( 0, 0 );
+
+    // good bye ball
     this.ball = null;
   }
 
