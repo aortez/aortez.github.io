@@ -29,14 +29,14 @@ function init() {
   let slider = document.getElementById('slider');
   slider.addEventListener( 'value-change', world.sliding, false );
 
-  setInterval( function() { advance(); }, 1000 / FPS );
-
   canvas = document.getElementById( 'pizza' );
 
   canvas.addEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mousemove", mouseMove, false );
 
   ctx = canvas.getContext( '2d' );
+
+  requestAnimationFrame( advance );
 }
 
 let previous = null;
@@ -54,4 +54,6 @@ function advance() {
   world.advance( dt * 0.05 );
 
   world.draw( ctx );
+
+  requestAnimationFrame( advance );
 }
