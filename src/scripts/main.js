@@ -51,6 +51,11 @@ function advance() {
   let dt = now - previous;
   previous = now;
 
+  let button = document.getElementById('button');
+  if ( button.pressed ) {
+    world.init();
+  }
+
   world.advance( dt * 0.05 );
 
   world.draw( ctx );

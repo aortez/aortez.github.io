@@ -374,6 +374,7 @@ class World
   }
 
   init() {
+    this.balls = [];
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
     let b1 = new Ball( 50, 150, 50, pink );
@@ -544,6 +545,11 @@ class World
     console.log( "sliding: " + this.n_divs );
   }
 
+  foo( e ) {
+
+    console.log( "foo" );
+  }
+
 }
 
 let ctx;
@@ -568,6 +574,10 @@ function mouseMove( e ) {
   controller.mouseMove( canvas, e );
 }
 
+function foo( e ) {
+  console.log("hey");
+}
+
 function init() {
   let FPS = 60;
 
@@ -583,6 +593,7 @@ function init() {
   canvas.addEventListener( "mousemove", mouseMove, false );
 
   ctx = canvas.getContext( '2d' );
+
   requestAnimationFrame( advance );
 }
 
@@ -597,6 +608,10 @@ function advance() {
   let now = window.performance.now();
   let dt = now - previous;
   previous = now;
+
+  let button = document.getElementById('button');
+  if ( button.pressed ) { world.init(); }
+  // button.addEventListener( 'transitioned', foo, false );
 
   world.advance( dt * 0.05 );
 

@@ -17,6 +17,7 @@ class World
   }
 
   init() {
+    this.balls = [];
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
     let b1 = new Ball( 50, 150, 50, pink );
