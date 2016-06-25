@@ -25,6 +25,13 @@ class vec3
     return rgb;
   }
 
+  // toHex() {
+  //   var hex = "0x" + ((1 << 24) + (this.x << 16) + (this.y << 8) + this.z).toString(16).substr(1);
+  //   // let hex = "0x" + this.x + "" + this.y + "" + this. z;
+  //   console.log( "hex: " + hex + ", color: " + this );
+  //   return hex;
+  // }
+
   randColor( variation ) {
     let c = this;
     c.x += Math.floor( variation * ( Math.random() - 0.5 ) );

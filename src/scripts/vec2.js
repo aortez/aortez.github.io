@@ -37,6 +37,12 @@ class vec2
     return this;
   }
 
+  div( scalar ) {
+    this.x /= scalar;
+    this.y /= scalar;
+    return this;
+  }
+
   mag() {
     let m = Math.sqrt( this.x * this.x + this.y * this.y );
     return m;

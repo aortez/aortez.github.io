@@ -4,18 +4,19 @@ class Ball
     this.center = new vec2( x, y );
     this.v = new vec2( 0, 0 );
     this.r = r;
-    this.c = c;
+    this.color = c;
     this.hp = r * r;
     this.hp_max = r * r;
+    this.view_object = null;
   }
 
   calcHp() {
-    let hp = this.r * this.r;
-    return hp;
+    let max_hp = this.r * this.r * this.r;
+    return max_hp;
   }
 
   collide( b ) {
-    let DAMAGE_SCALAR = 0.002;
+    let DAMAGE_SCALAR = 0.0001;
 //    let DAMAGE_SCALAR = 0.05;
 
     // distance between centers
@@ -43,8 +44,8 @@ class Ball
     T.times( this.r + b.r - delta );
 
     // compute masses
-    let m1 = this.r * this.r;
-    let m2 = b.r * b.r;
+    let m1 = this.calcHp();
+    let m2 = b.calcHp();
     let M = m1 + m2;
 
     // push the circles apart proportional to their mass
@@ -75,13 +76,21 @@ class Ball
     // console.log( "this.hp: " + this.hp );
   }
 
-  draw( ctx ) {
-    ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
-    ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
-    ctx.fill();
-    ctx.stroke();
-    ctx.closePath();
+  draw( view ) {
+    if ( this.view_object === null ) {
+      let radius = this.r;
+      let segments = 32;
+      let material = new THREE.LineBasicMaterial( { color: new THREE.Color( this.color.toRGB() ) } );
+      let geometry = new THREE.CircleGeometry( radius, segments );
+
+      // Remove center vertex
+      geometry.vertices.shift();
+
+      this.view_object = new THREE.Line( geometry, material );
+      view.addObject( this.view_object );
+    }
+    this.view_object.position.x = this.center.x;
+    this.view_object.position.y = this.center.y;
   }
 
   explode( n_divs ) {
@@ -92,7 +101,7 @@ class Ball
     let N_DIVS = 6;
     let MIN_FRAG_RADIUS = 4;
     if ( n_divs ) {
-      console.log( "ball says: yo: " + n_divs );
+      // console.log( "ball says: yo: " + n_divs );
       N_DIVS = n_divs;
     }
 
@@ -107,7 +116,7 @@ class Ball
         let r = div_size * 0.6;
         // let r = Math.pow( Math.random(), EXPLODER_SIZE_RANGE_FACTOR ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
         if ( r < MIN_FRAG_RADIUS ) continue;
-        let c = this.c.copy();
+        let c = this.color.copy();
         c.randColor( 100 );
 
         let new_ball = new Ball( x, y, r, c );

@@ -3,7 +3,9 @@
 - slider to scale damage
 - slider to scale gravity
 - slider for time scale
-- add reset button
+- replace canvas with 3js (or something similar)
 - add gravity between objects
 - create a nice compact combo slider object w/ name and value
 - reintroduce particles
+- modify vec functions to default to copying and add <function>Equals functions to support inline operations
+this will help with getting results correct and we can worry about optimization later

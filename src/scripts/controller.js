@@ -20,10 +20,13 @@ class Controller
     }
   }
 
-  mouseMove( canvas, e ) {
-    let rect = canvas.getBoundingClientRect();
-    this.mousePos.x = e.clientX - rect.left;
-    this.mousePos.y = e.clientY - rect.top;
+  mouseMove( doc, e ) {
+    // let rect = doc.getBoundingClientRect();
+    // this.mousePos.x = e.clientX - rect.left;
+    // this.mousePos.y = e.clientY - rect.top;
+    this.mousePos.x = e.clientX;
+    this.mousePos.y = e.clientY - 200;
+// ballSprite.position.set( event.clientX, event.clientY, 0 )
 
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
@@ -43,6 +46,7 @@ class Controller
   mouseDown( e ) {
     console.log( "mouse down" );
     this.mouseIsDown = true;
+    console.log( "mouse pos: " + this.mousePos.x + ", " + this.mousePos.y );
 
     // check if cursor is over any balls
     let grabbed_ball = this.world.retrieveBall( this.mousePos.x, this.mousePos.y );
@@ -50,7 +54,7 @@ class Controller
       this.ball = grabbed_ball;
     }
     else {
-      let r = Math.random() * 50 + 50;
+      let r = Math.random() * 10 + 10;
       let c = new vec3( 128, 128, 128 );
       c.randColor( 255 );
       this.ball = new Ball( this.mousePos.x, this.mousePos.y, r, c );

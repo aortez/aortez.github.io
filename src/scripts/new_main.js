@@ -1,27 +1,28 @@
-let ctx;
 let world;
 let controller;
 let canvas;
+let view;
 
 function mouseDown( e ) {
   controller.mouseDown( e );
-  canvas.removeEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mouseup", mouseUp, false );
+  document.removeEventListener( "mousedown", mouseDown, false );
+  document.addEventListener( "mouseup", mouseUp, false );
   // e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
-  canvas.removeEventListener( "mouseup", mouseUp, false );
-  canvas.addEventListener( "mousedown", mouseDown, false );
+  document.removeEventListener( "mouseup", mouseUp, false );
+  document.addEventListener( "mousedown", mouseDown, false );
 }
 
 function mouseMove( e ) {
-  controller.mouseMove( canvas, e );
+  controller.mouseMove( document, e );
 }
 
 function ball_button( e ) {
   world = new World();
+  view.clear();
   controller = new Controller( world );
   controller = new Controller( world );
   console.log( "ball time" );
@@ -34,37 +35,35 @@ function space_button( e ) {
 }
 
 function init() {
+  view = new View();
+
   ball_button();
 
-  canvas = document.getElementById( 'pizza' );
-  canvas.width  = window.innerWidth * 0.9;
-  canvas.height = window.innerHeight * 0.8;
-  canvas.addEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mousemove", mouseMove, false );
+  console.log( "hello Ramona" );
+	document.addEventListener( 'mousedown', mouseDown, false );
+  document.addEventListener( "mousemove", mouseMove, false );
+
+  // need to reimplement click on display
+  // canvas = document.getElementById( 'pizza' );
+  // canvas.addEventListener( "mousedown", mouseDown, false );
 
   let slider = document.getElementById('slider');
   slider.addEventListener( 'value-change', world.sliding, false );
-
-  ctx = canvas.getContext( '2d' );
 
   requestAnimationFrame( advance );
 }
 
 let previous = null;
 function advance() {
-
-  canvas.width  = window.innerWidth * 0.9;
-  canvas.height = window.innerHeight * 0.8;
-  world.max_x = canvas.width;
-  world.max_y = canvas.height;
-
   let now = window.performance.now();
   let dt = now - previous;
   previous = now;
 
   world.advance( dt * 0.05 );
 
-  world.draw( ctx );
+  world.draw( view );
+
+  view.render();
 
   requestAnimationFrame( advance );
 }
