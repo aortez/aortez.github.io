@@ -790,10 +790,6 @@ class View
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( this.renderer.domElement );
-
-    // var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
-    // var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
-    // camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
   }
 
   addObject( object ) {
@@ -850,13 +846,8 @@ function init() {
 
   ball_button();
 
-  console.log( "hello Ramona" );
 	document.addEventListener( 'mousedown', mouseDown, false );
   document.addEventListener( "mousemove", mouseMove, false );
-
-  // need to reimplement click on display
-  // canvas = document.getElementById( 'pizza' );
-  // canvas.addEventListener( "mousedown", mouseDown, false );
 
   let slider = document.getElementById('slider');
   slider.addEventListener( 'value-change', world.sliding, false );

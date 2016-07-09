@@ -38,13 +38,8 @@ function init() {
 
   ball_button();
 
-  console.log( "hello Ramona" );
 	document.addEventListener( 'mousedown', mouseDown, false );
   document.addEventListener( "mousemove", mouseMove, false );
-
-  // need to reimplement click on display
-  // canvas = document.getElementById( 'pizza' );
-  // canvas.addEventListener( "mousedown", mouseDown, false );
 
   let slider = document.getElementById('slider');
   slider.addEventListener( 'value-change', world.sliding, false );
