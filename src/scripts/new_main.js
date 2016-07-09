@@ -17,7 +17,7 @@ function mouseUp( e ) {
 }
 
 function mouseMove( e ) {
-  controller.mouseMove( document, e );
+  controller.mouseMove( document, e, view );
 }
 
 function ball_button( e ) {

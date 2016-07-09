@@ -8,14 +8,25 @@ class Controller
     this.cursor_v = new vec2( 0, 0 );
   }
 
-  mouseMove( doc, e ) {
-    // let rect = doc.getBoundingClientRect();
-    // this.mousePos.x = e.clientX - rect.left;
-    // this.mousePos.y = e.clientY - rect.top;
-    this.mousePos.x = e.clientX;
-    this.mousePos.y = e.clientY - 200;
-// ballSprite.position.set( event.clientX, event.clientY, 0 )
+  mouseMove( doc, e, view ) {
 
+    // translate into world space
+    var vector = new THREE.Vector3();
+    vector.set(
+        ( event.clientX / window.innerWidth ) * 2 - 1,
+        - ( event.clientY / window.innerHeight ) * 2 + 1,
+        0.5 );
+    let camera = view.camera;
+    vector.unproject( camera );
+    let dir = vector.sub( camera.position ).normalize();
+    let distance = - camera.position.z / dir.z;
+    let pos = camera.position.clone().add( dir.multiplyScalar( distance ) );
+    // console.log( pos );
+
+    this.mousePos.x = pos.x;
+    this.mousePos.y = pos.y;
+
+    // if mouse button is down, move any ball under the cursor
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
       // record cursor movement while the button is down
