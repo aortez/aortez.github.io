@@ -54,18 +54,6 @@ class Controller
     this.cursor_v = new vec2( 0, 0 );
   }
 
-  advance() {
-    let b = this.ball;
-    if ( this.mouseIsDown && b ) {
-    //   ball.c.x = 255;
-    //   ball.c.y = green;
-    //   ball.c.z = blue;
-      b.hp = b.calcHp() * 1000;
-      b.v.x = 0;
-      b.v.y = 0;
-    }
-  }
-
   mouseMove( doc, e ) {
     // let rect = doc.getBoundingClientRect();
     // this.mousePos.x = e.clientX - rect.left;
@@ -784,16 +772,13 @@ class View
 {
   constructor() {
     this.scene = new THREE.Scene();
-    let height_percent = 0.8;
-    let aspect_ratio = window.innerWidth / window.innerHeight / height_percent;
-    this.camera = new THREE.PerspectiveCamera( 75, aspect_ratio, 0.1, 1000 );
+    let aspect_ratio = window.innerWidth / window.innerHeight;
+    this.camera = new THREE.PerspectiveCamera( 100, aspect_ratio, 0.1, 1000 );
     this.camera.position.z = 100;
 
     this.renderer = new THREE.WebGLRenderer();
-    this.renderer.setSize( window.innerWidth, window.innerHeight * height_percent );
+    this.renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( this.renderer.domElement );
-
-
 
     // var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
     // var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
@@ -839,7 +824,6 @@ function mouseMove( e ) {
 function ball_button( e ) {
   world = new World();
   view.clear();
-  controller = new Controller( world );
   controller = new Controller( world );
   console.log( "ball time" );
 }

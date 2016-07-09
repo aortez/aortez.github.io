@@ -8,18 +8,6 @@ class Controller
     this.cursor_v = new vec2( 0, 0 );
   }
 
-  advance() {
-    let b = this.ball;
-    if ( this.mouseIsDown && b ) {
-    //   ball.c.x = 255;
-    //   ball.c.y = green;
-    //   ball.c.z = blue;
-      b.hp = b.calcHp() * 1000;
-      b.v.x = 0;
-      b.v.y = 0;
-    }
-  }
-
   mouseMove( doc, e ) {
     // let rect = doc.getBoundingClientRect();
     // this.mousePos.x = e.clientX - rect.left;

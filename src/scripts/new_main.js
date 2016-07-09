@@ -24,7 +24,6 @@ function ball_button( e ) {
   world = new World();
   view.clear();
   controller = new Controller( world );
-  controller = new Controller( world );
   console.log( "ball time" );
 }
 
