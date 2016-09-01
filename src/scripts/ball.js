@@ -3,10 +3,14 @@ class Ball
   constructor( x, y, r, c ) {
     this.center = new vec2( x, y );
     this.v = new vec2( 0, 0 );
-    this.r = r;
-    this.c = c;
-    this.hp = r * r;
-    this.hp_max = r * r;
+    this.r = r; // radius
+    this.color = c; // color
+    this.hp = r * r; // current hit points
+    this.hp_max = r * r; // max hit points
+    this.m = r * r; // mass
+    this.is_affected_by_gravity = true;
+    this.is_moving = true;
+    this.is_invincible = true;
   }
 
   calcHp() {
@@ -15,8 +19,8 @@ class Ball
   }
 
   collide( b ) {
-    let DAMAGE_SCALAR = 0.002;
-//    let DAMAGE_SCALAR = 0.05;
+    // let DAMAGE_SCALAR = 0.002;
+    let DAMAGE_SCALAR = 0.05;
 
     // distance between centers
     let D = this.center.copy().minus( b.center );
@@ -51,6 +55,11 @@ class Ball
     this.center.plus( T.copy().times( m2 / M ) );
     b.center.minus( T.copy().times( m1 / M ) );
 
+    // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
+    if ( !b.is_moving && !this.is_moving ) {
+      return;
+    }
+
     // vector tangential to the collision plane
     let Dt = new vec2( Dn.y, -Dn.x );
 
@@ -76,7 +85,7 @@ class Ball
   }
 
   draw( ctx ) {
-    ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
+    ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
     ctx.beginPath();
     ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
     ctx.fill();
@@ -88,34 +97,29 @@ class Ball
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     let EXPLODER_SIZE_FACTOR = 0.4;
     let EXPLODE_V_FACTOR = 0.4;
-    let EXPLODER_SIZE_RANGE_FACTOR = 0.5;
-    let N_DIVS = 6;
     let MIN_FRAG_RADIUS = 4;
-    if ( n_divs ) {
-      console.log( "ball says: yo: " + n_divs );
-      N_DIVS = n_divs;
-    }
 
     let frags = [];
-    const div_size = this.r / N_DIVS;
+    let div_size = this.r / n_divs;
     for ( let y = this.center.y - this.r; y < this.center.y + this.r; y += div_size ) {
       for ( let x = this.center.x - this.r; x < this.center.x + this.r; x += div_size ) {
         const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        // let r = this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
-        let r = div_size * 0.6;
-        // let r = Math.pow( Math.random(), EXPLODER_SIZE_RANGE_FACTOR ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
+        let r = div_size * EXPLODER_SIZE_FACTOR;
         if ( r < MIN_FRAG_RADIUS ) continue;
-        let c = this.c.copy();
+        let c = this.color.copy();
         c.randColor( 100 );
 
         let new_ball = new Ball( x, y, r, c );
 
         let v = new_ball.center.copy().minus( this.center );
         v.times( Math.random() * EXPLODE_V_FACTOR );
-        v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
+        v.plus( v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         new_ball.v = v;
+        new_ball.is_affected_by_gravity = true;
+        new_ball.is_moving = true;
+        new_ball.is_invincible = false;
 
         frags.push( new_ball );
       }

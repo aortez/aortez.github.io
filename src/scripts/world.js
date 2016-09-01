@@ -4,12 +4,13 @@ class World
 {
   constructor() {
     this.balls = [];
+    this.planets = [];
     this.particles = [];
     this.min_x = 0;
     this.min_y = 0;
     this.max_x = 100;
     this.max_y = 100;
-    this.g = 0.2;
+    this.g = 0.1;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
     this.init();
@@ -22,25 +23,33 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let b1 = new Ball( 50, 150, 50, pink );
     b1.v.x = 20;
+    b1.is_affected_by_gravity = true;
+    b1.is_moving = true;
+    b1.is_invincible = false;
     this.addBall( b1 );
 
     let b2 = new Ball( 1750, 150, 50, blue );
     b2.v.x = -20;
+    b2.is_affected_by_gravity = true;
+    b2.is_moving = true;
+    b2.is_invincible = false;
     this.addBall( b2 );
 
     let b3 = new Ball( 50, 500, 100, pink );
     b3.v.x = 20;
+    b3.is_invincible = false;
     this.addBall( b3 );
 
     let b4 = new Ball( 2000, 500, 100, blue );
     b4.v.x = -20;
+    b4.is_invincible = false;
     this.addBall( b4 );
   }
 
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 800;
+    let MAX_BALLS = 700;
     let MIN_EXPLODER_RADIUS = 10;
     let NEW_PARTICLE_HP = 1;
     let WALL_ELASTIC_FACTOR = 0.9;
@@ -49,9 +58,10 @@ class World
     for ( let i = 0; i < balls.length; i++ ) {
       let b = balls[ i ];
 
-      // move ball
-      b.v.y += this.g * dt;
-      b.center.plus( b.v.copy().times( dt ) );
+      // move moving stuff
+      if ( b.is_moving ) {
+        b.center.plus( b.v.copy().times( dt ) );
+      }
 
       // bounce off walls
       if ( b.center.x + b.r > this.max_x ) { b.center.x = this.max_x - b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
@@ -59,11 +69,23 @@ class World
       if ( b.center.x - b.r < this.min_x ) { b.center.x = this.min_x + b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y - b.r < this.min_y ) { b.center.y = this.min_y + b.r; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
 
-      // bounce off other balls
+      // interact with other balls
       for ( let j = i + 1; j < balls.length; j++ ) {
         let b2 = balls[ j ];
+        // crash em together
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
+        }
+        // apply gravity
+        if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
+          // F = (G * m1 * m2) / (Distance^2)
+          let d = b.center.distance( b2.center );
+          let G = 1.0;
+          let F = ( G * b.m * b2.m ) / ( d * d );
+          let a = F / b.m;
+          let a2 = F / b2.m;
+          b.v.plus( ( b2.center.copy().minus( b.center ) ).normalize().times( a ) );
+          b2.v.minus( ( b2.center.copy().minus( b.center ) ).normalize().times( a2 ) );
         }
       }
     }
@@ -71,9 +93,10 @@ class World
     // remove dead balls from world
     let dead_balls = [];
     for ( let i = balls.length; i--; ) {
-      if ( balls[ i ].hp < 0 ) {
+      let b = balls[ i ];
+      if ( !b.is_invincible && b.hp < 0 ) {
         // console.log( "removing dead ball, hp: " + balls.hp );
-        dead_balls.push( balls[ i ] );
+        dead_balls.push( b );
         balls.splice( i, 1 );
       }
     }
@@ -101,8 +124,8 @@ class World
           // p.r = 50;
           // if ( p.r < 50 ) { p.hp = 0; }
           if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
+          this.particles = this.particles.concat( new_particles );
         }
-        this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
         // console.log( "particles.length: " + new_balls.length );
       }
@@ -116,7 +139,7 @@ class World
     }
 
     // do particle stuff
-    this.advanceParticles( dt );
+    // this.advanceParticles( dt );
   }
 
   advanceParticles( dt ) {

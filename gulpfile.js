@@ -1,6 +1,5 @@
 var gulp = require('gulp');
 
-// JS hint task
 var jshint = require('gulp-jshint');
 gulp.task('jshint', function() {
   gulp.src('./src/scripts/*.js')
@@ -8,7 +7,6 @@ gulp.task('jshint', function() {
     .pipe(jshint.reporter('default'));
 });
 
-// JS concat, strip debugging and minify
 var concat = require('gulp-concat');
 gulp.task('scripts', function() {
   gulp.src([

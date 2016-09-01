@@ -37,6 +37,12 @@ class vec3
 
 }
 
+var ObjectType = {
+  NONE: 1,
+  BALL: 2,
+  PLANET: 3
+};
+
 class Controller
 {
   constructor( world ) {
@@ -45,6 +51,7 @@ class Controller
     this.mouseIsDown = false;
     this.world = world;
     this.cursor_v = new vec2( 0, 0 );
+    this.next_object_type = ObjectType.BALL;
   }
 
   advance() {
@@ -67,14 +74,15 @@ class Controller
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
       // record cursor movement while the button is down
-      this.cursor_v = this.mousePos.copy().minus( b.center );
+      let d = this.mousePos.copy().minus( b.center );
+      let alpha = 0.5;
+      this.cursor_v.x = this.cursor_v.x * ( 1 - alpha ) + alpha * d.x;
+      this.cursor_v.y = this.cursor_v.y * ( 1 - alpha ) + alpha * d.y;
 
       // keep the ball alive and move it to follow the cursor
       b.hp = b.calcHp() * 1000;
       b.center.x = this.mousePos.x;
       b.center.y = this.mousePos.y;
-      b.v.x = 0;
-      b.v.y = 0;
     }
 
   }
@@ -93,6 +101,23 @@ class Controller
       let c = new vec3( 128, 128, 128 );
       c.randColor( 255 );
       this.ball = new Ball( this.mousePos.x, this.mousePos.y, r, c );
+      if ( this.next_object_type == ObjectType.PLANET ) {
+        this.ball.r = this.ball.r * 2;
+        this.ball.is_affected_by_gravity = true;
+        this.ball.m = this.ball.r * this.ball.r * 10;
+        this.ball.hp = this.ball.r * this.ball.r * 10000;
+        this.ball.is_moving = false;
+        this.ball.is_invincible = true;
+        console.log("adding planet");
+      } else {
+        this.ball.is_affected_by_gravity = true;
+        this.ball.v = this.cursor_v;
+        this.ball.m = this.ball.r * this.ball.r;
+        this.ball.is_moving = true;
+        this.ball.is_invincible = false;
+        this.ball.can_move = true;
+        console.log("adding ball");
+      }
       this.world.addBall( this.ball );
     }
   }
@@ -124,6 +149,15 @@ class Controller
     console.log("mouse over" );
   }
 
+  requestPlanet() {
+    console.log("I want a planet!!!!!!!!!!!!");
+    this.next_object_type = ObjectType.PLANET;
+  }
+
+  requestBall() {
+    console.log("I want a ball &&&&&&&&&&&&&&");
+    this.next_object_type = ObjectType.BALL;
+  }
 }
 
 class Background
@@ -175,10 +209,14 @@ class Ball
   constructor( x, y, r, c ) {
     this.center = new vec2( x, y );
     this.v = new vec2( 0, 0 );
-    this.r = r;
-    this.c = c;
-    this.hp = r * r;
-    this.hp_max = r * r;
+    this.r = r; // radius
+    this.color = c; // color
+    this.hp = r * r; // current hit points
+    this.hp_max = r * r; // max hit points
+    this.m = r * r; // mass
+    this.is_affected_by_gravity = true;
+    this.is_moving = true;
+    this.is_invincible = true;
   }
 
   calcHp() {
@@ -187,8 +225,8 @@ class Ball
   }
 
   collide( b ) {
-    let DAMAGE_SCALAR = 0.002;
-//    let DAMAGE_SCALAR = 0.05;
+    // let DAMAGE_SCALAR = 0.002;
+    let DAMAGE_SCALAR = 0.05;
 
     // distance between centers
     let D = this.center.copy().minus( b.center );
@@ -223,6 +261,11 @@ class Ball
     this.center.plus( T.copy().times( m2 / M ) );
     b.center.minus( T.copy().times( m1 / M ) );
 
+    // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
+    if ( !b.is_moving && !this.is_moving ) {
+      return;
+    }
+
     // vector tangential to the collision plane
     let Dt = new vec2( Dn.y, -Dn.x );
 
@@ -248,7 +291,7 @@ class Ball
   }
 
   draw( ctx ) {
-    ctx.fillStyle = "rgb(" + this.c.x + "," + this.c.y + "," + this.c.z + ")";
+    ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
     ctx.beginPath();
     ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
     ctx.fill();
@@ -260,34 +303,29 @@ class Ball
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     let EXPLODER_SIZE_FACTOR = 0.4;
     let EXPLODE_V_FACTOR = 0.4;
-    let EXPLODER_SIZE_RANGE_FACTOR = 0.5;
-    let N_DIVS = 6;
     let MIN_FRAG_RADIUS = 4;
-    if ( n_divs ) {
-      console.log( "ball says: yo: " + n_divs );
-      N_DIVS = n_divs;
-    }
 
     let frags = [];
-    const div_size = this.r / N_DIVS;
+    let div_size = this.r / n_divs;
     for ( let y = this.center.y - this.r; y < this.center.y + this.r; y += div_size ) {
       for ( let x = this.center.x - this.r; x < this.center.x + this.r; x += div_size ) {
         const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        // let r = this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
-        let r = div_size * 0.6;
-        // let r = Math.pow( Math.random(), EXPLODER_SIZE_RANGE_FACTOR ) * this.r / N_DIVS * EXPLODER_SIZE_FACTOR;
+        let r = div_size * EXPLODER_SIZE_FACTOR;
         if ( r < MIN_FRAG_RADIUS ) continue;
-        let c = this.c.copy();
+        let c = this.color.copy();
         c.randColor( 100 );
 
         let new_ball = new Ball( x, y, r, c );
 
         let v = new_ball.center.copy().minus( this.center );
         v.times( Math.random() * EXPLODE_V_FACTOR );
-        v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
+        v.plus( v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         new_ball.v = v;
+        new_ball.is_affected_by_gravity = true;
+        new_ball.is_moving = true;
+        new_ball.is_invincible = false;
 
         frags.push( new_ball );
       }
@@ -336,6 +374,12 @@ class vec2
     return this;
   }
 
+  divided_by( scalar ) {
+    this.x /= scalar;
+    this.y /= scalar;
+    return this;
+  }
+
   mag() {
     let m = Math.sqrt( this.x * this.x + this.y * this.y );
     return m;
@@ -361,12 +405,13 @@ class World
 {
   constructor() {
     this.balls = [];
+    this.planets = [];
     this.particles = [];
     this.min_x = 0;
     this.min_y = 0;
     this.max_x = 100;
     this.max_y = 100;
-    this.g = 0.2;
+    this.g = 0.1;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
     this.init();
@@ -379,25 +424,33 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let b1 = new Ball( 50, 150, 50, pink );
     b1.v.x = 20;
+    b1.is_affected_by_gravity = true;
+    b1.is_moving = true;
+    b1.is_invincible = false;
     this.addBall( b1 );
 
     let b2 = new Ball( 1750, 150, 50, blue );
     b2.v.x = -20;
+    b2.is_affected_by_gravity = true;
+    b2.is_moving = true;
+    b2.is_invincible = false;
     this.addBall( b2 );
 
     let b3 = new Ball( 50, 500, 100, pink );
     b3.v.x = 20;
+    b3.is_invincible = false;
     this.addBall( b3 );
 
     let b4 = new Ball( 2000, 500, 100, blue );
     b4.v.x = -20;
+    b4.is_invincible = false;
     this.addBall( b4 );
   }
 
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 800;
+    let MAX_BALLS = 700;
     let MIN_EXPLODER_RADIUS = 10;
     let NEW_PARTICLE_HP = 1;
     let WALL_ELASTIC_FACTOR = 0.9;
@@ -406,9 +459,10 @@ class World
     for ( let i = 0; i < balls.length; i++ ) {
       let b = balls[ i ];
 
-      // move ball
-      b.v.y += this.g * dt;
-      b.center.plus( b.v.copy().times( dt ) );
+      // move moving stuff
+      if ( b.is_moving ) {
+        b.center.plus( b.v.copy().times( dt ) );
+      }
 
       // bounce off walls
       if ( b.center.x + b.r > this.max_x ) { b.center.x = this.max_x - b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
@@ -416,11 +470,23 @@ class World
       if ( b.center.x - b.r < this.min_x ) { b.center.x = this.min_x + b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y - b.r < this.min_y ) { b.center.y = this.min_y + b.r; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
 
-      // bounce off other balls
+      // interact with other balls
       for ( let j = i + 1; j < balls.length; j++ ) {
         let b2 = balls[ j ];
+        // crash em together
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
+        }
+        // apply gravity
+        if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
+          // F = (G * m1 * m2) / (Distance^2)
+          let d = b.center.distance( b2.center );
+          let G = 1.0;
+          let F = ( G * b.m * b2.m ) / ( d * d );
+          let a = F / b.m;
+          let a2 = F / b2.m;
+          b.v.plus( ( b2.center.copy().minus( b.center ) ).normalize().times( a ) );
+          b2.v.minus( ( b2.center.copy().minus( b.center ) ).normalize().times( a2 ) );
         }
       }
     }
@@ -428,9 +494,10 @@ class World
     // remove dead balls from world
     let dead_balls = [];
     for ( let i = balls.length; i--; ) {
-      if ( balls[ i ].hp < 0 ) {
+      let b = balls[ i ];
+      if ( !b.is_invincible && b.hp < 0 ) {
         // console.log( "removing dead ball, hp: " + balls.hp );
-        dead_balls.push( balls[ i ] );
+        dead_balls.push( b );
         balls.splice( i, 1 );
       }
     }
@@ -458,8 +525,8 @@ class World
           // p.r = 50;
           // if ( p.r < 50 ) { p.hp = 0; }
           if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
+          this.particles = this.particles.concat( new_particles );
         }
-        this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
         // console.log( "particles.length: " + new_balls.length );
       }
@@ -473,7 +540,7 @@ class World
     }
 
     // do particle stuff
-    this.advanceParticles( dt );
+    // this.advanceParticles( dt );
   }
 
   advanceParticles( dt ) {
@@ -545,11 +612,6 @@ class World
     console.log( "sliding: " + this.n_divs );
   }
 
-  foo( e ) {
-
-    console.log( "foo" );
-  }
-
 }
 
 let ctx;
@@ -572,10 +634,6 @@ function mouseUp( e ) {
 
 function mouseMove( e ) {
   controller.mouseMove( canvas, e );
-}
-
-function foo( e ) {
-  console.log("hey");
 }
 
 function init() {
@@ -609,9 +667,20 @@ function advance() {
   let dt = now - previous;
   previous = now;
 
-  let button = document.getElementById('button');
-  if ( button.pressed ) { world.init(); }
-  // button.addEventListener( 'transitioned', foo, false );
+  let reset_button = document.getElementById('reset_button');
+  if ( reset_button.pressed ) {
+    world.init();
+  }
+
+  let planet_button = document.getElementById('planet_button');
+  if ( planet_button.pressed ) {
+    controller.requestPlanet();
+  }
+
+  let ball_button = document.getElementById('ball_button');
+  if ( ball_button.pressed ) {
+    controller.requestBall();
+  }
 
   world.advance( dt * 0.05 );
 

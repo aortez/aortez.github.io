@@ -51,9 +51,19 @@ function advance() {
   let dt = now - previous;
   previous = now;
 
-  let button = document.getElementById('button');
-  if ( button.pressed ) {
+  let reset_button = document.getElementById('reset_button');
+  if ( reset_button.pressed ) {
     world.init();
+  }
+
+  let planet_button = document.getElementById('planet_button');
+  if ( planet_button.pressed ) {
+    controller.requestPlanet();
+  }
+
+  let ball_button = document.getElementById('ball_button');
+  if ( ball_button.pressed ) {
+    controller.requestBall();
   }
 
   world.advance( dt * 0.05 );
