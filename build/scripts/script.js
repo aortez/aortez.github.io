@@ -225,8 +225,8 @@ class Ball
   }
 
   collide( b ) {
-    // let DAMAGE_SCALAR = 0.002;
-    let DAMAGE_SCALAR = 0.05;
+    let DAMAGE_SCALAR = 0.002;
+    // let DAMAGE_SCALAR = 0.05;
 
     // distance between centers
     let D = this.center.copy().minus( b.center );
@@ -253,13 +253,17 @@ class Ball
     T.times( this.r + b.r - delta );
 
     // compute masses
-    let m1 = this.r * this.r;
-    let m2 = b.r * b.r;
+    let m1 = this.m;
+    let m2 = b.m;
     let M = m1 + m2;
 
-    // push the circles apart proportional to their mass
+    // if ( !this.is_moving ) { b.center.minus( T );  }
+    // else if ( !b.is_moving ) { this.center.plus( T ); }
+    // else {
+    //   // push the circles apart proportional to their mass
     this.center.plus( T.copy().times( m2 / M ) );
     b.center.minus( T.copy().times( m1 / M ) );
+    // }
 
     // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
     if ( !b.is_moving && !this.is_moving ) {
@@ -485,8 +489,9 @@ class World
           let F = ( G * b.m * b2.m ) / ( d * d );
           let a = F / b.m;
           let a2 = F / b2.m;
-          b.v.plus( ( b2.center.copy().minus( b.center ) ).normalize().times( a ) );
-          b2.v.minus( ( b2.center.copy().minus( b.center ) ).normalize().times( a2 ) );
+          let D = ( b2.center.copy().minus( b.center ) ).normalize();
+          b.v.plus( D.times( a ) );
+          b2.v.minus( D.times( a2 ) );
         }
       }
     }
@@ -513,7 +518,7 @@ class World
         // console.log( "world says: this.n_divs: " + this.n_divs + ", foog: " + foog );
         new_balls = new_balls.concat( ball.explode( NUM_EXPLOD_DIVS ) );
         // console.log( "new_balls.length: " + new_balls.length );
-      } else if (false) {
+      } else if ( true ) {
         // if they are smaller then they go into the particle loop
         let new_particles = ball.explode();
         for ( let p_index = new_particles.length; p_index--; ) {
@@ -524,7 +529,7 @@ class World
           p.hp = NEW_PARTICLE_HP;
           // p.r = 50;
           // if ( p.r < 50 ) { p.hp = 0; }
-          if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
+          // if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
           this.particles = this.particles.concat( new_particles );
         }
         // console.log( "to particles - r: " + ball.r );
@@ -549,7 +554,8 @@ class World
       let p = this.particles[ i ];
 
       // fade em
-      p.hp = p.hp - ( p.max_hp * dt );
+      // p.hp = p.hp - ( p.max_hp * dt );
+      p.ph -= 0.1;
 
       // move em
       p.v.y += this.g * this.dt;

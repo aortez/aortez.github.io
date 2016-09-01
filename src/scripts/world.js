@@ -84,8 +84,9 @@ class World
           let F = ( G * b.m * b2.m ) / ( d * d );
           let a = F / b.m;
           let a2 = F / b2.m;
-          b.v.plus( ( b2.center.copy().minus( b.center ) ).normalize().times( a ) );
-          b2.v.minus( ( b2.center.copy().minus( b.center ) ).normalize().times( a2 ) );
+          let D = ( b2.center.copy().minus( b.center ) ).normalize();
+          b.v.plus( D.times( a ) );
+          b2.v.minus( D.times( a2 ) );
         }
       }
     }
@@ -112,7 +113,7 @@ class World
         // console.log( "world says: this.n_divs: " + this.n_divs + ", foog: " + foog );
         new_balls = new_balls.concat( ball.explode( NUM_EXPLOD_DIVS ) );
         // console.log( "new_balls.length: " + new_balls.length );
-      } else if (false) {
+      } else if ( true ) {
         // if they are smaller then they go into the particle loop
         let new_particles = ball.explode();
         for ( let p_index = new_particles.length; p_index--; ) {
@@ -123,7 +124,7 @@ class World
           p.hp = NEW_PARTICLE_HP;
           // p.r = 50;
           // if ( p.r < 50 ) { p.hp = 0; }
-          if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
+          // if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
           this.particles = this.particles.concat( new_particles );
         }
         // console.log( "to particles - r: " + ball.r );
@@ -148,7 +149,8 @@ class World
       let p = this.particles[ i ];
 
       // fade em
-      p.hp = p.hp - ( p.max_hp * dt );
+      // p.hp = p.hp - ( p.max_hp * dt );
+      p.ph -= 0.1;
 
       // move em
       p.v.y += this.g * this.dt;
