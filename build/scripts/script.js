@@ -531,7 +531,6 @@ class World
           p.hp_max = NEW_PARTICLE_HP;
           p.hp = NEW_PARTICLE_HP;
         }
-        console.log( "new_particles.length: " + new_particles.length );
         this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
         // console.log( "particles.length: " + new_balls.length );
@@ -550,7 +549,7 @@ class World
   }
 
   advanceParticles( dt ) {
-    if ( this.particles.length > 0 ) console.log( "num particles: " + this.particles.length );
+    // if ( this.particles.length > 0 ) console.log( "num particles: " + this.particles.length );
 
     for ( let i = this.particles.length; i--; ) {
       let p = this.particles[ i ];
@@ -590,7 +589,6 @@ class World
       b.draw( ctx );
     }
 
-    console.log( "drawing n particles: " + this.particles.length );
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
       p.draw( ctx );
