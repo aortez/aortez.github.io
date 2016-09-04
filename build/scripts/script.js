@@ -580,12 +580,13 @@ class World
         continue;
       }
       // move em
-      // p.v.y += this.g * dt;
       p.center.plus( p.v.copy().times( dt ) );
 
-      // apply gravity
+      // interact with planets
       for ( let pIndex = 0; pIndex < this.planets.length; pIndex++ ) {
         let planet = this.planets[ pIndex ];
+
+        // apply gravity
         let d = p.center.distance( planet.center );
         let G = 1.0;
         let F = ( G * p.m * planet.m ) / ( d * d );
@@ -598,14 +599,9 @@ class World
           p.collide( planet );
         }
       }
-    }
 
-      // bounce off walls
-      // let WALL_ELASTIC_FACTOR = 1;
-      // if ( p.center.x + p.r > this.max_x ) { p.center.x = this.max_x - p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
-      // if ( p.center.y + p.r > this.max_y ) { p.center.y = this.max_y - p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
-      // if ( p.center.x - p.r < this.min_x ) { p.center.x = this.min_x + p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
-      // if ( p.center.y - p.r < this.min_y ) { p.center.y = this.min_y + p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
+      // maybe could apply gravity against other ojects
+      }
   }
 
   addBall( b ) {
