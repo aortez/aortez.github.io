@@ -164,7 +164,7 @@ class World
     for ( let i = this.particles.length; i--; ) {
       let p = this.particles[ i ];
       // fade em
-      p.hp -= 0.02 * dt;
+      p.hp -= 0.05 * dt;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
