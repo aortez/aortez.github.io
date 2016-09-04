@@ -50,7 +50,7 @@ class World
     this.background.advance( dt );
 
     let MAX_BALLS = 700;
-    let MIN_EXPLODER_RADIUS = 10;
+    let MIN_EXPLODER_RADIUS = 25;
     let NEW_PARTICLE_HP = 1;
     let WALL_ELASTIC_FACTOR = 0.9;
 
@@ -113,20 +113,18 @@ class World
         // console.log( "world says: this.n_divs: " + this.n_divs + ", foog: " + foog );
         new_balls = new_balls.concat( ball.explode( NUM_EXPLOD_DIVS ) );
         // console.log( "new_balls.length: " + new_balls.length );
-      } else if ( true ) {
+      } else { //if ( ball.r > 1 ) {
         // if they are smaller then they go into the particle loop
-        let new_particles = ball.explode();
+        let new_particles = ball.explode( 2 );
         for ( let p_index = new_particles.length; p_index--; ) {
           let p = new_particles[ p_index ];
 
-          p.c = new vec3( 255, 255, 255 );
+          // p.c = new vec3( 255, 255, 255 );
           p.hp_max = NEW_PARTICLE_HP;
           p.hp = NEW_PARTICLE_HP;
-          // p.r = 50;
-          // if ( p.r < 50 ) { p.hp = 0; }
-          // if ( p.r < 2 ) { new_particles.splice( p_index, 1 ); }
-          this.particles = this.particles.concat( new_particles );
         }
+        console.log( "new_particles.length: " + new_particles.length );
+        this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
         // console.log( "particles.length: " + new_balls.length );
       }
@@ -140,33 +138,31 @@ class World
     }
 
     // do particle stuff
-    // this.advanceParticles( dt );
+    this.advanceParticles( dt );
   }
 
   advanceParticles( dt ) {
-    // console.log( "dt: " + dt );
+    if ( this.particles.length > 0 ) console.log( "num particles: " + this.particles.length );
+
     for ( let i = this.particles.length; i--; ) {
       let p = this.particles[ i ];
-
       // fade em
-      // p.hp = p.hp - ( p.max_hp * dt );
-      p.ph -= 0.1;
-
-      // move em
-      p.v.y += this.g * this.dt;
-      p.center.plus( p.v.copy().times( this.dt ) );
-
-      // bounce off walls
-      let WALL_ELASTIC_FACTOR = 1;
-      if ( p.center.x + p.r > this.max_x ) { p.center.x = this.max_x - p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
-      if ( p.center.y + p.r > this.max_y ) { p.center.y = this.max_y - p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
-      if ( p.center.x - p.r < this.min_x ) { p.center.x = this.min_x + p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
-      if ( p.center.y - p.r < this.min_y ) { p.center.y = this.min_y + p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
-
+      p.hp -= 0.02 * dt;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
+        continue;
       }
+      // move em
+      // p.v.y += this.g * dt;
+      p.center.plus( p.v.copy().times( dt ) );
+
+      // bounce off walls
+      // let WALL_ELASTIC_FACTOR = 1;
+      // if ( p.center.x + p.r > this.max_x ) { p.center.x = this.max_x - p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
+      // if ( p.center.y + p.r > this.max_y ) { p.center.y = this.max_y - p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
+      // if ( p.center.x - p.r < this.min_x ) { p.center.x = this.min_x + p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
+      // if ( p.center.y - p.r < this.min_y ) { p.center.y = this.min_y + p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
     }
   }
 
@@ -186,6 +182,7 @@ class World
       b.draw( ctx );
     }
 
+    console.log( "drawing n particles: " + this.particles.length );
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
       p.draw( ctx );

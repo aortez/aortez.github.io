@@ -101,7 +101,7 @@ class Ball
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     let EXPLODER_SIZE_FACTOR = 0.4;
     let EXPLODE_V_FACTOR = 0.4;
-    let MIN_FRAG_RADIUS = 4;
+    let MIN_FRAG_RADIUS = 1;
 
     let frags = [];
     let div_size = this.r / n_divs;

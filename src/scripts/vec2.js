@@ -60,4 +60,7 @@ class vec2
     return this;
   }
 
+  toString() {
+    return "x: " + this.x + ", y: " + this.y;
+  }
 }
