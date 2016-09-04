@@ -108,6 +108,7 @@ class Controller
         this.ball.hp = this.ball.r * this.ball.r * 10000;
         this.ball.is_moving = false;
         this.ball.is_invincible = true;
+        this.world.addPlanet( this.ball );
         console.log("adding planet");
       } else {
         this.ball.is_affected_by_gravity = true;
@@ -116,9 +117,9 @@ class Controller
         this.ball.is_moving = true;
         this.ball.is_invincible = false;
         this.ball.can_move = true;
+        this.world.addBall( this.ball );
         console.log("adding ball");
       }
-      this.world.addBall( this.ball );
     }
   }
 
@@ -497,6 +498,24 @@ class World
           b2.v.minus( D.times( a2 ) );
         }
       }
+
+      // interact with planets
+      for ( let pIndex = 0; pIndex < this.planets.length; pIndex++ ) {
+        let p = this.planets[ pIndex ];
+        // apply gravity
+        // F = (G * m1 * m2) / (Distance^2)
+        let d = b.center.distance( p.center );
+        let G = 1.0;
+        let F = ( G * b.m * p.m ) / ( d * d );
+        let a = F / b.m;
+        let D = ( p.center.copy().minus( b.center ) ).normalize();
+        b.v.plus( D.times( a ) );
+
+        // crash em together
+        if ( b.center.distance( p.center ) < b.r + p.r ) {
+          b.collide( p );
+        }
+      }
     }
 
     // remove dead balls from world
@@ -528,8 +547,8 @@ class World
           let p = new_particles[ p_index ];
 
           // p.c = new vec3( 255, 255, 255 );
-          p.hp_max = NEW_PARTICLE_HP;
-          p.hp = NEW_PARTICLE_HP;
+          // p.hp_max = NEW_PARTICLE_HP;
+          // p.hp = NEW_PARTICLE_HP;
         }
         this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
@@ -564,13 +583,29 @@ class World
       // p.v.y += this.g * dt;
       p.center.plus( p.v.copy().times( dt ) );
 
+      // apply gravity
+      for ( let pIndex = 0; pIndex < this.planets.length; pIndex++ ) {
+        let planet = this.planets[ pIndex ];
+        let d = p.center.distance( planet.center );
+        let G = 1.0;
+        let F = ( G * p.m * planet.m ) / ( d * d );
+        let a = F / p.m;
+        let D = ( planet.center.copy().minus( p.center ) ).normalize();
+        p.v.plus( D.times( a ) );
+
+        // crash em together
+        if ( p.center.distance( planet.center ) < p.r + planet.r ) {
+          p.collide( planet );
+        }
+      }
+    }
+
       // bounce off walls
       // let WALL_ELASTIC_FACTOR = 1;
       // if ( p.center.x + p.r > this.max_x ) { p.center.x = this.max_x - p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
       // if ( p.center.y + p.r > this.max_y ) { p.center.y = this.max_y - p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
       // if ( p.center.x - p.r < this.min_x ) { p.center.x = this.min_x + p.r; p.v.x = -p.v.x * WALL_ELASTIC_FACTOR; }
       // if ( p.center.y - p.r < this.min_y ) { p.center.y = this.min_y + p.r; p.v.y = -p.v.y * WALL_ELASTIC_FACTOR; }
-    }
   }
 
   addBall( b ) {
@@ -578,6 +613,14 @@ class World
     if ( b ) {
       this.balls.push( b );
       console.log("ball added");
+    }
+  }
+
+  addPlanet( p ) {
+    console.log("adding planet");
+    this.planets.push( p );
+    if ( !p ) {
+      console.log("planet NOT added");
     }
   }
 
@@ -593,6 +636,12 @@ class World
       let p = this.particles[ i ];
       p.draw( ctx );
     }
+
+    for ( let i = 0; i < this.planets.length; i++ ) {
+      let p = this.planets[ i ];
+      p.draw( ctx );
+    }
+
   }
 
   retrieveBall( x, y ) {

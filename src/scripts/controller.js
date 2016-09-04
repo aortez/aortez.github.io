@@ -69,6 +69,7 @@ class Controller
         this.ball.hp = this.ball.r * this.ball.r * 10000;
         this.ball.is_moving = false;
         this.ball.is_invincible = true;
+        this.world.addPlanet( this.ball );
         console.log("adding planet");
       } else {
         this.ball.is_affected_by_gravity = true;
@@ -77,9 +78,9 @@ class Controller
         this.ball.is_moving = true;
         this.ball.is_invincible = false;
         this.ball.can_move = true;
+        this.world.addBall( this.ball );
         console.log("adding ball");
       }
-      this.world.addBall( this.ball );
     }
   }
 
