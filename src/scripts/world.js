@@ -242,6 +242,16 @@ class World
       }
     }
 
+    for( let i = 0; i < this.planets.length; i++ ) {
+      let p = this.planets[ i ];
+
+      let dist = pos.distance( p.center );
+      if ( dist <= p.r ) {
+        return p;
+      }
+    }
+
+
     return null;
   }
 
