@@ -3,9 +3,6 @@ var NUM_EXPLOD_DIVS = 3;
 class World
 {
   constructor() {
-    this.balls = [];
-    this.planets = [];
-    this.particles = [];
     this.min_x = 0;
     this.min_y = 0;
     this.max_x = 100;
@@ -19,6 +16,8 @@ class World
 
   init() {
     this.balls = [];
+    this.planets = [];
+    this.particles = [];
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
     let b1 = new Ball( 50, 150, 50, pink );
