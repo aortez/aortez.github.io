@@ -11,6 +11,8 @@ class Ball
     this.is_affected_by_gravity = true;
     this.is_moving = true;
     this.is_invincible = true;
+
+    this.pattern = null;
   }
 
   calcHp() {
@@ -88,10 +90,21 @@ class Ball
     // console.log( "this.hp: " + this.hp );
   }
 
-  draw( ctx ) {
-    ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
+  draw( ctx, pizza_time ) {
+    if ( !this.pattern ) {
+      var imageObj = new Image();
+      // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
+      imageObj.src = 'http://s3.amazonaws.com/spoonflower/public/design_thumbnails/0289/6414/rrrpizza_pepperoni_shop_preview.png';
+      this.pattern = ctx.createPattern(imageObj, 'repeat');
+    }
+
     ctx.beginPath();
     ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    if (pizza_time) {
+      ctx.fillStyle = this.pattern;
+    } else {
+      ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
+    }
     ctx.fill();
     ctx.stroke();
     ctx.closePath();

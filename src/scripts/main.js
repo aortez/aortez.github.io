@@ -66,6 +66,12 @@ function advance() {
     controller.requestBall();
   }
 
+  let pizza_button = document.getElementById('pizza_button');
+  if ( pizza_button.pressed ) {
+    world.pizza_time = !world.pizza_time;
+    console.log( "world.pizza_time: " + world.pizza_time );
+  }
+
   world.advance( dt * 0.05 );
 
   world.draw( ctx );

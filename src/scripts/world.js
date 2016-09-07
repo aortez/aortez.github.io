@@ -12,6 +12,7 @@ class World
     this.n_divs = 3;
     this.init();
     this.background = new Background();
+    this.pizza_time = false;
   }
 
   init() {
@@ -215,17 +216,17 @@ class World
 
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
-      b.draw( ctx );
+      b.draw( ctx, this.pizza_time );
     }
 
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx );
+      p.draw( ctx, false );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
       let p = this.planets[ i ];
-      p.draw( ctx );
+      p.draw( ctx, this.pizza_time );
     }
 
   }
