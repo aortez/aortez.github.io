@@ -70,5 +70,14 @@ function advance() {
 
   world.draw( ctx );
 
+  updateInfoLabel( dt );
+
   requestAnimationFrame( advance );
+}
+
+function updateInfoLabel( dt ) {
+  let fps_label = document.getElementById('fps_label');
+  let fps = 1000.0 / dt;
+  // fps = ("00" + fps).substr(-2,4); //short and sweet
+  fps_label.textContent = "fps: " + fps;
 }

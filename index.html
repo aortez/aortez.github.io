@@ -28,11 +28,23 @@
   <body onload="init();">
     <canvas id="pizza" width="1" height="1"></canvas>
     <div>pizza - explode n_divs</div>
+    <!-- <div id="fps_label"> frames per second </div> -->
     <paper-slider id="slider" pin value="6" min="2" max="10" editable>pizza slider</paper-slider>
     <paper-button id="reset_button" raised toggles>Reset</paper-button>
     <paper-button id="planet_button" raised toggles>Planet</paper-button>
     <paper-button id="ball_button" raised toggles>Ball</paper-button>
-
+    <table style="width:100%">
+      <tr>
+        <th>fps</th>
+        <th>num balls</th>
+        <th>num particles</th>
+      </tr>
+      <tr>
+        <td id="fps_label">60</td>
+        <td>100</td>
+        <td>200</td>
+      </tr>
+    </table>
   </body>
 
 </html>
