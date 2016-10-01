@@ -94,7 +94,6 @@ class Controller
     // check if cursor is over any balls
     let grabbed_ball = this.world.retrieveBall( this.mousePos.x, this.mousePos.y );
     if ( grabbed_ball ) {
-      this.mouseUp( e );
       console.log("grabbed");
       this.ball = grabbed_ball;
     } else {
@@ -129,7 +128,8 @@ class Controller
     if ( !this.mouseIsDown ) {
       console.log( "mouse is _not_ down" );
       return;
-    }    this.mouseIsDown = false;
+    }
+    this.mouseIsDown = false;
 
     let b = this.ball;
 
