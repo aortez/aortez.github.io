@@ -7,13 +7,17 @@ function mouseDown( e ) {
   controller.mouseDown( e );
   canvas.removeEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mouseup", mouseUp, false );
-  // e.preventDefault();
+  e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
   canvas.removeEventListener( "mouseup", mouseUp, false );
   canvas.addEventListener( "mousedown", mouseDown, false );
+}
+
+function mouseOut( e ) {
+  controller.mouseOut( e );
 }
 
 function mouseMove( e ) {
@@ -33,6 +37,7 @@ function init() {
 
   canvas.addEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mousemove", mouseMove, false );
+  canvas.addEventListener( "mouseout", mouseOut, false );
 
   ctx = canvas.getContext( '2d' );
 
