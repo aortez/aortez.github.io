@@ -3,9 +3,6 @@ var NUM_EXPLOD_DIVS = 3;
 class World
 {
   constructor() {
-    this.balls = [];
-    this.planets = [];
-    this.particles = [];
     this.min_x = 0;
     this.min_y = 0;
     this.max_x = 100;
@@ -15,10 +12,13 @@ class World
     this.n_divs = 3;
     this.init();
     this.background = new Background();
+    this.pizza_time = false;
   }
 
   init() {
     this.balls = [];
+    this.planets = [];
+    this.particles = [];
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
     let b1 = new Ball( 50, 150, 50, pink );
@@ -216,17 +216,17 @@ class World
 
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
-      b.draw( ctx );
+      b.draw( ctx, this.pizza_time );
     }
 
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx );
+      p.draw( ctx, false );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
       let p = this.planets[ i ];
-      p.draw( ctx );
+      p.draw( ctx, this.pizza_time );
     }
 
   }
@@ -242,6 +242,16 @@ class World
         return b;
       }
     }
+
+    for( let i = 0; i < this.planets.length; i++ ) {
+      let p = this.planets[ i ];
+
+      let dist = pos.distance( p.center );
+      if ( dist <= p.r ) {
+        return p;
+      }
+    }
+
 
     return null;
   }

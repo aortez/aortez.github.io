@@ -225,6 +225,8 @@ class Ball
     this.is_affected_by_gravity = true;
     this.is_moving = true;
     this.is_invincible = true;
+
+    this.pattern = null;
   }
 
   calcHp() {
@@ -302,10 +304,21 @@ class Ball
     // console.log( "this.hp: " + this.hp );
   }
 
-  draw( ctx ) {
-    ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
+  draw( ctx, pizza_time ) {
+    if ( !this.pattern ) {
+      var imageObj = new Image();
+      // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
+      imageObj.src = 'http://s3.amazonaws.com/spoonflower/public/design_thumbnails/0289/6414/rrrpizza_pepperoni_shop_preview.png';
+      this.pattern = ctx.createPattern(imageObj, 'repeat');
+    }
+
     ctx.beginPath();
     ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    if (pizza_time) {
+      ctx.fillStyle = this.pattern;
+    } else {
+      ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
+    }
     ctx.fill();
     ctx.stroke();
     ctx.closePath();
@@ -419,9 +432,6 @@ var NUM_EXPLOD_DIVS = 3;
 class World
 {
   constructor() {
-    this.balls = [];
-    this.planets = [];
-    this.particles = [];
     this.min_x = 0;
     this.min_y = 0;
     this.max_x = 100;
@@ -431,10 +441,13 @@ class World
     this.n_divs = 3;
     this.init();
     this.background = new Background();
+    this.pizza_time = false;
   }
 
   init() {
     this.balls = [];
+    this.planets = [];
+    this.particles = [];
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
     let b1 = new Ball( 50, 150, 50, pink );
@@ -632,17 +645,17 @@ class World
 
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
-      b.draw( ctx );
+      b.draw( ctx, this.pizza_time );
     }
 
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx );
+      p.draw( ctx, false );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
       let p = this.planets[ i ];
-      p.draw( ctx );
+      p.draw( ctx, this.pizza_time );
     }
 
   }
@@ -658,6 +671,16 @@ class World
         return b;
       }
     }
+
+    for( let i = 0; i < this.planets.length; i++ ) {
+      let p = this.planets[ i ];
+
+      let dist = pos.distance( p.center );
+      if ( dist <= p.r ) {
+        return p;
+      }
+    }
+
 
     return null;
   }
@@ -741,6 +764,12 @@ function advance() {
   let ball_button = document.getElementById('ball_button');
   if ( ball_button.pressed ) {
     controller.requestBall();
+  }
+
+  let pizza_button = document.getElementById('pizza_button');
+  if ( pizza_button.pressed ) {
+    world.pizza_time = !world.pizza_time;
+    console.log( "world.pizza_time: " + world.pizza_time );
   }
 
   world.advance( dt * 0.05 );
