@@ -465,7 +465,7 @@ class World
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 700;
+    let MAX_BALLS = 400;
     let MIN_EXPLODER_RADIUS = 25;
     let NEW_PARTICLE_HP = 1;
     let WALL_ELASTIC_FACTOR = 0.9;
@@ -752,9 +752,15 @@ function advance() {
   requestAnimationFrame( advance );
 }
 
+let smoothed_fps = 0;
 function updateInfoLabel( dt ) {
-  let fps_label = document.getElementById('fps_label');
   let fps = 1000.0 / dt;
-  // fps = ("00" + fps).substr(-2,4); //short and sweet
-  fps_label.textContent = "fps: " + fps;
+  let alpha = 0.1;
+  smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
+  let new_fps = (smoothed_fps).toFixed(0);
+  let fps_label = document.getElementById('fps_label');
+  fps_label.innerHTML = "fps: " + new_fps + " ";
+
+  let num_balls_label = document.getElementById('num_balls_label');
+  num_balls_label.innerHTML = "num balls: " + world.balls.length;
 }
