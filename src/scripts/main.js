@@ -7,13 +7,17 @@ function mouseDown( e ) {
   controller.mouseDown( e );
   canvas.removeEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mouseup", mouseUp, false );
-  // e.preventDefault();
+  e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
   canvas.removeEventListener( "mouseup", mouseUp, false );
   canvas.addEventListener( "mousedown", mouseDown, false );
+}
+
+function mouseOut( e ) {
+  controller.mouseOut( e );
 }
 
 function mouseMove( e ) {
@@ -33,6 +37,7 @@ function init() {
 
   canvas.addEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mousemove", mouseMove, false );
+  canvas.addEventListener( "mouseout", mouseOut, false );
 
   ctx = canvas.getContext( '2d' );
 
@@ -76,5 +81,20 @@ function advance() {
 
   world.draw( ctx );
 
+  updateInfoLabel( dt );
+
   requestAnimationFrame( advance );
+}
+
+let smoothed_fps = 0;
+function updateInfoLabel( dt ) {
+  let fps = 1000.0 / dt;
+  let alpha = 0.1;
+  smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
+  let new_fps = (smoothed_fps).toFixed(0);
+  let fps_label = document.getElementById('fps_label');
+  fps_label.innerHTML = "fps: " + new_fps + " ";
+
+  let num_balls_label = document.getElementById('num_balls_label');
+  num_balls_label.innerHTML = "num balls: " + world.balls.length;
 }

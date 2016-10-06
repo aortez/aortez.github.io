@@ -49,7 +49,7 @@ class World
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 700;
+    let MAX_BALLS = 400;
     let MIN_EXPLODER_RADIUS = 25;
     let NEW_PARTICLE_HP = 1;
     let WALL_ELASTIC_FACTOR = 0.9;

@@ -94,9 +94,9 @@ class Controller
     // check if cursor is over any balls
     let grabbed_ball = this.world.retrieveBall( this.mousePos.x, this.mousePos.y );
     if ( grabbed_ball ) {
+      console.log("grabbed");
       this.ball = grabbed_ball;
-    }
-    else {
+    } else {
       let r = Math.random() * 50 + 50;
       let c = new vec3( 128, 128, 128 );
       c.randColor( 255 );
@@ -125,6 +125,10 @@ class Controller
 
   mouseUp( e ) {
     console.log( "mouse up" );
+    if ( !this.mouseIsDown ) {
+      console.log( "mouse is _not_ down" );
+      return;
+    }
     this.mouseIsDown = false;
 
     let b = this.ball;
@@ -143,7 +147,10 @@ class Controller
   }
 
   mouseOut( e ) {
-    console.log("mouse out" );
+    console.log( "mouse OUT" );
+    if ( this.mouseIsDown ) {
+      this.mouseUp( e );
+    }
   }
 
   mouseOver( e ) {
@@ -471,7 +478,7 @@ class World
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 700;
+    let MAX_BALLS = 400;
     let MIN_EXPLODER_RADIUS = 25;
     let NEW_PARTICLE_HP = 1;
     let WALL_ELASTIC_FACTOR = 0.9;
@@ -695,13 +702,17 @@ function mouseDown( e ) {
   controller.mouseDown( e );
   canvas.removeEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mouseup", mouseUp, false );
-  // e.preventDefault();
+  e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
   canvas.removeEventListener( "mouseup", mouseUp, false );
   canvas.addEventListener( "mousedown", mouseDown, false );
+}
+
+function mouseOut( e ) {
+  controller.mouseOut( e );
 }
 
 function mouseMove( e ) {
@@ -721,6 +732,7 @@ function init() {
 
   canvas.addEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mousemove", mouseMove, false );
+  canvas.addEventListener( "mouseout", mouseOut, false );
 
   ctx = canvas.getContext( '2d' );
 
@@ -764,5 +776,20 @@ function advance() {
 
   world.draw( ctx );
 
+  updateInfoLabel( dt );
+
   requestAnimationFrame( advance );
+}
+
+let smoothed_fps = 0;
+function updateInfoLabel( dt ) {
+  let fps = 1000.0 / dt;
+  let alpha = 0.1;
+  smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
+  let new_fps = (smoothed_fps).toFixed(0);
+  let fps_label = document.getElementById('fps_label');
+  fps_label.innerHTML = "fps: " + new_fps + " ";
+
+  let num_balls_label = document.getElementById('num_balls_label');
+  num_balls_label.innerHTML = "num balls: " + world.balls.length;
 }

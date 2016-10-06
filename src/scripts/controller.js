@@ -55,9 +55,9 @@ class Controller
     // check if cursor is over any balls
     let grabbed_ball = this.world.retrieveBall( this.mousePos.x, this.mousePos.y );
     if ( grabbed_ball ) {
+      console.log("grabbed");
       this.ball = grabbed_ball;
-    }
-    else {
+    } else {
       let r = Math.random() * 50 + 50;
       let c = new vec3( 128, 128, 128 );
       c.randColor( 255 );
@@ -86,6 +86,10 @@ class Controller
 
   mouseUp( e ) {
     console.log( "mouse up" );
+    if ( !this.mouseIsDown ) {
+      console.log( "mouse is _not_ down" );
+      return;
+    }
     this.mouseIsDown = false;
 
     let b = this.ball;
@@ -104,7 +108,10 @@ class Controller
   }
 
   mouseOut( e ) {
-    console.log("mouse out" );
+    console.log( "mouse OUT" );
+    if ( this.mouseIsDown ) {
+      this.mouseUp( e );
+    }
   }
 
   mouseOver( e ) {
