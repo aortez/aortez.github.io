@@ -741,31 +741,31 @@ function init() {
   canvas.addEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mousemove", mouseMove, false );
   canvas.addEventListener( "mouseout", mouseOut, false );
-  canvas.addEventListener("touchstart", function (e) {
+  canvas.addEventListener( "touchstart", function (e) {
     if (e.target == canvas) {
       e.preventDefault();
     }
-    mousePos = getTouchPos(canvas, e);
+    // let mousePos = getTouchPos(canvas, e);
     var touch = e.touches[0];
-    var mouseEvent = new MouseEvent("mousedown", {
+    var mouseEvent = new MouseEvent( "mousedown", {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
     }, false );
-  canvas.addEventListener("touchend", function (e) {
+  canvas.addEventListener( "touchend", function (e) {
     if (e.target == canvas) {
       e.preventDefault();
     }
-    var mouseEvent = new MouseEvent("mouseup", {});
+    var mouseEvent = new MouseEvent( "mouseup", {});
     canvas.dispatchEvent(mouseEvent);
   }, false );
-  canvas.addEventListener("touchmove", function (e) {
+  canvas.addEventListener( "touchmove", function (e) {
     if (e.target == canvas) {
       e.preventDefault();
     }
     var touch = e.touches[0];
-    var mouseEvent = new MouseEvent("mousemove", {
+    var mouseEvent = new MouseEvent( "mousemove", {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
