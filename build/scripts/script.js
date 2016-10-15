@@ -312,8 +312,19 @@ class Ball
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
 
+    var sizeWidth = ctx.canvas.clientWidth;
+    var sizeHeight = ctx.canvas.clientHeight;
+
+    var scaleWidth = sizeWidth/100;
+    var scaleHeight = sizeHeight/100;
+    // console.log( "sizeHeight, scaleHeight: " + sizeHeight + ", " + scaleHeight );
+    let r_scaled = this.r * ( sizeHeight / 800 );
+
+    // console.log( "r, r_scaled: " + this.r + ", " + r_scaled );
+    r_scaled = this.r;
+
     ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    ctx.arc( this.center.x, this.center.y, r_scaled, 0, 2 * Math.PI, false );
     if (pizza_time) {
       ctx.fillStyle = this.pattern;
     } else {
@@ -745,7 +756,6 @@ function init() {
     if (e.target == canvas) {
       e.preventDefault();
     }
-    // let mousePos = getTouchPos(canvas, e);
     var touch = e.touches[0];
     var mouseEvent = new MouseEvent( "mousedown", {
       clientX: touch.clientX,
