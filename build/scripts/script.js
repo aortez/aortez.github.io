@@ -314,18 +314,18 @@ class Ball
 
     var sizeWidth = ctx.canvas.clientWidth;
     var sizeHeight = ctx.canvas.clientHeight;
-
-    var scaleWidth = sizeWidth/100;
-    var scaleHeight = sizeHeight/100;
-    // console.log( "sizeHeight, scaleHeight: " + sizeHeight + ", " + scaleHeight );
-    let r_scaled = this.r * ( sizeHeight / 800 );
-
-    // console.log( "r, r_scaled: " + this.r + ", " + r_scaled );
-    r_scaled = this.r;
+    var scaleWidth = sizeWidth / 100;
+    var scaleHeight = sizeHeight / 100;
+    let scale = sizeHeight / 800;
+    let r_scaled = this.r * scale;
+    // r_scaled = this.r;
+    let x_scaled = this.center.x * scale;
+    let y_scaled = this.center.y * scale;
 
     ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, r_scaled, 0, 2 * Math.PI, false );
-    if (pizza_time) {
+    // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
+    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    if ( pizza_time ) {
       ctx.fillStyle = this.pattern;
     } else {
       ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
@@ -790,24 +790,11 @@ function init() {
 let previous = null;
 function advance() {
 
-  var controls_height = document.getElementById('controls_div').offsetHeight;
-  // console.log( "controls_height: " + controls_height );
-
-  var pizza_height = document.getElementById('pizza').offsetHeight;
-  // console.log( "pizza_height: " + pizza_height );
-
-  var fps_height = document.getElementById('fps_div').offsetHeight;
-  // console.log( "\nfps_height: " + fps_height );
-
-  // console.log( "window.innerHeight: " + window.innerHeight );
-
-  var h = window.innerHeight - ( fps_height + controls_height + 30 );
-  // console.log( "h: " + h );
-  canvas.height = h;
-
+  let controls_height = document.getElementById('controls_div').offsetHeight;
+  let pizza_height = document.getElementById('pizza').offsetHeight;
+  let fps_height = document.getElementById('fps_div').offsetHeight;
+  canvas.height = window.innerHeight - ( fps_height + controls_height + 30 );
   canvas.width  = window.innerWidth * 0.9;
-  // canvas.height = window.innerHeight * 0.8;
-  // console.log( "canvas.height: " + canvas.height );
   world.max_x = canvas.width;
   world.max_y = canvas.height;
 

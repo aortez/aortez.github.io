@@ -100,18 +100,18 @@ class Ball
 
     var sizeWidth = ctx.canvas.clientWidth;
     var sizeHeight = ctx.canvas.clientHeight;
-
-    var scaleWidth = sizeWidth/100;
-    var scaleHeight = sizeHeight/100;
-    // console.log( "sizeHeight, scaleHeight: " + sizeHeight + ", " + scaleHeight );
-    let r_scaled = this.r * ( sizeHeight / 800 );
-
-    // console.log( "r, r_scaled: " + this.r + ", " + r_scaled );
-    r_scaled = this.r;
+    var scaleWidth = sizeWidth / 100;
+    var scaleHeight = sizeHeight / 100;
+    let scale = sizeHeight / 800;
+    let r_scaled = this.r * scale;
+    // r_scaled = this.r;
+    let x_scaled = this.center.x * scale;
+    let y_scaled = this.center.y * scale;
 
     ctx.beginPath();
-    ctx.arc( this.center.x, this.center.y, r_scaled, 0, 2 * Math.PI, false );
-    if (pizza_time) {
+    // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
+    ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    if ( pizza_time ) {
       ctx.fillStyle = this.pattern;
     } else {
       ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
