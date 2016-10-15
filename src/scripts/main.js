@@ -47,8 +47,24 @@ function init() {
 let previous = null;
 function advance() {
 
+  var controls_height = document.getElementById('controls_div').offsetHeight;
+  // console.log( "controls_height: " + controls_height );
+
+  var pizza_height = document.getElementById('pizza').offsetHeight;
+  // console.log( "pizza_height: " + pizza_height );
+
+  var fps_height = document.getElementById('fps_div').offsetHeight;
+  // console.log( "\nfps_height: " + fps_height );
+
+  // console.log( "window.innerHeight: " + window.innerHeight );
+
+  var h = window.innerHeight - ( fps_height + controls_height + 50 );
+  // console.log( "h: " + h );
+  canvas.height = h;
+
   canvas.width  = window.innerWidth * 0.9;
-  canvas.height = window.innerHeight * 0.8;
+  // canvas.height = window.innerHeight * 0.8;
+  // console.log( "canvas.height: " + canvas.height );
   world.max_x = canvas.width;
   world.max_y = canvas.height;
 
