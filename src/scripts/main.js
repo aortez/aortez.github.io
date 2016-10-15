@@ -24,6 +24,14 @@ function mouseMove( e ) {
   controller.mouseMove( canvas, e );
 }
 
+function getTouchPos(canvasDom, touchEvent) {
+  var rect = canvasDom.getBoundingClientRect();
+  return {
+    x: touchEvent.touches[0].clientX - rect.left,
+    y: touchEvent.touches[0].clientY - rect.top
+  };
+}
+
 function init() {
   let FPS = 60;
 
@@ -38,6 +46,27 @@ function init() {
   canvas.addEventListener( "mousedown", mouseDown, false );
   canvas.addEventListener( "mousemove", mouseMove, false );
   canvas.addEventListener( "mouseout", mouseOut, false );
+  canvas.addEventListener("touchstart", function (e) {
+    mousePos = getTouchPos(canvas, e);
+    var touch = e.touches[0];
+    var mouseEvent = new MouseEvent("mousedown", {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+    }, false );
+  canvas.addEventListener("touchend", function (e) {
+    var mouseEvent = new MouseEvent("mouseup", {});
+    canvas.dispatchEvent(mouseEvent);
+  }, false );
+  canvas.addEventListener("touchmove", function (e) {
+    var touch = e.touches[0];
+    var mouseEvent = new MouseEvent("mousemove", {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+  }, false );
 
   ctx = canvas.getContext( '2d' );
 
@@ -58,7 +87,7 @@ function advance() {
 
   // console.log( "window.innerHeight: " + window.innerHeight );
 
-  var h = window.innerHeight - ( fps_height + controls_height + 50 );
+  var h = window.innerHeight - ( fps_height + controls_height + 30 );
   // console.log( "h: " + h );
   canvas.height = h;
 
