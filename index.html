@@ -35,7 +35,7 @@
 
   <body onload="init();">
 
-    <div class="horizontal layout">
+    <div id="controls_div" class="horizontal layout">
       <div><paper-button id="reset_button" raised toggles>Reset</paper-button></div>
       <div><paper-button id="planet_button" raised toggles>Planet</paper-button></div>
       <div><paper-button id="ball_button" raised toggles>Ball</paper-button></div>
@@ -45,7 +45,7 @@
 
     <canvas id="pizza" width="1" height="1"></canvas>
 
-    <div class="container flex">
+    <div id="fps_div" class="container flex">
       <div id="num_balls_label">food</div>
       <span class="invisible">" "</span>
       <div id="fps_label">eat</div>
