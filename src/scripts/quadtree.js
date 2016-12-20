@@ -1,4 +1,12 @@
 "use strict";
+let qt_indent = 0;
+function log( text ) {
+  const whitespace = '                             ';
+  console.log( text.replace( /\n/g, '\n' + whitespace.substring(0, qt_indent) ) );
+}
+function log_in() { qt_indent = qt_indent + 2; };
+function log_out() { qt_indent = qt_indent - 2; };
+
 class qtElement
 {
   constructor( x, y ) {
@@ -25,12 +33,12 @@ class quadtree
 
   fitsInside( element ) {
     let fits = (
-      element.x >= this.min_x ||
-      element.x < this.max_x ||
-      element.y >= this.min_y ||
+      element.x >= this.min_x &&
+      element.x < this.max_x &&
+      element.y >= this.min_y &&
       element.y < this.max_y );
-    console.log( "fits? " + fits + ": element: " + element.x + ", " + element.y +
-      ", quad x[" + this.min_x + ", " + this.max_x + "], y[" + this.min_y + ", " + this.max_y + "]");
+    log( "fits? " + fits + ": element: " + element.x + ", " + element.y +
+      ", quad x[" + this.min_x + ", " + this.max_x + "], y[" + this.min_y + ", " + this.max_y + "]" );
     return fits;
   }
 
@@ -43,26 +51,30 @@ class quadtree
   }
 
   insert( element ) {
-    console.log( "\ninserting... " + element.toS() );
+    log( "\ninserting... " + element.toS() );
     if ( !this.fitsInside( element ) ) {
-        console.log( "self: " + this.toS() );
+        log( "self: " + this.toS() );
         throw "input OOBs!";
     }
 
     if ( this.objects.length < this.MAX_SIZE ) {
-      console.log( "inserting internally" );
+      log( "inserting internally..." );
       this.objects.push( element );
+      log( "insert is done" );
     } else if ( this.hasChildren() ) {
-      console.log( "inserting to children..." );
+      log( "inserting to children..." );
       let inserted = false;
       for ( const child of this.children ) {
-        if ( this.fitsInside( element ) ) {
-          console.log( "  fits!" );
+        if ( child.fitsInside( element ) ) {
+          log( "fits!  insert to child" );
+          log_in();
           child.insert( element );
+          log_out();
           inserted = true;
+          break;
         }
         else {
-          console.log(" not fits " );
+          log(" not fits " );
         }
       }
       if ( !inserted ) { throw "unable to insert"; }
@@ -70,7 +82,6 @@ class quadtree
       this.split();
       this.insert( element );
     }
-    console.log( "insert is done" );
   }
 
   centerX() {
@@ -82,7 +93,7 @@ class quadtree
   }
 
   split() {
-    console.log("splitting...");
+    log("splitting...");
     if ( this.hasChildren() ) {
       throw "can only split once: "  + this;
     }
@@ -92,11 +103,15 @@ class quadtree
       new quadtree( this.centerX(), 0, this.max_x, this.centerY() ), // top right
       new quadtree( this.centerX(), this.centerY(), this.max_x, this.max_y ) // bottom right
     ];
-    for ( const obj in this.objects ) {
+    log("inserting children");
+    log_in();
+    for ( const obj of this.objects ) {
       this.insert( obj );
     }
-    console.log( this.toS() );
-    console.log( "split is done" );
+    log_out();
+    this.objects = [];
+    log( this.toS() );
+    log( "split is done" );
   }
 
   remove( element ) {
@@ -113,13 +128,13 @@ class quadtree
     if ( this.hasObjects() ) {
       s = s + "\nObjects[" + this.objects.length + "]:";
       for ( const obj of this.objects ) {
-        s = s + "\n\t" + obj.toS();//.replace( /\n/g, '\n\t' );
+        s = s + "\n\t" + obj.toS().replace( /\n/g, '\n\t' );
       }
     }
     if ( this.hasChildren() ) {
       s = s + "\nChildren[" + this.children.length + "]:";
       for ( const child of this.children ) {
-        s = s + "\n\t" + child.toS();//.replace( /\n/g, '\n\t' );
+        s = s + "\n\t" + child.toS().replace( /\n/g, '\n\t' );
       }
     }
     return s;
