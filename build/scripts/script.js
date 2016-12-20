@@ -1,4 +1,4 @@
-"use strict";
+
 class vec3
 {
   constructor( x, y, z ) {
@@ -560,6 +560,8 @@ class World
       }
     }
 
+
+    
     // ok, now we have these dead balls, what to do with them?
     let new_balls = [];
     for ( let i = 0; i < dead_balls.length; i++ ) {
@@ -844,3 +846,64 @@ function updateInfoLabel( dt ) {
   let num_balls_label = document.getElementById('num_balls_label');
   num_balls_label.innerHTML = "num balls: " + world.balls.length;
 }
+
+// "use strict";
+class squadron
+{
+  constructor( min_x, min_y, max_x, max_y ) {
+    this.center.x =
+    this.min_x = min_x;
+    this.min_y = min_y;
+    this.max_x = max_x;
+    this.max_y = max_y;
+    this.MAX_SIZE = 4;
+    this.objects = [];
+  }
+
+  insert( element ) {
+    if ( element.x < this.min_x || element.x > this.max_x || element.y < this.min_y || element.y > this.max_y ) {
+        throw "input OOBs!";
+    }
+
+    if ( this.objects.length < this.MAX_SIZE ) {
+      this.objects.push( element );
+    } else {
+      this.split();
+      console.log( "split is done" );
+    }
+    console.log( "insert is done" );
+  }
+
+  halfX() {
+
+  }
+
+  halfY() {
+
+  }
+
+  toS() {
+    let s = "objects[" + this.objects.length + "]" + "\n" +
+    "min_x, min_y: " + this.min_x + ", " + this.min_y + "\n" +
+    "max_x, max_y: " + this.max_x + ", "  + this.max_y;
+
+    return s;
+  }
+
+  static test() {
+    console.log( "yalla!" );
+    let s = new squadron( 0, 0, 100, 100 );
+    console.log( "say hello to squadron:\n" + s.toS() );
+
+    let k = "test object";
+
+    s.insert( k );
+    s.insert( k );
+    s.insert( k );
+    s.insert( k );
+    console.log( "say hello again:\n" + s.toS() );
+  }
+
+}
+
+squadron.test();

@@ -16,7 +16,8 @@ gulp.task('scripts', function() {
     './src/scripts/ball.js',
     './src/scripts/vec2.js',
     './src/scripts/world.js',
-    './src/scripts/main.js'
+    './src/scripts/main.js',
+    './src/scripts/quadtree.js'
   ])
     .pipe(concat('script.js'))
     .pipe(gulp.dest('./build/scripts/'));

@@ -1,4 +1,4 @@
-"use strict";
+
 class vec3
 {
   constructor( x, y, z ) {
