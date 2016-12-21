@@ -1,11 +1,11 @@
 "use strict";
 let qt_indent = 0;
 function log( text ) {
-  const whitespace = '                             ';
-  console.log( text.replace( /\n/g, '\n' + whitespace.substring(0, qt_indent) ) );
+  const whitespace = '                                                         ';
+  console.log( text.replace( /^/mg, whitespace.substring(0, qt_indent) ) );
 }
-function log_in() { qt_indent = qt_indent + 2; };
-function log_out() { qt_indent = qt_indent - 2; };
+function log_in() { qt_indent = qt_indent + 4; };
+function log_out() { qt_indent = qt_indent - 4; };
 
 class qtElement
 {
@@ -52,17 +52,18 @@ class quadtree
 
   insert( element ) {
     log( "\ninserting... " + element.toS() );
+    log_in();
     if ( !this.fitsInside( element ) ) {
         log( "self: " + this.toS() );
         throw "input OOBs!";
     }
 
-    if ( this.objects.length < this.MAX_SIZE ) {
+    if ( !this.hasChildren() && this.objects.length < this.MAX_SIZE ) {
       log( "inserting internally..." );
       this.objects.push( element );
       log( "insert is done" );
     } else if ( this.hasChildren() ) {
-      log( "inserting to children..." );
+      log( "child nodes exist, search for destination node" ); log_in();
       let inserted = false;
       for ( const child of this.children ) {
         if ( child.fitsInside( element ) ) {
@@ -77,11 +78,13 @@ class quadtree
           log(" not fits " );
         }
       }
+     log_out();
       if ( !inserted ) { throw "unable to insert"; }
     } else {
       this.split();
       this.insert( element );
     }
+    log_out();
   }
 
   centerX() {
@@ -103,7 +106,7 @@ class quadtree
       new quadtree( this.centerX(), 0, this.max_x, this.centerY() ), // top right
       new quadtree( this.centerX(), this.centerY(), this.max_x, this.max_y ) // bottom right
     ];
-    log("inserting children");
+    log("inserting existing objects to children");
     log_in();
     for ( const obj of this.objects ) {
       this.insert( obj );
@@ -150,7 +153,14 @@ class quadtree
     s.insert( new qtElement(  5, 75 ) );
     console.log( "\n" + s.toS() );
     s.insert( new qtElement( 75, 75 ) );
+    console.log( "\n" + s.toS() );
     s.insert( new qtElement( 75,  5 ) );
+    console.log( "\n" + s.toS() );
+
+    for ( const node of s.children ) {
+      // get a listing of the child's contents
+      // node.
+    }
   }
 
 }
