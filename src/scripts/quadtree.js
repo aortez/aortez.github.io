@@ -42,6 +42,20 @@ class quadtree
     return fits;
   }
 
+  getObjectsRecursive() {
+    // start with any local objects
+    let objects = this.objects;
+
+    // add any objects from children
+    for ( const child of this.children ) {
+      let child_objects = child.getObjectsRecursive();
+      if ( child_objects.length > 0 ) {
+        objects = objects.concat( child_objects );
+      }
+    }
+    return objects;
+  }
+
   hasChildren() {
     return ( this.children.length > 0 );
   }
@@ -129,37 +143,51 @@ class quadtree
       "[" + this.max_x + ", "  + this.max_y + "]";
 
     if ( this.hasObjects() ) {
-      s = s + "\nObjects[" + this.objects.length + "]:";
+      s = s + "\n\tObjects[" + this.objects.length + "]:";
       for ( const obj of this.objects ) {
-        s = s + "\n\t" + obj.toS().replace( /\n/g, '\n\t' );
+        s = s + "\n\t\t" + obj.toS().replace( /\n/g, '\n\t' );
       }
     }
     if ( this.hasChildren() ) {
-      s = s + "\nChildren[" + this.children.length + "]:";
+      s = s + "\n\tChildren[" + this.children.length + "]:";
       for ( const child of this.children ) {
-        s = s + "\n\t" + child.toS().replace( /\n/g, '\n\t' );
+        s = s + "\n\t\t" + child.toS().replace( /\n/g, '\n\t' );
       }
     }
     return s;
   }
 
   static test() {
-    console.log( "yalla!" );
-    let s = new quadtree( 0, 0, 100, 100 );
-    console.log( "say hello to quadtree:\n" + s.toS() );
+    let qt = new quadtree( 0, 0, 100, 100 );
+    console.log( "**************** initial state: ********************" );
+    console.log( qt.toS() );
 
-    s.insert( new qtElement(  5,  5 ) );
-    console.log( "\n" + s.toS() );
-    s.insert( new qtElement(  5, 75 ) );
-    console.log( "\n" + s.toS() );
-    s.insert( new qtElement( 75, 75 ) );
-    console.log( "\n" + s.toS() );
-    s.insert( new qtElement( 75,  5 ) );
-    console.log( "\n" + s.toS() );
 
+    console.log( "**************** inserting *************************" );
+    qt.insert( new qtElement(  5,  5 ) );
+    log( qt.toS() );
+    qt.insert( new qtElement(  5, 75 ) );
+    log( qt.toS() );
+    qt.insert( new qtElement( 75, 75 ) );
+    log( qt.toS() );
+    qt.insert( new qtElement( 75,  5 ) );
+    log( qt.toS() );
+
+    log( "******************* objects belonging to parent tree *******");
+    for ( const object of qt.getObjectsRecursive() ) {
+      log( object.toS() );
+    }
+
+    // display each child's object's
+    log( "***************** objects belonging to each child subtree ***********");
     for ( const node of s.children ) {
-      // get a listing of the child's contents
-      // node.
+      log ( node.toS() );
+      log_in();
+      for ( const object of node.objects ) {
+        log( object.toS() );
+      }
+
+      log_out();
     }
   }
 
