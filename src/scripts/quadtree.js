@@ -132,7 +132,23 @@ class quadtree
   }
 
   remove( element ) {
-    for ( const object of this.objects ) {
+    // base case: empty leaf node
+    if ( !hasObjects() && !hasChildren() ) {
+      return;
+    }
+
+    // leaf node w/ objects stored locally
+    for ( let i = 0; i < this.objects.length; i++ ) {
+
+      // if this is the target element, remove it
+      if ( this.objects[ i ] === element ) {
+        array.splice( index, 1 );
+      }
+
+    }
+
+    // interior node w/ objects: interior node
+    for ( const child of this.children ) {
 
     }
   }
