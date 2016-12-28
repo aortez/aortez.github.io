@@ -123,7 +123,7 @@ function advance() {
   updateInfoLabel( smoothed_fps );
 
   if ( smoothed_fps < 45 ) {
-    if ( world.max_balls > 100 ) {
+    if ( world.max_balls > 75 ) {
       world.max_balls = world.max_balls - 5;
     }
   } else {
