@@ -98,6 +98,7 @@ function init() {
 }
 
 let previous = null;
+let smoothed_fps = 0;
 function advance() {
 
   let controls_height = document.getElementById('controls_div').offsetHeight;
@@ -116,20 +117,28 @@ function advance() {
 
   world.draw( ctx );
 
-  updateInfoLabel( dt );
+  let fps = 1000.0 / dt;
+  let fps_alpha = 0.1;
+  smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
+  updateInfoLabel( smoothed_fps );
+
+  if ( smoothed_fps < 45 ) {
+    if ( world.max_balls > 100 ) {
+      world.max_balls = world.max_balls - 5;
+    }
+  } else {
+    if ( world.max_balls < 400 ) {
+      world.max_balls = world.max_balls + 0.1;
+    }
+  }
 
   requestAnimationFrame( advance );
 }
 
-let smoothed_fps = 0;
-function updateInfoLabel( dt ) {
-  let fps = 1000.0 / dt;
-  let alpha = 0.1;
-  smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
-  let new_fps = (smoothed_fps).toFixed(0);
-  let fps_label = document.getElementById('fps_label');
-  fps_label.innerHTML = 'fps: ' + new_fps + ' ';
+function updateInfoLabel( fps ) {
+  let fps_label = document.getElementById( 'fps_label' );
+  fps_label.innerHTML = 'fps: ' + fps.toFixed( 0 ) + ' ';
 
-  let num_balls_label = document.getElementById('num_balls_label');
-  num_balls_label.innerHTML = 'num balls: ' + world.balls.length;
+  let num_balls_label = document.getElementById( 'num_balls_label' );
+  num_balls_label.innerHTML = 'num balls / max: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
 }
