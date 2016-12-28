@@ -453,6 +453,7 @@ class World
     this.background = new Background();
     this.shouldDrawBackground = true;
     this.pizza_time = false;
+    this.max_balls = 400;
   }
 
   init() {
@@ -489,7 +490,6 @@ class World
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 400;
     let MIN_EXPLODER_RADIUS = 25;
     let NEW_PARTICLE_HP = 1;
     let WALL_ELASTIC_FACTOR = 0.9;
@@ -562,7 +562,7 @@ class World
 
     // ok, now we have these dead balls, what to do with them?
     let new_balls = [];
-    for ( let i = 0; i < dead_balls.length; i++ ) {
+    for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
       // if they are big enough, then lets blow them into smaller pieces
@@ -571,15 +571,11 @@ class World
         // console.log( "world says: this.n_divs: " + this.n_divs + ", foog: " + foog );
         new_balls = new_balls.concat( ball.explode( NUM_EXPLOD_DIVS ) );
         // console.log( "new_balls.length: " + new_balls.length );
-      } else { //if ( ball.r > 1 ) {
+      } else {
         // if they are smaller then they go into the particle loop
         let new_particles = ball.explode( 2 );
         for ( let p_index = new_particles.length; p_index--; ) {
           let p = new_particles[ p_index ];
-
-          // p.c = new vec3( 255, 255, 255 );
-          // p.hp_max = NEW_PARTICLE_HP;
-          // p.hp = NEW_PARTICLE_HP;
         }
         this.particles = this.particles.concat( new_particles );
         // console.log( "to particles - r: " + ball.r );
@@ -588,14 +584,18 @@ class World
     }
 
     // add exploded fragments to the main collection
-    for ( let i = 0; i < new_balls.length; i++ ) {
-      if ( this.balls.length >= MAX_BALLS ) { break; }
-
+    for ( let i = 0; i < new_balls.length && this.balls.length < this.max_balls; i++ ) {
       this.balls.push( new_balls[ i ] );
     }
 
     // do particle stuff
     this.advanceParticles( dt );
+
+    // truncate balls to max
+    if ( this.balls.length > this.max_balls ) {
+      console.log( "**************** TRUNCATE ****************");
+      this.balls = this.balls.slice( 0, this.max_balls.toFixed( 0 ) );
+    }
   }
 
   advanceParticles( dt ) {
@@ -817,6 +817,7 @@ function init() {
 }
 
 let previous = null;
+let smoothed_fps = 0;
 function advance() {
 
   let controls_height = document.getElementById('controls_div').offsetHeight;
@@ -835,20 +836,28 @@ function advance() {
 
   world.draw( ctx );
 
-  updateInfoLabel( dt );
+  let fps = 1000.0 / dt;
+  let fps_alpha = 0.1;
+  smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
+  updateInfoLabel( smoothed_fps );
+
+  if ( smoothed_fps < 50 ) {
+    if ( world.max_balls > 100 ) {
+      world.max_balls = world.max_balls - 1;
+    }
+  } else if ( smoothed_fps > 55 ) {
+    if ( world.max_balls < 500 ) {
+      world.max_balls = world.max_balls + 0.1;
+    }
+  }
 
   requestAnimationFrame( advance );
 }
 
-let smoothed_fps = 0;
-function updateInfoLabel( dt ) {
-  let fps = 1000.0 / dt;
-  let alpha = 0.1;
-  smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
-  let new_fps = (smoothed_fps).toFixed(0);
-  let fps_label = document.getElementById('fps_label');
-  fps_label.innerHTML = 'fps: ' + new_fps + ' ';
+function updateInfoLabel( fps ) {
+  let fps_label = document.getElementById( 'fps_label' );
+  fps_label.innerHTML = 'fps: ' + fps.toFixed( 0 ) + ' ';
 
-  let num_balls_label = document.getElementById('num_balls_label');
-  num_balls_label.innerHTML = 'num balls: ' + world.balls.length;
+  let num_balls_label = document.getElementById( 'num_balls_label' );
+  num_balls_label.innerHTML = 'num balls / max: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
 }
