@@ -2,15 +2,15 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8"/>
+    <meta charset='utf-8'/>
     <title>pizza</title>
 
-    <script type="text/javascript" src="build/scripts/script.js"></script>
-    <link href="bower_components/paper-slider/paper-slider.html" rel="import">
-    <link href="bower_components/paper-button/paper-button.html" rel="import">
-    <link href="bower_components/iron-flex-layout/iron-flex-layout-classes.html" rel="import">
+    <script type='text/javascript' src='build/scripts/script.js'></script>
+    <link href='bower_components/paper-slider/paper-slider.html' rel='import'>
+    <link href='bower_components/paper-button/paper-button.html' rel='import'>
+    <link href='bower_components/iron-flex-layout/iron-flex-layout-classes.html' rel='import'>
 
-    <style is="custom-style" include="iron-flex">
+    <style is='custom-style' include='iron-flex'>
       .flex {
         @apply(--layout-horizontal);
       }.invisible {
@@ -18,7 +18,7 @@
       }
     </style>
 
-    <style type="text/css">
+    <style type='text/css'>
       canvas { border: 1px solid black; }
     </style>
 
@@ -33,22 +33,23 @@
     </script>
   </head>
 
-  <body onload="init();">
+  <body onload='init();'>
 
-    <canvas id="pizza" width="1" height="1"></canvas>
+    <canvas id='pizza' width='1' height='1'></canvas>
 
-    <div id="controls_div" class="horizontal layout">
-      <div><paper-button id="reset_button" raised toggles>Reset</paper-button></div>
-      <div><paper-button id="planet_button" raised toggles>Planet</paper-button></div>
-      <div><paper-button id="ball_button" raised toggles>Ball</paper-button></div>
-      <div><paper-slider id="slider" pin value="6" min="2" max="10" editable></paper-slider>n divs</div>
-      <div><paper-button id="pizza_button" raised toggles>Pizza Time</paper-button></div>
+    <div id='controls_div' class='horizontal layout'>
+      <div><paper-button id='reset_button' raised toggles>Reset</paper-button></div>
+      <div><paper-button id='planet_button' raised toggles>Planet</paper-button></div>
+      <div><paper-button id='ball_button' raised toggles>Ball</paper-button></div>
+      <div><paper-slider id='slider' pin value='6' min='2' max='10' editable></paper-slider>n divs</div>
+      <div><paper-button id='pizza_button' raised toggles>Pizza Time</paper-button></div>
+      <div><paper-button id='background_button' raised toggles>Background Animation</paper-button></div>
     </div>
 
-    <div id="fps_div" class="container flex">
-      <div id="num_balls_label">food</div>
-      <span class="invisible">" "</span>
-      <div id="fps_label">eat</div>
+    <div id='fps_div' class='container flex'>
+      <div id='num_balls_label'>food</div>
+      <span class='invisible'>' '</span>
+      <div id='fps_label'>eat</div>
     </div>
 
   </body>
