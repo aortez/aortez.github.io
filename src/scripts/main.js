@@ -78,6 +78,22 @@ function init() {
     world.setDrawBackground( !world.getDrawBackground() );
   });
 
+  document.getElementById( 'pizza_button' ).addEventListener( 'click', function() {
+    world.pizza_time = !world.pizza_time;
+  });
+
+  document.getElementById( 'reset_button' ).addEventListener( 'click', function() {
+    world.init();
+  });
+
+  document.getElementById( 'planet_button' ).addEventListener( 'click', function() {
+    controller.requestPlanet();
+  });
+
+  document.getElementById( 'ball_button' ).addEventListener( 'click', function() {
+    controller.requestBall();
+  });
+
   requestAnimationFrame( advance );
 }
 
@@ -95,28 +111,6 @@ function advance() {
   let now = window.performance.now();
   let dt = now - previous;
   previous = now;
-
-  let reset_button = document.getElementById( 'reset_button' );
-  if ( reset_button.pressed ) {
-    world.init();
-  }
-
-  let planet_button = document.getElementById( 'planet_button' );
-  if ( planet_button.pressed ) {
-    controller.requestPlanet();
-  }
-
-  let ball_button = document.getElementById( 'ball_button' );
-  if ( ball_button.pressed ) {
-    controller.requestBall();
-  }
-
-  let pizza_button = document.getElementById( 'pizza_button' );
-  // if ( pizza_button.released ) {
-  if ( pizza_button.pressed ) {
-    world.pizza_time = !world.pizza_time;
-    console.log( 'world.pizza_time: ' + world.pizza_time );
-  }
 
   world.advance( dt * 0.05 );
 
