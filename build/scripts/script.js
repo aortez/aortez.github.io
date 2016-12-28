@@ -1,4 +1,3 @@
-"use strict";
 class vec3
 {
   constructor( x, y, z ) {
@@ -35,6 +34,73 @@ class vec3
     c.z = Math.min( 255, c.z ); c.z = Math.max( 0, c.z );
   }
 
+}
+
+
+class vec2
+{
+  constructor( x, y ) {
+    this.x = x;
+    this.y = y;
+    // console.log( "x, y: " + x + ", " + y );
+  }
+
+  copy() {
+    let c = new vec2( this.x, this.y );
+    return c;
+  }
+
+  distance( b ) {
+    let dx = this.x - b.x;
+    let dy = this.y - b.y;
+    let d = Math.sqrt( dx * dx + dy * dy );
+    return d;
+  }
+
+  plus( a ) {
+    this.x += a.x;
+    this.y += a.y;
+    return this;
+  }
+
+  minus( a ) {
+    this.x -= a.x;
+    this.y -= a.y;
+    return this;
+  }
+
+  times( scalar ) {
+    this.x *= scalar;
+    this.y *= scalar;
+    return this;
+  }
+
+  divided_by( scalar ) {
+    this.x /= scalar;
+    this.y /= scalar;
+    return this;
+  }
+
+  mag() {
+    let m = Math.sqrt( this.x * this.x + this.y * this.y );
+    return m;
+  }
+
+  dot( b ) {
+    let scalarProduct = this.x * b.x + this.y * b.y;
+    return scalarProduct;
+  }
+
+  normalize() {
+    let m = this.mag();
+    this.x /= m;
+    this.y /= m;
+    return this;
+  }
+
+  toString() {
+    return "x: " + this.x + ", y: " + this.y;
+  }
 }
 
 var ObjectType = {
@@ -371,73 +437,6 @@ class Ball
 
 }
 
-
-class vec2
-{
-  constructor( x, y ) {
-    this.x = x;
-    this.y = y;
-    // console.log( "x, y: " + x + ", " + y );
-  }
-
-  copy() {
-    let c = new vec2( this.x, this.y );
-    return c;
-  }
-
-  distance( b ) {
-    let dx = this.x - b.x;
-    let dy = this.y - b.y;
-    let d = Math.sqrt( dx * dx + dy * dy );
-    return d;
-  }
-
-  plus( a ) {
-    this.x += a.x;
-    this.y += a.y;
-    return this;
-  }
-
-  minus( a ) {
-    this.x -= a.x;
-    this.y -= a.y;
-    return this;
-  }
-
-  times( scalar ) {
-    this.x *= scalar;
-    this.y *= scalar;
-    return this;
-  }
-
-  divided_by( scalar ) {
-    this.x /= scalar;
-    this.y /= scalar;
-    return this;
-  }
-
-  mag() {
-    let m = Math.sqrt( this.x * this.x + this.y * this.y );
-    return m;
-  }
-
-  dot( b ) {
-    let scalarProduct = this.x * b.x + this.y * b.y;
-    return scalarProduct;
-  }
-
-  normalize() {
-    let m = this.mag();
-    this.x /= m;
-    this.y /= m;
-    return this;
-  }
-
-  toString() {
-    return "x: " + this.x + ", y: " + this.y;
-  }
-}
-
 var NUM_EXPLOD_DIVS = 3;
 
 class World
@@ -452,6 +451,7 @@ class World
     this.n_divs = 3;
     this.init();
     this.background = new Background();
+    this.shouldDrawBackground = true;
     this.pizza_time = false;
   }
 
@@ -652,7 +652,12 @@ class World
   }
 
   draw( ctx ) {
-    this.background.draw();
+    if ( this.shouldDrawBackground ) {
+      this.background.draw();
+    } else {
+      ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+      ctx.fillRect( 0, 0, canvas.width, canvas.height );
+    }
 
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
@@ -669,6 +674,10 @@ class World
       p.draw( ctx, this.pizza_time );
     }
 
+  }
+
+  getDrawBackground() {
+    return this.shouldDrawBackground;
   }
 
   retrieveBall( x, y ) {
@@ -696,6 +705,10 @@ class World
     return null;
   }
 
+  setDrawBackground( shouldDrawBackground ) {
+    this.shouldDrawBackground = shouldDrawBackground;
+  }
+
   sliding( e ) {
     this.n_divs = e.currentTarget.value;
     NUM_EXPLOD_DIVS = this.n_divs;
@@ -711,15 +724,15 @@ let canvas;
 
 function mouseDown( e ) {
   controller.mouseDown( e );
-  canvas.removeEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mouseup", mouseUp, false );
+  canvas.removeEventListener( 'mousedown', mouseDown, false );
+  canvas.addEventListener( 'mouseup', mouseUp, false );
   e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
-  canvas.removeEventListener( "mouseup", mouseUp, false );
-  canvas.addEventListener( "mousedown", mouseDown, false );
+  canvas.removeEventListener( 'mouseup', mouseUp, false );
+  canvas.addEventListener( 'mousedown', mouseDown, false );
 }
 
 function mouseOut( e ) {
@@ -744,45 +757,45 @@ function init() {
   world = new World();
   controller = new Controller( world );
 
-  let slider = document.getElementById('slider');
+  let slider = document.getElementById( 'slider' );
   slider.addEventListener( 'value-change', world.sliding, false );
 
   canvas = document.getElementById( 'pizza' );
-
-  canvas.addEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mousemove", mouseMove, false );
-  canvas.addEventListener( "mouseout", mouseOut, false );
-  canvas.addEventListener( "touchstart", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var touch = e.touches[0];
-    var mouseEvent = new MouseEvent( "mousedown", {
+  canvas.addEventListener( 'mousedown', mouseDown, false );
+  canvas.addEventListener( 'mousemove', mouseMove, false );
+  canvas.addEventListener( 'mouseout', mouseOut, false );
+  canvas.addEventListener( 'touchstart', function (e) {
+    if ( e.target == canvas ) { e.preventDefault(); }
+    var touch = e.touches[ 0 ];
+    var mouseEvent = new MouseEvent( 'mousedown', {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
-    }, false );
-  canvas.addEventListener( "touchend", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var mouseEvent = new MouseEvent( "mouseup", {});
-    canvas.dispatchEvent(mouseEvent);
-  }, false );
-  canvas.addEventListener( "touchmove", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var touch = e.touches[0];
-    var mouseEvent = new MouseEvent( "mousemove", {
+    }, false
+  );
+  canvas.addEventListener( 'touchend', function ( e ) {
+      if ( e.target == canvas ) { e.preventDefault(); }
+      var mouseEvent = new MouseEvent( 'mouseup', {} );
+      canvas.dispatchEvent( mouseEvent );
+    }, false
+  );
+  canvas.addEventListener( 'touchmove', function ( e ) {
+    if ( e.target == canvas ) { e.preventDefault(); }
+    var touch = e.touches[ 0 ];
+    var mouseEvent = new MouseEvent( 'mousemove', {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
-  }, false );
+    }, false
+  );
 
   ctx = canvas.getContext( '2d' );
+
+  document.getElementById( 'background_button' ).addEventListener( 'click', function() {
+    world.setDrawBackground( !world.getDrawBackground() );
+  });
 
   requestAnimationFrame( advance );
 }
@@ -802,25 +815,26 @@ function advance() {
   let dt = now - previous;
   previous = now;
 
-  let reset_button = document.getElementById('reset_button');
+  let reset_button = document.getElementById( 'reset_button' );
   if ( reset_button.pressed ) {
     world.init();
   }
 
-  let planet_button = document.getElementById('planet_button');
+  let planet_button = document.getElementById( 'planet_button' );
   if ( planet_button.pressed ) {
     controller.requestPlanet();
   }
 
-  let ball_button = document.getElementById('ball_button');
+  let ball_button = document.getElementById( 'ball_button' );
   if ( ball_button.pressed ) {
     controller.requestBall();
   }
 
-  let pizza_button = document.getElementById('pizza_button');
+  let pizza_button = document.getElementById( 'pizza_button' );
+  // if ( pizza_button.released ) {
   if ( pizza_button.pressed ) {
     world.pizza_time = !world.pizza_time;
-    console.log( "world.pizza_time: " + world.pizza_time );
+    console.log( 'world.pizza_time: ' + world.pizza_time );
   }
 
   world.advance( dt * 0.05 );
@@ -839,8 +853,8 @@ function updateInfoLabel( dt ) {
   smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
   let new_fps = (smoothed_fps).toFixed(0);
   let fps_label = document.getElementById('fps_label');
-  fps_label.innerHTML = "fps: " + new_fps + " ";
+  fps_label.innerHTML = 'fps: ' + new_fps + ' ';
 
   let num_balls_label = document.getElementById('num_balls_label');
-  num_balls_label.innerHTML = "num balls: " + world.balls.length;
+  num_balls_label.innerHTML = 'num balls: ' + world.balls.length;
 }

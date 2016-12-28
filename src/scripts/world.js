@@ -12,6 +12,7 @@ class World
     this.n_divs = 3;
     this.init();
     this.background = new Background();
+    this.shouldDrawBackground = true;
     this.pizza_time = false;
   }
 
@@ -212,7 +213,12 @@ class World
   }
 
   draw( ctx ) {
-    this.background.draw();
+    if ( this.shouldDrawBackground ) {
+      this.background.draw();
+    } else {
+      ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+      ctx.fillRect( 0, 0, canvas.width, canvas.height );
+    }
 
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
@@ -229,6 +235,10 @@ class World
       p.draw( ctx, this.pizza_time );
     }
 
+  }
+
+  getDrawBackground() {
+    return this.shouldDrawBackground;
   }
 
   retrieveBall( x, y ) {
@@ -254,6 +264,10 @@ class World
 
 
     return null;
+  }
+
+  setDrawBackground( shouldDrawBackground ) {
+    this.shouldDrawBackground = shouldDrawBackground;
   }
 
   sliding( e ) {
