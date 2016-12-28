@@ -122,12 +122,12 @@ function advance() {
   smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
   updateInfoLabel( smoothed_fps );
 
-  if ( smoothed_fps < 50 ) {
+  if ( smoothed_fps < 45 ) {
     if ( world.max_balls > 100 ) {
-      world.max_balls = world.max_balls - 1;
+      world.max_balls = world.max_balls - 5;
     }
-  } else if ( smoothed_fps > 55 ) {
-    if ( world.max_balls < 500 ) {
+  } else {
+    if ( world.max_balls < 400 ) {
       world.max_balls = world.max_balls + 0.1;
     }
   }
