@@ -49,36 +49,10 @@ class quadtree
       this.children[ i ].draw( ctx );
     }
     let canvas = ctx.canvas;
-    // ctx.beginPath();
-    // ctx.lineColor
     ctx.strokeStyle="#000000";
     ctx.strokeRect( this.min_x, this.min_y, this.max_x, this.max_y );
     ctx.strokeStyle="#FFFFFF";
     ctx.strokeRect( this.min_x + 1, this.min_y + 1, this.max_x - 1, this.max_y - 1 );
-    // ctx.stroke();
-    // ctx.closePath();
-
-    // var sizeWidth = ctx.canvas.clientWidth;
-    // var sizeHeight = ctx.canvas.clientHeight;
-    // var scaleWidth = sizeWidth / 100;
-    // var scaleHeight = sizeHeight / 100;
-    // let scale = sizeHeight / 800;
-    // let r_scaled = this.r * scale;
-    // // r_scaled = this.r;
-    // let x_scaled = this.center.x * scale;
-    // let y_scaled = this.center.y * scale;
-    //
-    // ctx.beginPath();
-    // // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
-    // ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
-    // if ( pizza_time ) {
-    //   ctx.fillStyle = this.pattern;
-    // } else {
-    //   ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
-    // }
-    // ctx.fill();
-    // ctx.stroke();
-    // ctx.closePath();
   }
 
   fitsInside( element ) {

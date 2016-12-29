@@ -157,36 +157,10 @@ class quadtree
       this.children[ i ].draw( ctx );
     }
     let canvas = ctx.canvas;
-    // ctx.beginPath();
-    // ctx.lineColor
     ctx.strokeStyle="#000000";
     ctx.strokeRect( this.min_x, this.min_y, this.max_x, this.max_y );
     ctx.strokeStyle="#FFFFFF";
     ctx.strokeRect( this.min_x + 1, this.min_y + 1, this.max_x - 1, this.max_y - 1 );
-    // ctx.stroke();
-    // ctx.closePath();
-
-    // var sizeWidth = ctx.canvas.clientWidth;
-    // var sizeHeight = ctx.canvas.clientHeight;
-    // var scaleWidth = sizeWidth / 100;
-    // var scaleHeight = sizeHeight / 100;
-    // let scale = sizeHeight / 800;
-    // let r_scaled = this.r * scale;
-    // // r_scaled = this.r;
-    // let x_scaled = this.center.x * scale;
-    // let y_scaled = this.center.y * scale;
-    //
-    // ctx.beginPath();
-    // // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
-    // ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
-    // if ( pizza_time ) {
-    //   ctx.fillStyle = this.pattern;
-    // } else {
-    //   ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
-    // }
-    // ctx.fill();
-    // ctx.stroke();
-    // ctx.closePath();
   }
 
   fitsInside( element ) {
@@ -396,13 +370,18 @@ class Controller
   advance() {
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
-    //   ball.c.x = 255;
-    //   ball.c.y = green;
-    //   ball.c.z = blue;
       b.hp = b.calcHp() * 1000;
       b.v.x = 0;
       b.v.y = 0;
     }
+  }
+
+  pause() {
+    world.is_paused = !world.is_paused;
+  }
+
+  quadtree() {
+    world.use_quadtree = !world.use_quadtree;
   }
 
   mouseMove( canvas, e ) {
@@ -731,6 +710,8 @@ class World
     this.shouldDrawBackground = true;
     this.pizza_time = false;
     this.max_balls = 400;
+    this.is_paused = false;
+    this.use_quadtree = false;
   }
 
   init() {
@@ -765,6 +746,13 @@ class World
   }
 
   advance( dt ) {
+    if ( this.is_paused ) {
+      // its sort of cool when we let the object settling process take play while paused
+      // dt = 0;
+
+      // but instead we delay any world updates at all
+      return;
+    }
     this.background.advance( dt );
 
     let MIN_BALL_RADIUS = 6;
@@ -954,19 +942,21 @@ class World
       p.draw( ctx, this.pizza_time );
     }
 
-    // build quadtree
-    let qt = new quadtree( 0, 0, canvas.width, canvas.height, 2 );
+    if ( this.use_quadtree ) {
+      // build quadtree
+      let qt = new quadtree( 0, 0, canvas.width, canvas.height, 3 );
 
-    // put some objects into the quad tree
-    for ( let i = 0; i < this.balls.length; i++ ) {
-      let ball = this.balls[ i ];
-      if ( qt.fitsInside( ball ) ) {
-        qt.insert( ball );
+      // put some objects into the quad tree
+      for ( let i = 0; i < this.balls.length; i++ ) {
+        let ball = this.balls[ i ];
+        if ( qt.fitsInside( ball ) ) {
+          qt.insert( ball );
+        }
       }
-    }
 
-    // draw quadtree
-    qt.draw( ctx );
+      // draw quadtree
+      qt.draw( ctx );
+    }
 
   }
 
@@ -1105,6 +1095,14 @@ function init() {
 
   document.getElementById( 'ball_button' ).addEventListener( 'click', function() {
     controller.requestBall();
+  });
+
+  document.getElementById( 'pause_button' ).addEventListener( 'click', function() {
+    controller.pause();
+  });
+
+  document.getElementById( 'quadtree_button' ).addEventListener( 'click', function() {
+    controller.quadtree();
   });
 
   requestAnimationFrame( advance );
