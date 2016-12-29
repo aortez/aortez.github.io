@@ -155,4 +155,8 @@ class Ball
     return frags;
   }
 
+  toS() {
+    return "ball" + this.center.toString();
+  }
+
 }

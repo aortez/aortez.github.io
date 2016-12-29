@@ -7,3 +7,20 @@
 - add gravity between objects
 - create a nice compact combo slider object w/ name and value
 - reintroduce particles
+
+Q: what to do in quadtree when we have more nodes at the exact same space than is
+the maximum object count?
+A1: we need to try splitting and check that we would not put all local objects into
+the same new child quadrant.  If all children are destined for the same location,
+then don't bother splitting and just increase the local size
+A2: try splitting and if all children are destined for same child quad, then add
+some random jitter until children go into separate child quads
+
+Another thought is to use a dynamic splitting algorithm for the grid, the
+object to grid allocations might not be retained over time quite as well as
+a regular grid
+
+how to support objects moving each turn?
+1. for each object that has moved, find its current location and test if
+it has left its quad.  If it has left its quad, then insert it into its parent.
+2. rebuild quad-tree on every turn

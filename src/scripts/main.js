@@ -94,6 +94,14 @@ function init() {
     controller.requestBall();
   });
 
+  document.getElementById( 'pause_button' ).addEventListener( 'click', function() {
+    controller.pause();
+  });
+
+  document.getElementById( 'quadtree_button' ).addEventListener( 'click', function() {
+    controller.quadtree();
+  });
+
   requestAnimationFrame( advance );
 }
 

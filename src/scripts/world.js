@@ -15,6 +15,8 @@ class World
     this.shouldDrawBackground = true;
     this.pizza_time = false;
     this.max_balls = 400;
+    this.is_paused = false;
+    this.use_quadtree = false;
   }
 
   init() {
@@ -49,6 +51,13 @@ class World
   }
 
   advance( dt ) {
+    if ( this.is_paused ) {
+      // its sort of cool when we let the object settling process take play while paused
+      // dt = 0;
+
+      // but instead we delay any world updates at all
+      return;
+    }
     this.background.advance( dt );
 
     let MIN_BALL_RADIUS = 6;
@@ -204,7 +213,6 @@ class World
         this.balls[ ball_index ] = b;
         console.log( 'ball added, displacing ball at index: ' + ball_index );
       }
-
     }
   }
 
@@ -237,6 +245,22 @@ class World
     for ( let i = 0; i < this.planets.length; i++ ) {
       let p = this.planets[ i ];
       p.draw( ctx, this.pizza_time );
+    }
+
+    if ( this.use_quadtree ) {
+      // build quadtree
+      let qt = new quadtree( 0, 0, canvas.width, canvas.height, 3 );
+
+      // put some objects into the quad tree
+      for ( let i = 0; i < this.balls.length; i++ ) {
+        let ball = this.balls[ i ];
+        if ( qt.fitsInside( ball ) ) {
+          qt.insert( ball );
+        }
+      }
+
+      // draw quadtree
+      qt.draw( ctx );
     }
 
   }

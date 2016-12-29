@@ -18,13 +18,18 @@ class Controller
   advance() {
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
-    //   ball.c.x = 255;
-    //   ball.c.y = green;
-    //   ball.c.z = blue;
       b.hp = b.calcHp() * 1000;
       b.v.x = 0;
       b.v.y = 0;
     }
+  }
+
+  pause() {
+    world.is_paused = !world.is_paused;
+  }
+
+  quadtree() {
+    world.use_quadtree = !world.use_quadtree;
   }
 
   mouseMove( canvas, e ) {

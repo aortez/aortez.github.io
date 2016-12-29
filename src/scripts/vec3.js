@@ -4,7 +4,6 @@ class vec3
     this.x = x;
     this.y = y;
     this.z = z;
-    // console.log( "x, y: " + x + ", " + y );
   }
 
   copy() {
