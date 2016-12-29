@@ -1,4 +1,3 @@
-
 class vec3
 {
   constructor( x, y, z ) {
@@ -35,6 +34,73 @@ class vec3
     c.z = Math.min( 255, c.z ); c.z = Math.max( 0, c.z );
   }
 
+}
+
+
+class vec2
+{
+  constructor( x, y ) {
+    this.x = x;
+    this.y = y;
+    // console.log( "x, y: " + x + ", " + y );
+  }
+
+  copy() {
+    let c = new vec2( this.x, this.y );
+    return c;
+  }
+
+  distance( b ) {
+    let dx = this.x - b.x;
+    let dy = this.y - b.y;
+    let d = Math.sqrt( dx * dx + dy * dy );
+    return d;
+  }
+
+  plus( a ) {
+    this.x += a.x;
+    this.y += a.y;
+    return this;
+  }
+
+  minus( a ) {
+    this.x -= a.x;
+    this.y -= a.y;
+    return this;
+  }
+
+  times( scalar ) {
+    this.x *= scalar;
+    this.y *= scalar;
+    return this;
+  }
+
+  divided_by( scalar ) {
+    this.x /= scalar;
+    this.y /= scalar;
+    return this;
+  }
+
+  mag() {
+    let m = Math.sqrt( this.x * this.x + this.y * this.y );
+    return m;
+  }
+
+  dot( b ) {
+    let scalarProduct = this.x * b.x + this.y * b.y;
+    return scalarProduct;
+  }
+
+  normalize() {
+    let m = this.mag();
+    this.x /= m;
+    this.y /= m;
+    return this;
+  }
+
+  toString() {
+    return "x: " + this.x + ", y: " + this.y;
+  }
 }
 
 var ObjectType = {
@@ -371,73 +437,6 @@ class Ball
 
 }
 
-
-class vec2
-{
-  constructor( x, y ) {
-    this.x = x;
-    this.y = y;
-    // console.log( "x, y: " + x + ", " + y );
-  }
-
-  copy() {
-    let c = new vec2( this.x, this.y );
-    return c;
-  }
-
-  distance( b ) {
-    let dx = this.x - b.x;
-    let dy = this.y - b.y;
-    let d = Math.sqrt( dx * dx + dy * dy );
-    return d;
-  }
-
-  plus( a ) {
-    this.x += a.x;
-    this.y += a.y;
-    return this;
-  }
-
-  minus( a ) {
-    this.x -= a.x;
-    this.y -= a.y;
-    return this;
-  }
-
-  times( scalar ) {
-    this.x *= scalar;
-    this.y *= scalar;
-    return this;
-  }
-
-  divided_by( scalar ) {
-    this.x /= scalar;
-    this.y /= scalar;
-    return this;
-  }
-
-  mag() {
-    let m = Math.sqrt( this.x * this.x + this.y * this.y );
-    return m;
-  }
-
-  dot( b ) {
-    let scalarProduct = this.x * b.x + this.y * b.y;
-    return scalarProduct;
-  }
-
-  normalize() {
-    let m = this.mag();
-    this.x /= m;
-    this.y /= m;
-    return this;
-  }
-
-  toString() {
-    return "x: " + this.x + ", y: " + this.y;
-  }
-}
-
 var NUM_EXPLOD_DIVS = 3;
 
 class World
@@ -452,7 +451,9 @@ class World
     this.n_divs = 3;
     this.init();
     this.background = new Background();
+    this.shouldDrawBackground = true;
     this.pizza_time = false;
+    this.max_balls = 400;
   }
 
   init() {
@@ -489,9 +490,7 @@ class World
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 400;
-    let MIN_EXPLODER_RADIUS = 25;
-    let NEW_PARTICLE_HP = 1;
+    let MIN_BALL_RADIUS = 6;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     let balls = this.balls;
@@ -560,42 +559,38 @@ class World
       }
     }
 
-    // ok, now we have these dead balls, what to do with them?
+    // deal with the dead balls
+    // some get removed from the world
+    // some get exploded
     let new_balls = [];
-    for ( let i = 0; i < dead_balls.length; i++ ) {
+    for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
-      // if they are big enough, then lets blow them into smaller pieces
-      if ( ball.r > MIN_EXPLODER_RADIUS ) {
-        // console.log( "exploded - r: " + ball.r );
-        // console.log( "world says: this.n_divs: " + this.n_divs + ", foog: " + foog );
-        new_balls = new_balls.concat( ball.explode( NUM_EXPLOD_DIVS ) );
-        // console.log( "new_balls.length: " + new_balls.length );
-      } else { //if ( ball.r > 1 ) {
-        // if they are smaller then they go into the particle loop
-        let new_particles = ball.explode( 2 );
-        for ( let p_index = new_particles.length; p_index--; ) {
-          let p = new_particles[ p_index ];
-
-          // p.c = new vec3( 255, 255, 255 );
-          // p.hp_max = NEW_PARTICLE_HP;
-          // p.hp = NEW_PARTICLE_HP;
+      let dead_frags = ball.explode( NUM_EXPLOD_DIVS );
+      for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
+        let frag = dead_frags[ frag_index ];
+        if ( frag.r >= MIN_BALL_RADIUS ) {
+          new_balls.push( frag );
+        } else {
+          frag.hp = frag.calcHp() * Math.random(); // add randomness to particle lifespan
+          this.particles.push( frag );
         }
-        this.particles = this.particles.concat( new_particles );
-        // console.log( "to particles - r: " + ball.r );
-        // console.log( "particles.length: " + new_balls.length );
       }
     }
 
     // add exploded fragments to the main collection
-    for ( let i = 0; i < new_balls.length; i++ ) {
-      if ( this.balls.length >= MAX_BALLS ) { break; }
-
+    for ( let i = 0; i < new_balls.length && this.balls.length < this.max_balls; i++ ) {
       this.balls.push( new_balls[ i ] );
     }
 
     // do particle stuff
     this.advanceParticles( dt );
+
+    // truncate balls to max
+    if ( this.balls.length > this.max_balls ) {
+      console.log( "**************** TRUNCATE ****************");
+      this.balls = this.balls.slice( 0, this.max_balls.toFixed( 0 ) );
+    }
   }
 
   advanceParticles( dt ) {
@@ -636,10 +631,19 @@ class World
   }
 
   addBall( b ) {
-    console.log("adding ball");
+    console.log( 'adding ball' );
     if ( b ) {
-      this.balls.push( b );
-      console.log("ball added");
+       // if there is capacity, just add the ball
+      if ( this.balls.length < this.max_balls ) {
+        this.balls.push( b );
+        console.log( 'ball added' );
+      } else {
+        // if we've exceeded capacity, replace a random ball
+        let ball_index = Math.trunc( Math.random() * this.balls.length );
+        this.balls[ ball_index ] = b;
+        console.log( 'ball added, displacing ball at index: ' + ball_index );
+      }
+
     }
   }
 
@@ -652,7 +656,12 @@ class World
   }
 
   draw( ctx ) {
-    this.background.draw();
+    if ( this.shouldDrawBackground ) {
+      this.background.draw();
+    } else {
+      ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+      ctx.fillRect( 0, 0, canvas.width, canvas.height );
+    }
 
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
@@ -669,6 +678,10 @@ class World
       p.draw( ctx, this.pizza_time );
     }
 
+  }
+
+  getDrawBackground() {
+    return this.shouldDrawBackground;
   }
 
   retrieveBall( x, y ) {
@@ -696,12 +709,16 @@ class World
     return null;
   }
 
+  setDrawBackground( shouldDrawBackground ) {
+    this.shouldDrawBackground = shouldDrawBackground;
+  }
+
   sliding( e ) {
     this.n_divs = e.currentTarget.value;
     NUM_EXPLOD_DIVS = this.n_divs;
     console.log( "sliding: " + this.n_divs );
   }
-
+  
 }
 
 let ctx;
@@ -711,15 +728,15 @@ let canvas;
 
 function mouseDown( e ) {
   controller.mouseDown( e );
-  canvas.removeEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mouseup", mouseUp, false );
+  canvas.removeEventListener( 'mousedown', mouseDown, false );
+  canvas.addEventListener( 'mouseup', mouseUp, false );
   e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
-  canvas.removeEventListener( "mouseup", mouseUp, false );
-  canvas.addEventListener( "mousedown", mouseDown, false );
+  canvas.removeEventListener( 'mouseup', mouseUp, false );
+  canvas.addEventListener( 'mousedown', mouseDown, false );
 }
 
 function mouseOut( e ) {
@@ -744,50 +761,67 @@ function init() {
   world = new World();
   controller = new Controller( world );
 
-  let slider = document.getElementById('slider');
+  let slider = document.getElementById( 'slider' );
   slider.addEventListener( 'value-change', world.sliding, false );
 
   canvas = document.getElementById( 'pizza' );
-
-  canvas.addEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mousemove", mouseMove, false );
-  canvas.addEventListener( "mouseout", mouseOut, false );
-  canvas.addEventListener( "touchstart", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var touch = e.touches[0];
-    var mouseEvent = new MouseEvent( "mousedown", {
+  canvas.addEventListener( 'mousedown', mouseDown, false );
+  canvas.addEventListener( 'mousemove', mouseMove, false );
+  canvas.addEventListener( 'mouseout', mouseOut, false );
+  canvas.addEventListener( 'touchstart', function (e) {
+    if ( e.target == canvas ) { e.preventDefault(); }
+    var touch = e.touches[ 0 ];
+    var mouseEvent = new MouseEvent( 'mousedown', {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
-    }, false );
-  canvas.addEventListener( "touchend", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var mouseEvent = new MouseEvent( "mouseup", {});
-    canvas.dispatchEvent(mouseEvent);
-  }, false );
-  canvas.addEventListener( "touchmove", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var touch = e.touches[0];
-    var mouseEvent = new MouseEvent( "mousemove", {
+    }, false
+  );
+  canvas.addEventListener( 'touchend', function ( e ) {
+      if ( e.target == canvas ) { e.preventDefault(); }
+      var mouseEvent = new MouseEvent( 'mouseup', {} );
+      canvas.dispatchEvent( mouseEvent );
+    }, false
+  );
+  canvas.addEventListener( 'touchmove', function ( e ) {
+    if ( e.target == canvas ) { e.preventDefault(); }
+    var touch = e.touches[ 0 ];
+    var mouseEvent = new MouseEvent( 'mousemove', {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
-  }, false );
+    }, false
+  );
 
   ctx = canvas.getContext( '2d' );
+
+  document.getElementById( 'background_button' ).addEventListener( 'click', function() {
+    world.setDrawBackground( !world.getDrawBackground() );
+  });
+
+  document.getElementById( 'pizza_button' ).addEventListener( 'click', function() {
+    world.pizza_time = !world.pizza_time;
+  });
+
+  document.getElementById( 'reset_button' ).addEventListener( 'click', function() {
+    world.init();
+  });
+
+  document.getElementById( 'planet_button' ).addEventListener( 'click', function() {
+    controller.requestPlanet();
+  });
+
+  document.getElementById( 'ball_button' ).addEventListener( 'click', function() {
+    controller.requestBall();
+  });
 
   requestAnimationFrame( advance );
 }
 
 let previous = null;
+let smoothed_fps = 0;
 function advance() {
 
   let controls_height = document.getElementById('controls_div').offsetHeight;
@@ -802,55 +836,54 @@ function advance() {
   let dt = now - previous;
   previous = now;
 
-  let reset_button = document.getElementById('reset_button');
-  if ( reset_button.pressed ) {
-    world.init();
-  }
-
-  let planet_button = document.getElementById('planet_button');
-  if ( planet_button.pressed ) {
-    controller.requestPlanet();
-  }
-
-  let ball_button = document.getElementById('ball_button');
-  if ( ball_button.pressed ) {
-    controller.requestBall();
-  }
-
-  let pizza_button = document.getElementById('pizza_button');
-  if ( pizza_button.pressed ) {
-    world.pizza_time = !world.pizza_time;
-    console.log( "world.pizza_time: " + world.pizza_time );
-  }
-
   world.advance( dt * 0.05 );
 
   world.draw( ctx );
 
-  updateInfoLabel( dt );
+  let fps = 1000.0 / dt;
+  let fps_alpha = 0.1;
+  smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
+  updateInfoLabel( smoothed_fps );
+
+  if ( smoothed_fps < 45 ) {
+    if ( world.max_balls > 75 ) {
+      world.max_balls = world.max_balls - 5;
+    }
+  } else {
+    if ( world.max_balls < 400 ) {
+      world.max_balls = world.max_balls + 0.1;
+    }
+  }
 
   requestAnimationFrame( advance );
 }
 
-let smoothed_fps = 0;
-function updateInfoLabel( dt ) {
-  let fps = 1000.0 / dt;
-  let alpha = 0.1;
-  smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
-  let new_fps = (smoothed_fps).toFixed(0);
-  let fps_label = document.getElementById('fps_label');
-  fps_label.innerHTML = "fps: " + new_fps + " ";
+function updateInfoLabel( fps ) {
+  let fps_label = document.getElementById( 'fps_label' );
+  fps_label.innerHTML = 'fps: ' + fps.toFixed( 0 ) + ' ';
 
-  let num_balls_label = document.getElementById('num_balls_label');
-  num_balls_label.innerHTML = "num balls: " + world.balls.length;
+  let num_balls_label = document.getElementById( 'num_balls_label' );
+  num_balls_label.innerHTML = 'num balls / max: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
 }
 
 "use strict";
+let qt_indent = 0;
+function log( text ) {
+  const whitespace = '                                                         ';
+  console.log( text.replace( /^/mg, whitespace.substring(0, qt_indent) ) );
+}
+function log_in() { qt_indent = qt_indent + 4; }
+function log_out() { qt_indent = qt_indent - 4; }
+
 class qtElement
 {
   constructor( x, y ) {
     this.x = x;
     this.y = y;
+  }
+
+  toS() {
+    return "qtElement(" + this.x + ", " + this.y + ")";
   }
 }
 
@@ -866,32 +899,74 @@ class quadtree
     this.children = [];
   }
 
+  fitsInside( element ) {
+    let fits = (
+      element.x >= this.min_x &&
+      element.x < this.max_x &&
+      element.y >= this.min_y &&
+      element.y < this.max_y );
+    log( "fits? " + fits + ": element: " + element.x + ", " + element.y +
+      ", quad x[" + this.min_x + ", " + this.max_x + "], y[" + this.min_y + ", " + this.max_y + "]" );
+    return fits;
+  }
+
+  getObjectsRecursive() {
+    // start with any local objects
+    let objects = this.objects;
+
+    // add any objects from children
+    for ( const child of this.children ) {
+      let child_objects = child.getObjectsRecursive();
+      if ( child_objects.length > 0 ) {
+        objects = objects.concat( child_objects );
+      }
+    }
+    return objects;
+  }
+
   hasChildren() {
-    return ( this.children.length >= 0 );
+    return ( this.children.length > 0 );
+  }
+
+  hasObjects() {
+    return ( this.objects.length > 0 );
   }
 
   insert( element ) {
-    console.log( "\ninserting..." );
-    if ( element.x < this.min_x || element.x > this.max_x || element.y < this.min_y || element.y > this.max_y ) {
-        console.log( "element: " + element );
-        console.log( "self: " + this.toS() );
+    log( "\ninserting... " + element.toS() );
+    log_in();
+    if ( !this.fitsInside( element ) ) {
+        log( "self: " + this.toS() );
         throw "input OOBs!";
     }
 
-    if ( this.objects.length < this.MAX_SIZE ) {
-      console.log( "inserting internally" );
+    if ( !this.hasChildren() && this.objects.length < this.MAX_SIZE ) {
+      log( "inserting internally..." );
       this.objects.push( element );
+      log( "insert is done" );
     } else if ( this.hasChildren() ) {
-      console.log( "inserting to children: " + this.children );
-      for ( let child of this.children ) {
-        // make sure we insert into one of the children
-        child.insert( element );
+      log( "child nodes exist, search for destination node" ); log_in();
+      let inserted = false;
+      for ( const child of this.children ) {
+        if ( child.fitsInside( element ) ) {
+          log( "fits!  insert to child" );
+          log_in();
+          child.insert( element );
+          log_out();
+          inserted = true;
+          break;
+        }
+        else {
+          log(" not fits " );
+        }
       }
+     log_out();
+      if ( !inserted ) { throw "unable to insert"; }
     } else {
       this.split();
+      this.insert( element );
     }
-    console.log( "insert is done" );
-    console.log( "hello again:\n" + this.toS() );
+    log_out();
   }
 
   centerX() {
@@ -903,54 +978,101 @@ class quadtree
   }
 
   split() {
-    console.log("splitting...");
+    log("splitting...");
     if ( this.hasChildren() ) {
-      throw "object already split: "  + this;
+      throw "can only split once: "  + this;
     }
     this.children = [
       new quadtree( 0, 0, this.centerX(), this.centerY() ), // top left
-      new quadtree( 0, 0, this.centerX(), this.centerY() ), // bottom left
-      new quadtree( 0, 0, this.centerX(), this.centerY() ), // top right
-      new quadtree( 0, 0, this.centerX(), this.centerY() ) // bottom right
+      new quadtree( 0, this.centerY(), this.centerX(), this.max_y ), // bottom left
+      new quadtree( this.centerX(), 0, this.max_x, this.centerY() ), // top right
+      new quadtree( this.centerX(), this.centerY(), this.max_x, this.max_y ) // bottom right
     ];
-    console.log( "has children?: " + this.hasChildren() );
-    console.log( "split is done" );
+    log("inserting existing objects to children");
+    log_in();
+    for ( const obj of this.objects ) {
+      this.insert( obj );
+    }
+    log_out();
+    this.objects = [];
+    log( this.toS() );
+    log( "split is done" );
   }
 
   remove( element ) {
-    for ( const object of this.objects ) {
+    // base case: empty leaf node
+    if ( !this.hasObjects() && !this.hasChildren() ) {
+      return;
+    }
+
+    // leaf node w/ objects stored locally
+    for ( let i = 0; i < this.objects.length; i++ ) {
+
+      // if this is the target element, remove it
+      if ( this.objects[ i ] === element ) {
+        array.splice( i, 1 );
+      }
+
+    }
+
+    // interior node w/ objects: interior node
+    for ( const child of this.children ) {
 
     }
   }
 
   toS() {
     let s =
-      "objects[" + this.objects.length + "]" + "\n" +
-      "min_x, min_y: " + this.min_x + ", " + this.min_y + "\n" +
-      "max_x, max_y: " + this.max_x + ", "  + this.max_y + "\n" +
-      "children: " + this.children;
-    for ( const child of this.children ) {
-      let childString = child.toS();
-      childString = childString.replace( /\n/g, '\n\t' );
-      s = s + childString;
+      "quadtree: [" + this.min_x + ", " + this.min_y + "] - " +
+      "[" + this.max_x + ", "  + this.max_y + "]";
+
+    if ( this.hasObjects() ) {
+      s = s + "\n\tObjects[" + this.objects.length + "]:";
+      for ( const obj of this.objects ) {
+        s = s + "\n\t\t" + obj.toS().replace( /\n/g, '\n\t' );
+      }
+    }
+    if ( this.hasChildren() ) {
+      s = s + "\n\tChildren[" + this.children.length + "]:";
+      for ( const child of this.children ) {
+        s = s + "\n\t\t" + child.toS().replace( /\n/g, '\n\t' );
+      }
     }
     return s;
   }
 
   static test() {
-    console.log( "yalla!" );
-    let s = new quadtree( 0, 0, 100, 100 );
-    console.log( "say hello to quadtree:\n" + s.toS() );
+    let qt = new quadtree( 0, 0, 100, 100 );
+    console.log( "**************** initial state: ********************" );
+    console.log( qt.toS() );
 
-    let o1 = { x: 5, y: 5 };
-    let o2 = { x: 5, y: 75 };
-    let o3 = { x: 75, y: 75 };
-    let o4 = { x: 75, y: 5 };
 
-    s.insert( o1 );
-    s.insert( o2 );
-    s.insert( o3 );
-    s.insert( o4 );
+    console.log( "**************** inserting *************************" );
+    qt.insert( new qtElement(  5,  5 ) );
+    log( qt.toS() );
+    qt.insert( new qtElement(  5, 75 ) );
+    log( qt.toS() );
+    qt.insert( new qtElement( 75, 75 ) );
+    log( qt.toS() );
+    qt.insert( new qtElement( 75,  5 ) );
+    log( qt.toS() );
+
+    log( "******************* objects belonging to parent tree *******");
+    for ( const object of qt.getObjectsRecursive() ) {
+      log( object.toS() );
+    }
+
+    // display each child's object's
+    log( "***************** objects belonging to each child subtree ***********");
+    for ( const node of s.children ) {
+      log ( node.toS() );
+      log_in();
+      for ( const object of node.objects ) {
+        log( object.toS() );
+      }
+
+      log_out();
+    }
   }
 
 }

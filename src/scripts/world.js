@@ -12,7 +12,9 @@ class World
     this.n_divs = 3;
     this.init();
     this.background = new Background();
+    this.shouldDrawBackground = true;
     this.pizza_time = false;
+    this.max_balls = 400;
   }
 
   init() {
@@ -49,9 +51,7 @@ class World
   advance( dt ) {
     this.background.advance( dt );
 
-    let MAX_BALLS = 400;
-    let MIN_EXPLODER_RADIUS = 25;
-    let NEW_PARTICLE_HP = 1;
+    let MIN_BALL_RADIUS = 6;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     let balls = this.balls;
@@ -120,42 +120,38 @@ class World
       }
     }
 
-    // ok, now we have these dead balls, what to do with them?
+    // deal with the dead balls
+    // some get removed from the world
+    // some get exploded
     let new_balls = [];
-    for ( let i = 0; i < dead_balls.length; i++ ) {
+    for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
-      // if they are big enough, then lets blow them into smaller pieces
-      if ( ball.r > MIN_EXPLODER_RADIUS ) {
-        // console.log( "exploded - r: " + ball.r );
-        // console.log( "world says: this.n_divs: " + this.n_divs + ", foog: " + foog );
-        new_balls = new_balls.concat( ball.explode( NUM_EXPLOD_DIVS ) );
-        // console.log( "new_balls.length: " + new_balls.length );
-      } else { //if ( ball.r > 1 ) {
-        // if they are smaller then they go into the particle loop
-        let new_particles = ball.explode( 2 );
-        for ( let p_index = new_particles.length; p_index--; ) {
-          let p = new_particles[ p_index ];
-
-          // p.c = new vec3( 255, 255, 255 );
-          // p.hp_max = NEW_PARTICLE_HP;
-          // p.hp = NEW_PARTICLE_HP;
+      let dead_frags = ball.explode( NUM_EXPLOD_DIVS );
+      for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
+        let frag = dead_frags[ frag_index ];
+        if ( frag.r >= MIN_BALL_RADIUS ) {
+          new_balls.push( frag );
+        } else {
+          frag.hp = frag.calcHp() * Math.random(); // add randomness to particle lifespan
+          this.particles.push( frag );
         }
-        this.particles = this.particles.concat( new_particles );
-        // console.log( "to particles - r: " + ball.r );
-        // console.log( "particles.length: " + new_balls.length );
       }
     }
 
     // add exploded fragments to the main collection
-    for ( let i = 0; i < new_balls.length; i++ ) {
-      if ( this.balls.length >= MAX_BALLS ) { break; }
-
+    for ( let i = 0; i < new_balls.length && this.balls.length < this.max_balls; i++ ) {
       this.balls.push( new_balls[ i ] );
     }
 
     // do particle stuff
     this.advanceParticles( dt );
+
+    // truncate balls to max
+    if ( this.balls.length > this.max_balls ) {
+      console.log( "**************** TRUNCATE ****************");
+      this.balls = this.balls.slice( 0, this.max_balls.toFixed( 0 ) );
+    }
   }
 
   advanceParticles( dt ) {
@@ -196,10 +192,19 @@ class World
   }
 
   addBall( b ) {
-    console.log("adding ball");
+    console.log( 'adding ball' );
     if ( b ) {
-      this.balls.push( b );
-      console.log("ball added");
+       // if there is capacity, just add the ball
+      if ( this.balls.length < this.max_balls ) {
+        this.balls.push( b );
+        console.log( 'ball added' );
+      } else {
+        // if we've exceeded capacity, replace a random ball
+        let ball_index = Math.trunc( Math.random() * this.balls.length );
+        this.balls[ ball_index ] = b;
+        console.log( 'ball added, displacing ball at index: ' + ball_index );
+      }
+
     }
   }
 
@@ -212,7 +217,12 @@ class World
   }
 
   draw( ctx ) {
-    this.background.draw();
+    if ( this.shouldDrawBackground ) {
+      this.background.draw();
+    } else {
+      ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+      ctx.fillRect( 0, 0, canvas.width, canvas.height );
+    }
 
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
@@ -229,6 +239,10 @@ class World
       p.draw( ctx, this.pizza_time );
     }
 
+  }
+
+  getDrawBackground() {
+    return this.shouldDrawBackground;
   }
 
   retrieveBall( x, y ) {
@@ -256,10 +270,14 @@ class World
     return null;
   }
 
+  setDrawBackground( shouldDrawBackground ) {
+    this.shouldDrawBackground = shouldDrawBackground;
+  }
+
   sliding( e ) {
     this.n_divs = e.currentTarget.value;
     NUM_EXPLOD_DIVS = this.n_divs;
     console.log( "sliding: " + this.n_divs );
   }
-
+  
 }

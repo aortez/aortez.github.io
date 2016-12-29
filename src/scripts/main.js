@@ -5,15 +5,15 @@ let canvas;
 
 function mouseDown( e ) {
   controller.mouseDown( e );
-  canvas.removeEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mouseup", mouseUp, false );
+  canvas.removeEventListener( 'mousedown', mouseDown, false );
+  canvas.addEventListener( 'mouseup', mouseUp, false );
   e.preventDefault();
 }
 
 function mouseUp( e ) {
   controller.mouseUp( e );
-  canvas.removeEventListener( "mouseup", mouseUp, false );
-  canvas.addEventListener( "mousedown", mouseDown, false );
+  canvas.removeEventListener( 'mouseup', mouseUp, false );
+  canvas.addEventListener( 'mousedown', mouseDown, false );
 }
 
 function mouseOut( e ) {
@@ -38,50 +38,67 @@ function init() {
   world = new World();
   controller = new Controller( world );
 
-  let slider = document.getElementById('slider');
+  let slider = document.getElementById( 'slider' );
   slider.addEventListener( 'value-change', world.sliding, false );
 
   canvas = document.getElementById( 'pizza' );
-
-  canvas.addEventListener( "mousedown", mouseDown, false );
-  canvas.addEventListener( "mousemove", mouseMove, false );
-  canvas.addEventListener( "mouseout", mouseOut, false );
-  canvas.addEventListener( "touchstart", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var touch = e.touches[0];
-    var mouseEvent = new MouseEvent( "mousedown", {
+  canvas.addEventListener( 'mousedown', mouseDown, false );
+  canvas.addEventListener( 'mousemove', mouseMove, false );
+  canvas.addEventListener( 'mouseout', mouseOut, false );
+  canvas.addEventListener( 'touchstart', function (e) {
+    if ( e.target == canvas ) { e.preventDefault(); }
+    var touch = e.touches[ 0 ];
+    var mouseEvent = new MouseEvent( 'mousedown', {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
-    }, false );
-  canvas.addEventListener( "touchend", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var mouseEvent = new MouseEvent( "mouseup", {});
-    canvas.dispatchEvent(mouseEvent);
-  }, false );
-  canvas.addEventListener( "touchmove", function (e) {
-    if (e.target == canvas) {
-      e.preventDefault();
-    }
-    var touch = e.touches[0];
-    var mouseEvent = new MouseEvent( "mousemove", {
+    }, false
+  );
+  canvas.addEventListener( 'touchend', function ( e ) {
+      if ( e.target == canvas ) { e.preventDefault(); }
+      var mouseEvent = new MouseEvent( 'mouseup', {} );
+      canvas.dispatchEvent( mouseEvent );
+    }, false
+  );
+  canvas.addEventListener( 'touchmove', function ( e ) {
+    if ( e.target == canvas ) { e.preventDefault(); }
+    var touch = e.touches[ 0 ];
+    var mouseEvent = new MouseEvent( 'mousemove', {
       clientX: touch.clientX,
       clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
-  }, false );
+    }, false
+  );
 
   ctx = canvas.getContext( '2d' );
+
+  document.getElementById( 'background_button' ).addEventListener( 'click', function() {
+    world.setDrawBackground( !world.getDrawBackground() );
+  });
+
+  document.getElementById( 'pizza_button' ).addEventListener( 'click', function() {
+    world.pizza_time = !world.pizza_time;
+  });
+
+  document.getElementById( 'reset_button' ).addEventListener( 'click', function() {
+    world.init();
+  });
+
+  document.getElementById( 'planet_button' ).addEventListener( 'click', function() {
+    controller.requestPlanet();
+  });
+
+  document.getElementById( 'ball_button' ).addEventListener( 'click', function() {
+    controller.requestBall();
+  });
 
   requestAnimationFrame( advance );
 }
 
 let previous = null;
+let smoothed_fps = 0;
 function advance() {
 
   let controls_height = document.getElementById('controls_div').offsetHeight;
@@ -96,45 +113,32 @@ function advance() {
   let dt = now - previous;
   previous = now;
 
-  let reset_button = document.getElementById('reset_button');
-  if ( reset_button.pressed ) {
-    world.init();
-  }
-
-  let planet_button = document.getElementById('planet_button');
-  if ( planet_button.pressed ) {
-    controller.requestPlanet();
-  }
-
-  let ball_button = document.getElementById('ball_button');
-  if ( ball_button.pressed ) {
-    controller.requestBall();
-  }
-
-  let pizza_button = document.getElementById('pizza_button');
-  if ( pizza_button.pressed ) {
-    world.pizza_time = !world.pizza_time;
-    console.log( "world.pizza_time: " + world.pizza_time );
-  }
-
   world.advance( dt * 0.05 );
 
   world.draw( ctx );
 
-  updateInfoLabel( dt );
+  let fps = 1000.0 / dt;
+  let fps_alpha = 0.1;
+  smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
+  updateInfoLabel( smoothed_fps );
+
+  if ( smoothed_fps < 45 ) {
+    if ( world.max_balls > 75 ) {
+      world.max_balls = world.max_balls - 5;
+    }
+  } else {
+    if ( world.max_balls < 400 ) {
+      world.max_balls = world.max_balls + 0.1;
+    }
+  }
 
   requestAnimationFrame( advance );
 }
 
-let smoothed_fps = 0;
-function updateInfoLabel( dt ) {
-  let fps = 1000.0 / dt;
-  let alpha = 0.1;
-  smoothed_fps = smoothed_fps * (1 - alpha) + fps * alpha;
-  let new_fps = (smoothed_fps).toFixed(0);
-  let fps_label = document.getElementById('fps_label');
-  fps_label.innerHTML = "fps: " + new_fps + " ";
+function updateInfoLabel( fps ) {
+  let fps_label = document.getElementById( 'fps_label' );
+  fps_label.innerHTML = 'fps: ' + fps.toFixed( 0 ) + ' ';
 
-  let num_balls_label = document.getElementById('num_balls_label');
-  num_balls_label.innerHTML = "num balls: " + world.balls.length;
+  let num_balls_label = document.getElementById( 'num_balls_label' );
+  num_balls_label.innerHTML = 'num balls / max: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
 }

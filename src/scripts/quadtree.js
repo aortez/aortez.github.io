@@ -4,8 +4,8 @@ function log( text ) {
   const whitespace = '                                                         ';
   console.log( text.replace( /^/mg, whitespace.substring(0, qt_indent) ) );
 }
-function log_in() { qt_indent = qt_indent + 4; };
-function log_out() { qt_indent = qt_indent - 4; };
+function log_in() { qt_indent = qt_indent + 4; }
+function log_out() { qt_indent = qt_indent - 4; }
 
 class qtElement
 {
@@ -133,7 +133,7 @@ class quadtree
 
   remove( element ) {
     // base case: empty leaf node
-    if ( !hasObjects() && !hasChildren() ) {
+    if ( !this.hasObjects() && !this.hasChildren() ) {
       return;
     }
 
@@ -142,7 +142,7 @@ class quadtree
 
       // if this is the target element, remove it
       if ( this.objects[ i ] === element ) {
-        array.splice( index, 1 );
+        array.splice( i, 1 );
       }
 
     }
