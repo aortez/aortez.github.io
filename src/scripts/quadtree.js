@@ -19,12 +19,11 @@ function log_out() { qt_indent = qt_indent - 4; }
 class qtElement
 {
   constructor( x, y ) {
-    this.x = x;
-    this.y = y;
+    this.center = new vec2( x, y );
   }
 
   toS() {
-    return "qtElement(" + this.x + ", " + this.y + ")";
+    return "qtElement(" + this.center.x + ", " + this.center.y + ")";
   }
 }
 
@@ -45,13 +44,50 @@ class quadtree
     this.children = [];
   }
 
+  draw( ctx ) {
+    for ( let i = 0; i < this.children.length; i++ ) {
+      this.children[ i ].draw( ctx );
+    }
+    let canvas = ctx.canvas;
+    // ctx.beginPath();
+    // ctx.lineColor
+    ctx.strokeStyle="#000000";
+    ctx.strokeRect( this.min_x, this.min_y, this.max_x, this.max_y );
+    ctx.strokeStyle="#FFFFFF";
+    ctx.strokeRect( this.min_x + 1, this.min_y + 1, this.max_x - 1, this.max_y - 1 );
+    // ctx.stroke();
+    // ctx.closePath();
+
+    // var sizeWidth = ctx.canvas.clientWidth;
+    // var sizeHeight = ctx.canvas.clientHeight;
+    // var scaleWidth = sizeWidth / 100;
+    // var scaleHeight = sizeHeight / 100;
+    // let scale = sizeHeight / 800;
+    // let r_scaled = this.r * scale;
+    // // r_scaled = this.r;
+    // let x_scaled = this.center.x * scale;
+    // let y_scaled = this.center.y * scale;
+    //
+    // ctx.beginPath();
+    // // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
+    // ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
+    // if ( pizza_time ) {
+    //   ctx.fillStyle = this.pattern;
+    // } else {
+    //   ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
+    // }
+    // ctx.fill();
+    // ctx.stroke();
+    // ctx.closePath();
+  }
+
   fitsInside( element ) {
     let fits = (
-      element.x >= this.min_x &&
-      element.x < this.max_x &&
-      element.y >= this.min_y &&
-      element.y < this.max_y );
-    debug( "fits? " + fits + ": element: " + element.x + ", " + element.y +
+      element.center.x >= this.min_x &&
+      element.center.x < this.max_x &&
+      element.center.y >= this.min_y &&
+      element.center.y < this.max_y );
+    debug( "fits? " + fits + ": element: " + element.center.toString() +
       ", quad x[" + this.min_x + ", " + this.max_x + "], y[" + this.min_y + ", " + this.max_y + "]" );
     return fits;
   }
@@ -82,11 +118,11 @@ class quadtree
     debug( "\ninserting... " + element.toS() );
     log_in();
     if ( !this.fitsInside( element ) ) {
-        debug( "self: " + this.toS() );
+        log( "self: " + this.toS() );
+        log( "element: " + element.toS() );
         throw "input OOBs!";
     }
 
-    console.log( "this.max_local_objects: " + this.max_local_objects );
     if ( !this.hasChildren() && this.objects.length < this.max_local_objects ) {
       debug( "inserting internally..." );
       this.objects.push( element );
@@ -97,7 +133,7 @@ class quadtree
       let inserted = false;
       for ( const child of this.children ) {
         if ( child.fitsInside( element ) ) {
-          debug( "fits!  insert to child" );
+          debug( "fits! insert to child" );
           log_in();
           child.insert( element );
           log_out();
@@ -133,9 +169,9 @@ class quadtree
       throw "can only split once: "  + this;
     }
     this.children = [
-      new quadtree( 0, 0, this.centerX(), this.centerY(), this.max_local_objects ), // top left
-      new quadtree( 0, this.centerY(), this.centerX(), this.max_y, this.max_local_objects ), // bottom left
-      new quadtree( this.centerX(), 0, this.max_x, this.centerY(), this.max_local_objects ), // top right
+      new quadtree( this.min_x, this.min_y, this.centerX(), this.centerY(), this.max_local_objects ), // top left
+      new quadtree( this.min_x, this.centerY(), this.centerX(), this.max_y, this.max_local_objects ), // bottom left
+      new quadtree( this.centerX(), this.min_y, this.max_x, this.centerY(), this.max_local_objects ), // top right
       new quadtree( this.centerX(), this.centerY(), this.max_x, this.max_y, this.max_local_objects ) // bottom right
     ];
     debug("inserting existing objects to children");

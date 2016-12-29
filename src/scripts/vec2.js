@@ -4,7 +4,6 @@ class vec2
   constructor( x, y ) {
     this.x = x;
     this.y = y;
-    // console.log( "x, y: " + x + ", " + y );
   }
 
   copy() {
@@ -61,6 +60,11 @@ class vec2
   }
 
   toString() {
-    return "x: " + this.x + ", y: " + this.y;
+    return "(" + this.x + ", " + this.y + ")";
   }
+
+  toStringVerbose() {
+    return "vec2 x: " + this.x + ", y: " + this.y;
+  }
+
 }

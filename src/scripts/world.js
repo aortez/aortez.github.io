@@ -204,7 +204,6 @@ class World
         this.balls[ ball_index ] = b;
         console.log( 'ball added, displacing ball at index: ' + ball_index );
       }
-
     }
   }
 
@@ -238,6 +237,20 @@ class World
       let p = this.planets[ i ];
       p.draw( ctx, this.pizza_time );
     }
+
+    // build quadtree
+    let qt = new quadtree( 0, 0, canvas.width, canvas.height, 2 );
+
+    // put some objects into the quad tree
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let ball = this.balls[ i ];
+      if ( qt.fitsInside( ball ) ) {
+        qt.insert( ball );
+      }
+    }
+
+    // draw quadtree
+    qt.draw( ctx );
 
   }
 
@@ -279,5 +292,5 @@ class World
     NUM_EXPLOD_DIVS = this.n_divs;
     console.log( "sliding: " + this.n_divs );
   }
-  
+
 }
