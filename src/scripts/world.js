@@ -67,17 +67,6 @@ class World
     for ( let i = 0; i < balls.length; i++ ) {
       let b = balls[ i ];
 
-      // move moving stuff
-      if ( b.is_moving ) {
-        b.center.plus( b.v.copy().times( dt ) );
-      }
-
-      // bounce off walls
-      if ( b.center.x + b.r > this.max_x ) { b.center.x = this.max_x - b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
-      if ( b.center.y + b.r > this.max_y ) { b.center.y = this.max_y - b.r; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
-      if ( b.center.x - b.r < this.min_x ) { b.center.x = this.min_x + b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
-      if ( b.center.y - b.r < this.min_y ) { b.center.y = this.min_y + b.r; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
-
       // interact with other balls
       for ( let j = i + 1; j < balls.length; j++ ) {
         let b2 = balls[ j ];
@@ -116,6 +105,17 @@ class World
           b.collide( p );
         }
       }
+      // move moving stuff
+      if ( b.is_moving ) {
+        b.center.plus( b.v.copy().times( dt ) );
+      }
+
+      // bounce off walls
+      let fudge = 0.0001;
+      if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
+      if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
+      if ( b.center.x - b.r <= this.min_x ) { b.center.x = this.min_x + b.r + fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
+      if ( b.center.y - b.r <= this.min_y ) { b.center.y = this.min_y + b.r + fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }      
     }
 
     // remove dead balls from world
@@ -232,7 +232,7 @@ class World
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
     }
 
-    for ( let i = 0; i < this.balls.length; i++ ) {
+    for ( let i = 0; i < this.balls.length && !this.use_quadtree; i++ ) {
       let b = this.balls[ i ];
       b.draw( ctx, this.pizza_time );
     }
@@ -261,6 +261,12 @@ class World
 
       // draw quadtree
       qt.draw( ctx );
+
+      // draw its contained objects
+      let objects = qt.getObjectsRecursive();
+      for ( let i = 0; i < objects.length; i++ ) {
+        objects[ i ].draw( ctx );
+      }
     }
 
   }

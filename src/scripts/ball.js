@@ -156,7 +156,7 @@ class Ball
   }
 
   toS() {
-    return "ball" + this.center.toString();
+    return "ball(" + this.center.toString() + ", " + this.r + ")";
   }
 
 }

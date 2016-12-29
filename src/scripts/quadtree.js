@@ -5,7 +5,7 @@ let debug_on = false;
 
 function log( text ) {
   const whitespace = '                                                         ';
-  console.log( text.replace( /^/mg, whitespace.substring(0, qt_indent) ) );
+  console.log( text.replace( /^/mg, whitespace.substring( 0, qt_indent ) ) );
 }
 
 function debug( text ) {
@@ -18,12 +18,13 @@ function log_out() { qt_indent = qt_indent - 4; }
 
 class qtElement
 {
-  constructor( x, y ) {
+  constructor( x, y, r ) {
     this.center = new vec2( x, y );
+    this.r = r;
   }
 
   toS() {
-    return "qtElement(" + this.center.x + ", " + this.center.y + ")";
+    return "qtElement(" + this.center.x + ", " + this.center.y + ", " + this.r + ")";
   }
 }
 
@@ -60,11 +61,11 @@ class quadtree
 
   fitsInside( element ) {
     let fits = (
-      element.center.x >= this.min_x &&
-      element.center.x < this.max_x &&
-      element.center.y >= this.min_y &&
-      element.center.y < this.max_y );
-    debug( "fits? " + fits + ": element: " + element.center.toString() +
+      element.center.x - element.r >= this.min_x &&
+      element.center.x + element.r < this.max_x &&
+      element.center.y - element.r >= this.min_y &&
+      element.center.y + element.r < this.max_y );
+    debug( "fits? " + fits + ": element: " + element.center.toString() + ", r: " + element.r +
       ", quad x[" + this.min_x + ", " + this.max_x + "], y[" + this.min_y + ", " + this.max_y + "]" );
     return fits;
   }
@@ -103,14 +104,15 @@ class quadtree
     if ( !this.hasChildren() && this.objects.length < this.max_local_objects ) {
       debug( "inserting internally..." );
       this.objects.push( element );
-      debug( "insert is done" );
     } else if ( this.hasChildren() ) {
       debug( "child nodes exist, search for destination node" );
       log_in();
       let inserted = false;
-      for ( const child of this.children ) {
+      for ( let i = 0; i < this.children.length; i++ ) {
+        let child = this.children[ i ];
         if ( child.fitsInside( element ) ) {
           debug( "fits! insert to child" );
+          debug( "child:\n" + child.toS() );
           log_in();
           child.insert( element );
           log_out();
@@ -121,14 +123,16 @@ class quadtree
           debug(" not fits " );
         }
       }
-      log_out();
       if ( !inserted ) {
-        throw "unable to insert";
+        debug( "could not fit into any children, inserting locally" );
+        this.objects.push( element );
       }
+      log_out();
     } else {
       this.split();
       this.insert( element );
     }
+    debug( "insert is done" );
     log_out();
   }
 
@@ -141,7 +145,7 @@ class quadtree
   }
 
   split() {
-    debug("splitting...");
+    debug( "splitting..." );
     if ( this.hasChildren() ) {
       throw "can only split once: "  + this;
     }
@@ -151,13 +155,15 @@ class quadtree
       new quadtree( this.centerX(), this.min_y, this.max_x, this.centerY(), this.max_local_objects ), // top right
       new quadtree( this.centerX(), this.centerY(), this.max_x, this.max_y, this.max_local_objects ) // bottom right
     ];
-    debug("inserting existing objects to children");
+    debug( "inserting existing objects to children" );
     log_in();
-    for ( const obj of this.objects ) {
+    let objects = this.objects;
+    this.objects = [];
+    for ( let i = 0; i < objects.length; i++ ) {
+      let obj = objects[ i ];
       this.insert( obj );
     }
     log_out();
-    this.objects = [];
     debug( this.toS() );
     debug( "split is done" );
   }
@@ -186,11 +192,11 @@ class quadtree
 
   toS() {
     let s =
-      "quadtree: [" + this.min_x + ", " + this.min_y + "] - " +
-      "[" + this.max_x + ", "  + this.max_y + "]";
+      "quadtree: x[" + this.min_x + ", " + this.max_x + "] - " +
+      "y[" + this.min_y + ", "  + this.max_y + "]";
 
     if ( this.hasObjects() ) {
-      s = s + "\n\tObjects[" + this.objects.length + "]:";
+      s = s + "\n\tObjects " + this.objects.length + "/" + this.max_local_objects + ":";
       for ( const obj of this.objects ) {
         s = s + "\n\t\t" + obj.toS().replace( /\n/g, '\n\t' );
       }
@@ -209,19 +215,19 @@ class quadtree
     console.log( "**************** initial state: ********************" );
     console.log( qt.toS() );
 
-    let insert_node = function( x, y ) {
-      let node = new qtElement( x, y );
+    let insert_node = function( x, y, r ) {
+      let node = new qtElement( x, y, r );
       console.log( "inserting node: " + node.toS() );
       qt.insert( node );
       console.log( "resulting qtree: " + qt.toS() );
     };
     console.log( "**************** inserting *************************" );
-    insert_node( 5, 5 );
-    insert_node( 5, 75 );
-    insert_node( 75, 75 );
-    insert_node( 75,  5 );
-    insert_node( 80,  5 );
-    insert_node( 95,  5 );
+    insert_node( 5, 5, 5 );
+    insert_node( 5, 75, 5 );
+    insert_node( 75, 75, 5 );
+    insert_node( 75,  5, 5 );
+    insert_node( 80,  10, 10 );
+    insert_node( 90,  10, 5 );
 
     log( "******************* objects belonging to parent tree *******" );
     for ( const object of qt.getObjectsRecursive() ) {
