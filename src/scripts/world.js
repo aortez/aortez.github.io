@@ -1,5 +1,3 @@
-var NUM_EXPLOD_DIVS = 3;
-
 class World
 {
   constructor() {
@@ -25,8 +23,11 @@ class World
     this.balls = [];
     this.planets = [];
     this.particles = [];
+
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
+    let green = new vec3( 0, 255, 0 );
+
     let b1 = new Ball( 50, 150, 50, pink );
     b1.v.x = 20;
     b1.is_affected_by_gravity = true;
@@ -41,13 +42,17 @@ class World
     b2.is_invincible = false;
     this.addBall( b2 );
 
-    let b3 = new Ball( 50, 500, 100, pink );
+    let b3 = new Ball( 50, 500, 200, pink );
     b3.v.x = 20;
+    b3.is_affected_by_gravity = true;
+    b3.is_moving = true;
     b3.is_invincible = false;
     this.addBall( b3 );
 
-    let b4 = new Ball( 2000, 500, 100, blue );
+    let b4 = new Ball( 2000, 500, 50, green );
     b4.v.x = -20;
+    b4.is_affected_by_gravity = true;
+    b4.is_moving = true;
     b4.is_invincible = false;
     this.addBall( b4 );
   }
@@ -63,7 +68,7 @@ class World
     }
     this.background.advance( dt );
 
-    let MIN_BALL_RADIUS = 7;
+    let MIN_BALL_RADIUS = 6;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     let balls = this.balls;
@@ -166,7 +171,7 @@ class World
     for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
-      let dead_frags = ball.explode( NUM_EXPLOD_DIVS );
+      let dead_frags = ball.explode( N_DIVS );
       for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
         let frag = dead_frags[ frag_index ];
         if ( frag.r >= MIN_BALL_RADIUS ) {
@@ -289,7 +294,7 @@ class World
 
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx, false );
+      p.draw( ctx, this.pizza_time );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
@@ -315,7 +320,7 @@ class World
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
       for ( let i = 0; i < objects.length; i++ ) {
-        objects[ i ].draw( ctx );
+        objects[ i ].draw( ctx, false );
       }
     }
 
@@ -356,7 +361,7 @@ class World
 
   sliding( e ) {
     this.n_divs = e.currentTarget.value;
-    NUM_EXPLOD_DIVS = this.n_divs;
+    this.n_divs = this.n_divs.toFixed( 0 );
     console.log( "sliding: " + this.n_divs );
   }
 

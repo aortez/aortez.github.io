@@ -36,14 +36,20 @@ function init() {
   let FPS = 60;
 
   world = new World();
+  world.init();
   controller = new Controller( world );
 
   let slider = document.getElementById( 'slider' );
   slider.addEventListener( 'value-change', world.sliding, false );
+  slider.value = N_DIVS;
 
   let explode_slider = document.getElementById( 'explode_slider' );
   explode_slider.addEventListener( 'value-change', controller.explodeSlider, false );
   explode_slider.value = 0.5;
+
+  let exploder_size_slider = document.getElementById( 'exploder_size_slider' );
+  exploder_size_slider.addEventListener( 'value-change', controller.exploderSizeSlider, false );
+  exploder_size_slider.value = EXPLODER_SIZE_FACTOR;
 
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );

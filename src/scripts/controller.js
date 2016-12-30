@@ -5,6 +5,8 @@ var ObjectType = {
 };
 
 var EXPLODE_V_FACTOR = 0.5;
+var EXPLODER_SIZE_FACTOR = 0.6;
+var N_DIVS = 2;
 
 class Controller
 {
@@ -23,7 +25,7 @@ class Controller
 
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
-      b.hp = b.calcHp() * 1000;
+      b.is_invincible = true;
     }
   }
 
@@ -49,7 +51,7 @@ class Controller
       this.cursor_v.y = this.cursor_v.y * ( 1 - alpha ) + alpha * d.y;
 
       // keep the ball alive and move it to follow the cursor
-      b.hp = b.calcHp() * 1000;
+      b.is_invincible = true;
       b.center.x = b.center.x + this.cursor_v.x;
       b.center.y = b.center.y + this.cursor_v.y;
     }
@@ -82,7 +84,6 @@ class Controller
       } else {
         this.ball.is_affected_by_gravity = true;
         this.ball.v = this.cursor_v;
-        this.ball.m = this.ball.r * this.ball.r;
         this.ball.is_moving = false;
         this.ball.is_invincible = false;
         this.ball.can_move = true;
@@ -104,6 +105,9 @@ class Controller
 
     // set released ball to full life
     b.hp = b.calcHp();
+
+    // make it mortal
+    b.is_invincible = false;
 
     // toss it in the direction of recent movement
     b.v = this.cursor_v.copy();
@@ -182,6 +186,9 @@ class Controller
     console.log( "EXPLODE_V_FACTOR: " + EXPLODE_V_FACTOR );
   }
 
-
+  exploderSizeSlider( e ) {
+    EXPLODER_SIZE_FACTOR = e.currentTarget.value;
+    console.log( "EXPLODER_SIZE_FACTOR: " + EXPLODER_SIZE_FACTOR );
+  }
 
 }

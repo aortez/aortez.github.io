@@ -378,6 +378,8 @@ var ObjectType = {
 };
 
 var EXPLODE_V_FACTOR = 0.5;
+var EXPLODER_SIZE_FACTOR = 0.6;
+var N_DIVS = 2;
 
 class Controller
 {
@@ -396,7 +398,7 @@ class Controller
 
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
-      b.hp = b.calcHp() * 1000;
+      b.is_invincible = true;
     }
   }
 
@@ -422,7 +424,7 @@ class Controller
       this.cursor_v.y = this.cursor_v.y * ( 1 - alpha ) + alpha * d.y;
 
       // keep the ball alive and move it to follow the cursor
-      b.hp = b.calcHp() * 1000;
+      b.is_invincible = true;
       b.center.x = b.center.x + this.cursor_v.x;
       b.center.y = b.center.y + this.cursor_v.y;
     }
@@ -455,7 +457,6 @@ class Controller
       } else {
         this.ball.is_affected_by_gravity = true;
         this.ball.v = this.cursor_v;
-        this.ball.m = this.ball.r * this.ball.r;
         this.ball.is_moving = false;
         this.ball.is_invincible = false;
         this.ball.can_move = true;
@@ -477,6 +478,9 @@ class Controller
 
     // set released ball to full life
     b.hp = b.calcHp();
+
+    // make it mortal
+    b.is_invincible = false;
 
     // toss it in the direction of recent movement
     b.v = this.cursor_v.copy();
@@ -555,7 +559,10 @@ class Controller
     console.log( "EXPLODE_V_FACTOR: " + EXPLODE_V_FACTOR );
   }
 
-
+  exploderSizeSlider( e ) {
+    EXPLODER_SIZE_FACTOR = e.currentTarget.value;
+    console.log( "EXPLODER_SIZE_FACTOR: " + EXPLODER_SIZE_FACTOR );
+  }
 
 }
 
@@ -617,24 +624,23 @@ class Ball
     this.v = new vec2( 0, 0 );
     this.r = r; // radius
     this.color = c; // color
-    this.hp = r * r; // current hit points
-    this.hp_max = r * r; // max hit points
-    this.m = r * r; // mass
+    this.hp = this.calcHp(); // current hit points
+    this.m = this.r * this.r; // mass
     this.is_affected_by_gravity = true;
     this.is_moving = true;
-    this.is_invincible = true;
+    this.is_invincible = false;
 
     this.pattern = null;
   }
 
   calcHp() {
-    let hp = this.r * this.r;
+    let hp = this.r;
     return hp;
   }
 
   collide( b ) {
-    let DAMAGE_SCALAR = 0.002;
-    // let DAMAGE_SCALAR = 0.05;
+    // let DAMAGE_SCALAR = 0.002;
+    let DAMAGE_SCALAR = 0.1;
 
     // distance between centers
     let D = this.center.copy().minus( b.center );
@@ -702,10 +708,10 @@ class Ball
 
     // damage life based upon change in momemtum
     if ( !this.is_invincible ) {
-      this.hp -= ( dv1t.mag() * m1 * DAMAGE_SCALAR );
+      this.hp -= ( dv1t.mag() * DAMAGE_SCALAR );
     }
     if ( !b.is_invincible ) {
-      b.hp -= ( dv2t.mag() * m2  * DAMAGE_SCALAR );
+      b.hp -= ( dv2t.mag() * DAMAGE_SCALAR );
     }
     // console.log( "this.hp: " + this.hp );
   }
@@ -742,8 +748,7 @@ class Ball
   }
 
   explode( n_divs ) {
-    let EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
-    let EXPLODER_SIZE_FACTOR = 0.4;
+    let EXPLODER_PARENT_VELOCITY_FACTOR = 0.5;
     let MIN_FRAG_RADIUS = 1;
 
     let frags = [];
@@ -753,7 +758,7 @@ class Ball
         const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        let r = div_size * EXPLODER_SIZE_FACTOR;
+        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.3 + Math.random() * 0.7 );
         if ( r < MIN_FRAG_RADIUS ) continue;
         let c = this.color.copy();
         c.randColor( 100 );
@@ -761,9 +766,9 @@ class Ball
         let new_ball = new Ball( x, y, r, c );
 
         let v = new_ball.center.copy().minus( this.center );
+        v = v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         let mini_exploder_boost = ( EXPLODE_V_FACTOR < 0.1 && r < 4 ) ? Math.random() * 0.1 : 0;
         v.times( Math.random() * ( EXPLODE_V_FACTOR + mini_exploder_boost ) );
-        v.plus( v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         new_ball.v = v;
         new_ball.is_affected_by_gravity = true;
         new_ball.is_moving = true;
@@ -780,8 +785,6 @@ class Ball
   }
 
 }
-
-var NUM_EXPLOD_DIVS = 3;
 
 class World
 {
@@ -808,8 +811,11 @@ class World
     this.balls = [];
     this.planets = [];
     this.particles = [];
+
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
+    let green = new vec3( 0, 255, 0 );
+
     let b1 = new Ball( 50, 150, 50, pink );
     b1.v.x = 20;
     b1.is_affected_by_gravity = true;
@@ -824,13 +830,17 @@ class World
     b2.is_invincible = false;
     this.addBall( b2 );
 
-    let b3 = new Ball( 50, 500, 100, pink );
+    let b3 = new Ball( 50, 500, 200, pink );
     b3.v.x = 20;
+    b3.is_affected_by_gravity = true;
+    b3.is_moving = true;
     b3.is_invincible = false;
     this.addBall( b3 );
 
-    let b4 = new Ball( 2000, 500, 100, blue );
+    let b4 = new Ball( 2000, 500, 50, green );
     b4.v.x = -20;
+    b4.is_affected_by_gravity = true;
+    b4.is_moving = true;
     b4.is_invincible = false;
     this.addBall( b4 );
   }
@@ -846,7 +856,7 @@ class World
     }
     this.background.advance( dt );
 
-    let MIN_BALL_RADIUS = 7;
+    let MIN_BALL_RADIUS = 6;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     let balls = this.balls;
@@ -949,7 +959,7 @@ class World
     for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
-      let dead_frags = ball.explode( NUM_EXPLOD_DIVS );
+      let dead_frags = ball.explode( N_DIVS );
       for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
         let frag = dead_frags[ frag_index ];
         if ( frag.r >= MIN_BALL_RADIUS ) {
@@ -977,60 +987,11 @@ class World
       });
       console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
+      // really inefficient splice loop
       while ( this.balls.length > this.max_balls ) {
         this.balls.splice( this.balls.length - 1, 1 );
       }
     }
-
-
-    // truncate balls to max
-    // let max_min = 0;
-    // while ( this.balls.length >= this.max_balls ) {
-    //   // find weakest ball
-    //   let min_hp = 1000000000;
-    //   let min_i = -1;
-    //   for ( let i = 0; i < this.balls.length; i++ ) {
-    //     let b = this.balls[ i ];
-    //     if ( b.hp < min_hp && b.hp > max_min ) {
-    //       console.log( "min_hp: " + min_hp + ", max_min: " + max_min );
-    //       min_i = i;
-    //       min_hp = b.hp;
-    //     } else {
-    //       console.log( "NOT min_hp: " + min_hp + ", max_min: " + max_min );
-    //     }
-    //   }
-    //   // truncate
-    //   if ( min_i >= 0 ) {
-    //     let b = this.balls[ min_i ];
-    //     console.log( "removed ball[" + min_i + "] with hp: " + b.hp );
-    //     // this.balls.splice( min_i, 1 );
-    //     max_min = b.hp;
-    //     b.hp *= 0.5;
-    //   } else {
-    //     throw( 'unhappy!' );
-    //   }
-    // }
-
-    // // truncate balls to max
-    // while ( this.balls.length >= this.max_balls ) {
-    //   // find smallest ball
-    //   let min_r = 100000;
-    //   let min_i = -1;
-    //   for ( let i = 0; i < this.balls.length; i++ ) {
-    //     let b = this.balls[ i ];
-    //     if ( b.hp < min_r ) {
-    //       min_i = i;
-    //       min_r = b.hp;
-    //     }
-    //   }
-    //   // truncate
-    //   if ( min_i >= 0 ) {
-    //     console.log( "removed ball[" + min_i + "] with r: " + this.balls[ min_i ].r );
-    //     // this.balls.splice( min_i, 1 );
-    //   } else {
-    //     throw( 'unhappy!' );
-    //   }
-    // }
 
   }
 
@@ -1121,7 +1082,7 @@ class World
 
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx, false );
+      p.draw( ctx, this.pizza_time );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
@@ -1147,7 +1108,7 @@ class World
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
       for ( let i = 0; i < objects.length; i++ ) {
-        objects[ i ].draw( ctx );
+        objects[ i ].draw( ctx, false );
       }
     }
 
@@ -1188,7 +1149,7 @@ class World
 
   sliding( e ) {
     this.n_divs = e.currentTarget.value;
-    NUM_EXPLOD_DIVS = this.n_divs;
+    this.n_divs = this.n_divs.toFixed( 0 );
     console.log( "sliding: " + this.n_divs );
   }
 
@@ -1232,14 +1193,20 @@ function init() {
   let FPS = 60;
 
   world = new World();
+  world.init();
   controller = new Controller( world );
 
   let slider = document.getElementById( 'slider' );
   slider.addEventListener( 'value-change', world.sliding, false );
+  slider.value = N_DIVS;
 
   let explode_slider = document.getElementById( 'explode_slider' );
   explode_slider.addEventListener( 'value-change', controller.explodeSlider, false );
   explode_slider.value = 0.5;
+
+  let exploder_size_slider = document.getElementById( 'exploder_size_slider' );
+  exploder_size_slider.addEventListener( 'value-change', controller.exploderSizeSlider, false );
+  exploder_size_slider.value = EXPLODER_SIZE_FACTOR;
 
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
