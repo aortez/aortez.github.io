@@ -386,14 +386,15 @@ class Controller
     this.world = world;
     this.cursor_v = new vec2( 0, 0 );
     this.next_object_type = ObjectType.BALL;
+    this.dt = 0;
   }
 
-  advance() {
+  advance( dt ) {
+    this.dt = dt;
+
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
       b.hp = b.calcHp() * 1000;
-      b.v.x = 0;
-      b.v.y = 0;
     }
   }
 
@@ -509,7 +510,29 @@ class Controller
 
   purple() {
     console.log( "purple" );
+
+    // flip the purple flag
     this.world.purple = !this.world.purple;
+
+    // react to the new state...
+    // when we turn the world purple, turn all the balls purple
+    if ( this.world.purple ) {
+      let bg = this.world.background;
+      for ( let i = 0; i < this.world.balls.length; i++ ) {
+        let b = this.world.balls[ i ];
+        b.color.copyFrom( bg.rgb );
+        bg.advance( this.dt );
+        bg.draw(ctx);
+      }
+    }
+    // and when the world turns back from purple...
+    else {
+      for ( let i = 0; i < this.world.balls.length; i++ ) {
+        let b = this.world.balls[ i ];
+        b.color.set( 128, 128, 128 );
+        b.color.randColor( 255 );
+      }
+    }
   }
 }
 
@@ -1178,6 +1201,8 @@ function advance() {
   let now = window.performance.now();
   let dt = now - previous;
   previous = now;
+
+  controller.advance( dt * 0.05 );
 
   world.advance( dt * 0.05 );
 

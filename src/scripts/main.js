@@ -125,6 +125,8 @@ function advance() {
   let dt = now - previous;
   previous = now;
 
+  controller.advance( dt * 0.05 );
+
   world.advance( dt * 0.05 );
 
   world.draw( ctx );
