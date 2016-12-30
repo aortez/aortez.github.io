@@ -5,6 +5,7 @@ class Background
     this.frameDuration = 0;
     this.dir = 1;
     this.counterMax = 70;
+    this.rgb = new vec3();
   }
 
   advance( dt ) {
@@ -38,6 +39,12 @@ class Background
       }
     }
 
+    // blue = blue * 0.90 + this.rgb.z * 0.1;
+    // red = red;// + ( Math.random() - 0.5 ) * 128;
+
+    this.rgb.x = (Math.random() * 255).toFixed(0);
+    this.rgb.y = green;
+    this.rgb.z = blue;
   }
 
 }

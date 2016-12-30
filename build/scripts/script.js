@@ -6,9 +6,31 @@ class vec3
     this.z = z;
   }
 
+  copyFrom( that ) {
+    this.x = that.x;
+    this.y = that.y;
+    this.z = that.z;
+  }
+
   copy() {
     let c = new vec3( this.x, this.y, this.z );
     return c;
+  }
+
+  set( x, y, z ) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+
+  randColor( variation ) {
+    let c = this;
+    c.x += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.y += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.z += Math.floor( variation * ( Math.random() - 0.5 ) );
+    c.x = Math.min( 255, c.x ); c.x = Math.max( 0, c.x );
+    c.y = Math.min( 255, c.y ); c.y = Math.max( 0, c.y );
+    c.z = Math.min( 255, c.z ); c.z = Math.max( 0, c.z );
   }
 
   times( scalar ) {
@@ -21,16 +43,6 @@ class vec3
   toRGB() {
     let rgb = "rgb(" + this.x + "," + this.y + "," + this.z + ")";
     return rgb;
-  }
-
-  randColor( variation ) {
-    let c = this;
-    c.x += Math.floor( variation * ( Math.random() - 0.5 ) );
-    c.y += Math.floor( variation * ( Math.random() - 0.5 ) );
-    c.z += Math.floor( variation * ( Math.random() - 0.5 ) );
-    c.x = Math.min( 255, c.x ); c.x = Math.max( 0, c.x );
-    c.y = Math.min( 255, c.y ); c.y = Math.max( 0, c.y );
-    c.z = Math.min( 255, c.z ); c.z = Math.max( 0, c.z );
   }
 
 }
@@ -408,8 +420,6 @@ class Controller
 
       // keep the ball alive and move it to follow the cursor
       b.hp = b.calcHp() * 1000;
-      // b.center.x = this.mousePos.x;
-      // b.center.y = this.mousePos.y;
       b.center.x = b.center.x + this.cursor_v.x;
       b.center.y = b.center.y + this.cursor_v.y;
     }
@@ -484,17 +494,22 @@ class Controller
   }
 
   mouseOver( e ) {
-    console.log("mouse over" );
+    console.log( "mouse over" );
   }
 
   requestPlanet() {
-    console.log("I want a planet!!!!!!!!!!!!");
+    console.log( "I want a planet!!!!!!!!!!!!" );
     this.next_object_type = ObjectType.PLANET;
   }
 
   requestBall() {
-    console.log("I want a ball &&&&&&&&&&&&&&");
+    console.log( "I want a ball &&&&&&&&&&&&&&" );
     this.next_object_type = ObjectType.BALL;
+  }
+
+  purple() {
+    console.log( "purple" );
+    this.world.purple = !this.world.purple;
   }
 }
 
@@ -505,6 +520,7 @@ class Background
     this.frameDuration = 0;
     this.dir = 1;
     this.counterMax = 70;
+    this.rgb = new vec3();
   }
 
   advance( dt ) {
@@ -538,6 +554,12 @@ class Background
       }
     }
 
+    // blue = blue * 0.90 + this.rgb.z * 0.1;
+    // red = red;// + ( Math.random() - 0.5 ) * 128;
+
+    this.rgb.x = (Math.random() * 255).toFixed(0);
+    this.rgb.y = green;
+    this.rgb.z = blue;
   }
 
 }
@@ -724,6 +746,7 @@ class World
     this.max_balls = 400;
     this.is_paused = false;
     this.use_quadtree = false;
+    this.purple = false;
   }
 
   init() {
@@ -822,7 +845,7 @@ class World
       if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
       if ( b.center.x - b.r <= this.min_x ) { b.center.x = this.min_x + b.r + fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
-      if ( b.center.y - b.r <= this.min_y ) { b.center.y = this.min_y + b.r + fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }      
+      if ( b.center.y - b.r <= this.min_y ) { b.center.y = this.min_y + b.r + fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
     }
 
     // remove dead balls from world
@@ -909,25 +932,35 @@ class World
 
   addBall( b ) {
     console.log( 'adding ball' );
-    if ( b ) {
-       // if there is capacity, just add the ball
-      if ( this.balls.length < this.max_balls ) {
-        this.balls.push( b );
-        console.log( 'ball added' );
-      } else {
-        // if we've exceeded capacity, replace a random ball
-        let ball_index = Math.trunc( Math.random() * this.balls.length );
-        this.balls[ ball_index ] = b;
-        console.log( 'ball added, displacing ball at index: ' + ball_index );
-      }
+    if ( !b ) {
+      return;
+    }
+
+    if ( this.purple && this.background ) {
+      b.color.copyFrom( this.background.rgb );
+    }
+
+     // if there is capacity, just add the ball
+    if ( this.balls.length < this.max_balls ) {
+      this.balls.push( b );
+      console.log( 'ball added' );
+    } else {
+      // if we've exceeded capacity, replace a random ball
+      let ball_index = Math.trunc( Math.random() * this.balls.length );
+      this.balls[ ball_index ] = b;
+      console.log( 'ball added, displacing ball at index: ' + ball_index );
     }
   }
 
   addPlanet( p ) {
     console.log("adding planet");
+    if ( this.purple && this.background ) {
+      p.color.copyFrom( this.background.rgb );
+    }
+
     this.planets.push( p );
     if ( !p ) {
-      console.log("planet NOT added");
+      throw("planet NOT added");
     }
   }
 
@@ -1121,6 +1154,10 @@ function init() {
 
   document.getElementById( 'quadtree_button' ).addEventListener( 'click', function() {
     controller.quadtree();
+  });
+
+  document.getElementById( 'purple_button' ).addEventListener( 'click', function() {
+    controller.purple();
   });
 
   requestAnimationFrame( advance );

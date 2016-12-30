@@ -121,16 +121,21 @@ class Controller
   }
 
   mouseOver( e ) {
-    console.log("mouse over" );
+    console.log( "mouse over" );
   }
 
   requestPlanet() {
-    console.log("I want a planet!!!!!!!!!!!!");
+    console.log( "I want a planet!!!!!!!!!!!!" );
     this.next_object_type = ObjectType.PLANET;
   }
 
   requestBall() {
-    console.log("I want a ball &&&&&&&&&&&&&&");
+    console.log( "I want a ball &&&&&&&&&&&&&&" );
     this.next_object_type = ObjectType.BALL;
+  }
+
+  purple() {
+    console.log( "purple" );
+    this.world.purple = !this.world.purple;
   }
 }

@@ -17,6 +17,7 @@ class World
     this.max_balls = 400;
     this.is_paused = false;
     this.use_quadtree = false;
+    this.purple = false;
   }
 
   init() {
@@ -115,7 +116,7 @@ class World
       if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
       if ( b.center.x - b.r <= this.min_x ) { b.center.x = this.min_x + b.r + fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
-      if ( b.center.y - b.r <= this.min_y ) { b.center.y = this.min_y + b.r + fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }      
+      if ( b.center.y - b.r <= this.min_y ) { b.center.y = this.min_y + b.r + fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
     }
 
     // remove dead balls from world
@@ -202,25 +203,35 @@ class World
 
   addBall( b ) {
     console.log( 'adding ball' );
-    if ( b ) {
-       // if there is capacity, just add the ball
-      if ( this.balls.length < this.max_balls ) {
-        this.balls.push( b );
-        console.log( 'ball added' );
-      } else {
-        // if we've exceeded capacity, replace a random ball
-        let ball_index = Math.trunc( Math.random() * this.balls.length );
-        this.balls[ ball_index ] = b;
-        console.log( 'ball added, displacing ball at index: ' + ball_index );
-      }
+    if ( !b ) {
+      return;
+    }
+
+    if ( this.purple && this.background ) {
+      b.color.copyFrom( this.background.rgb );
+    }
+
+     // if there is capacity, just add the ball
+    if ( this.balls.length < this.max_balls ) {
+      this.balls.push( b );
+      console.log( 'ball added' );
+    } else {
+      // if we've exceeded capacity, replace a random ball
+      let ball_index = Math.trunc( Math.random() * this.balls.length );
+      this.balls[ ball_index ] = b;
+      console.log( 'ball added, displacing ball at index: ' + ball_index );
     }
   }
 
   addPlanet( p ) {
     console.log("adding planet");
+    if ( this.purple && this.background ) {
+      p.color.copyFrom( this.background.rgb );
+    }
+
     this.planets.push( p );
     if ( !p ) {
-      console.log("planet NOT added");
+      throw("planet NOT added");
     }
   }
 

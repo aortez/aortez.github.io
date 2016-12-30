@@ -102,6 +102,10 @@ function init() {
     controller.quadtree();
   });
 
+  document.getElementById( 'purple_button' ).addEventListener( 'click', function() {
+    controller.purple();
+  });
+
   requestAnimationFrame( advance );
 }
 
