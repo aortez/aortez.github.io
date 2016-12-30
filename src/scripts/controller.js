@@ -47,8 +47,8 @@ class Controller
 
       // keep the ball alive and move it to follow the cursor
       b.hp = b.calcHp() * 1000;
-      b.center.x = this.mousePos.x;
-      b.center.y = this.mousePos.y;
+      b.center.x = b.center.x + this.cursor_v.x;
+      b.center.y = b.center.y + this.cursor_v.y;
     }
 
   }
@@ -80,7 +80,7 @@ class Controller
         this.ball.is_affected_by_gravity = true;
         this.ball.v = this.cursor_v;
         this.ball.m = this.ball.r * this.ball.r;
-        this.ball.is_moving = true;
+        this.ball.is_moving = false;
         this.ball.is_invincible = false;
         this.ball.can_move = true;
         this.world.addBall( this.ball );
@@ -104,6 +104,7 @@ class Controller
 
     // toss it in the direction of recent movement
     b.v = this.cursor_v.copy();
+    b.is_moving = true;
 
     // clear recent cursor movement so we don't accidentally reuse it
     this.cursor_v = new vec2( 0, 0 );
