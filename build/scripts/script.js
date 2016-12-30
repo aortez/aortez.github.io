@@ -377,6 +377,8 @@ var ObjectType = {
   PLANET: 3
 };
 
+var EXPLODE_V_FACTOR = 0.5;
+
 class Controller
 {
   constructor( world ) {
@@ -524,6 +526,13 @@ class Controller
         bg.advance( this.dt );
         bg.draw(ctx);
       }
+      // planets also
+      for ( let i = 0; i < this.world.planets.length; i++ ) {
+        let p = this.world.planets[ i ];
+        p.color.copyFrom( bg.rgb );
+        bg.advance( this.dt );
+        bg.draw(ctx);
+      }
     }
     // and when the world turns back from purple...
     else {
@@ -532,8 +541,22 @@ class Controller
         b.color.set( 128, 128, 128 );
         b.color.randColor( 255 );
       }
+      // planets also
+      for ( let i = 0; i < this.world.planets.length; i++ ) {
+        let p = this.world.planets[ i ];
+        p.color.set( 128, 128, 128 );
+        p.color.randColor( 255 );
+      }
     }
   }
+
+  explodeSlider( e ) {
+    EXPLODE_V_FACTOR = e.currentTarget.value;
+    console.log( "EXPLODE_V_FACTOR: " + EXPLODE_V_FACTOR );
+  }
+
+
+
 }
 
 class Background
@@ -670,12 +693,20 @@ class Ball
     let elastic_factor = 0.9;
     let dv1t = Dn.copy().times( ( m1 - m2 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
     let dv2t = Dn.times( ( m2 - m1 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
-    this.v = v1t.plus( dv1t.times( elastic_factor ) );
-    b.v = v2t.minus( dv2t.times( elastic_factor ) );
+    if ( this.is_moving ) {
+      this.v = v1t.plus( dv1t.times( elastic_factor ) );
+    }
+    if ( b.is_moving ) {
+      b.v = v2t.minus( dv2t.times( elastic_factor ) );
+    }
 
     // damage life based upon change in momemtum
-    this.hp -= ( dv1t.mag() * m1 * DAMAGE_SCALAR );
-    b.hp -= ( dv2t.mag() * m2  * DAMAGE_SCALAR );
+    if ( !this.is_invincible ) {
+      this.hp -= ( dv1t.mag() * m1 * DAMAGE_SCALAR );
+    }
+    if ( !b.is_invincible ) {
+      b.hp -= ( dv2t.mag() * m2  * DAMAGE_SCALAR );
+    }
     // console.log( "this.hp: " + this.hp );
   }
 
@@ -713,7 +744,6 @@ class Ball
   explode( n_divs ) {
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     let EXPLODER_SIZE_FACTOR = 0.4;
-    let EXPLODE_V_FACTOR = 0.4;
     let MIN_FRAG_RADIUS = 1;
 
     let frags = [];
@@ -731,7 +761,8 @@ class Ball
         let new_ball = new Ball( x, y, r, c );
 
         let v = new_ball.center.copy().minus( this.center );
-        v.times( Math.random() * EXPLODE_V_FACTOR );
+        let mini_exploder_boost = ( EXPLODE_V_FACTOR < 0.1 && r < 4 ) ? Math.random() * 0.1 : 0;
+        v.times( Math.random() * ( EXPLODE_V_FACTOR + mini_exploder_boost ) );
         v.plus( v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         new_ball.v = v;
         new_ball.is_affected_by_gravity = true;
@@ -767,6 +798,7 @@ class World
     this.shouldDrawBackground = true;
     this.pizza_time = false;
     this.max_balls = 400;
+    this.max_particles = 200;
     this.is_paused = false;
     this.use_quadtree = false;
     this.purple = false;
@@ -804,16 +836,17 @@ class World
   }
 
   advance( dt ) {
+    let particle_dt = dt;
     if ( this.is_paused ) {
       // its sort of cool when we let the object settling process take play while paused
-      // dt = 0;
+      dt = 0;
 
       // but instead we delay any world updates at all
-      return;
+      // return;
     }
     this.background.advance( dt );
 
-    let MIN_BALL_RADIUS = 6;
+    let MIN_BALL_RADIUS = 7;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     let balls = this.balls;
@@ -827,6 +860,33 @@ class World
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
         }
+        // apply gravity
+        if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
+          // F = (G * m1 * m2) / (Distance^2)
+          let d = b.center.distance( b2.center );
+          let G = 1.0;
+          let F = ( G * b.m * b2.m ) / ( d * d );
+          let a = F / b.m;
+          let a2 = F / b2.m;
+          let D = ( b2.center.copy().minus( b.center ) ).normalize();
+          b.v.plus( D.times( a ) );
+          b2.v.minus( D.times( a2 ) );
+        }
+      }
+
+      // interact with particles
+      for ( let j = 0; j < this.particles.length; j++ ) {
+        let b2 = this.particles[ j ];
+        // possibly collide
+        let was_invincible = b.is_invincible;
+        let was_moving = b.is_moving;
+        b.is_invincible = true;
+        b.is_moving = false;
+        if ( b.center.distance( b2.center ) < b.r + b2.r ) {
+          b.collide( b2 );
+        }
+        b.is_invincible = was_invincible;
+        b.is_moving = was_moving;
         // apply gravity
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
@@ -907,13 +967,71 @@ class World
     }
 
     // do particle stuff
-    this.advanceParticles( dt );
+    this.advanceParticles( particle_dt );
+
+    if ( this.balls.length > this.max_balls ) {
+      console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
+      // sort balls by hp
+      this.balls.sort( function(a, b) {
+        return parseFloat( b.hp ) - parseFloat( a.hp );
+      });
+      console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
+
+      while ( this.balls.length > this.max_balls ) {
+        this.balls.splice( this.balls.length - 1, 1 );
+      }
+    }
+
 
     // truncate balls to max
-    if ( this.balls.length > this.max_balls ) {
-      console.log( "**************** TRUNCATE ****************");
-      this.balls = this.balls.slice( 0, this.max_balls.toFixed( 0 ) );
-    }
+    // let max_min = 0;
+    // while ( this.balls.length >= this.max_balls ) {
+    //   // find weakest ball
+    //   let min_hp = 1000000000;
+    //   let min_i = -1;
+    //   for ( let i = 0; i < this.balls.length; i++ ) {
+    //     let b = this.balls[ i ];
+    //     if ( b.hp < min_hp && b.hp > max_min ) {
+    //       console.log( "min_hp: " + min_hp + ", max_min: " + max_min );
+    //       min_i = i;
+    //       min_hp = b.hp;
+    //     } else {
+    //       console.log( "NOT min_hp: " + min_hp + ", max_min: " + max_min );
+    //     }
+    //   }
+    //   // truncate
+    //   if ( min_i >= 0 ) {
+    //     let b = this.balls[ min_i ];
+    //     console.log( "removed ball[" + min_i + "] with hp: " + b.hp );
+    //     // this.balls.splice( min_i, 1 );
+    //     max_min = b.hp;
+    //     b.hp *= 0.5;
+    //   } else {
+    //     throw( 'unhappy!' );
+    //   }
+    // }
+
+    // // truncate balls to max
+    // while ( this.balls.length >= this.max_balls ) {
+    //   // find smallest ball
+    //   let min_r = 100000;
+    //   let min_i = -1;
+    //   for ( let i = 0; i < this.balls.length; i++ ) {
+    //     let b = this.balls[ i ];
+    //     if ( b.hp < min_r ) {
+    //       min_i = i;
+    //       min_r = b.hp;
+    //     }
+    //   }
+    //   // truncate
+    //   if ( min_i >= 0 ) {
+    //     console.log( "removed ball[" + min_i + "] with r: " + this.balls[ min_i ].r );
+    //     // this.balls.splice( min_i, 1 );
+    //   } else {
+    //     throw( 'unhappy!' );
+    //   }
+    // }
+
   }
 
   advanceParticles( dt ) {
@@ -921,8 +1039,9 @@ class World
 
     for ( let i = this.particles.length; i--; ) {
       let p = this.particles[ i ];
-      // fade em
-      p.hp -= 0.05 * dt;
+      // fade em 10x faster if past some limit
+      let fade_scalar = ( this.particles.length > this.max_particles ) ? 10 : 1;
+      p.hp -= 0.05 * dt * fade_scalar;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
@@ -1118,6 +1237,10 @@ function init() {
   let slider = document.getElementById( 'slider' );
   slider.addEventListener( 'value-change', world.sliding, false );
 
+  let explode_slider = document.getElementById( 'explode_slider' );
+  explode_slider.addEventListener( 'value-change', controller.explodeSlider, false );
+  explode_slider.value = 0.5;
+
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
   canvas.addEventListener( 'mousemove', mouseMove, false );
@@ -1215,11 +1338,17 @@ function advance() {
 
   if ( smoothed_fps < 45 ) {
     if ( world.max_balls > 75 ) {
-      world.max_balls = world.max_balls - 5;
+      world.max_balls -= 5;
+    }
+    if ( world.max_particles > 50 ) {
+      world.max_particles -= 5;
     }
   } else {
     if ( world.max_balls < 400 ) {
-      world.max_balls = world.max_balls + 0.1;
+      world.max_balls += 0.1;
+    }
+    if ( world.max_particles < 200 ) {
+      world.max_particles += 1;
     }
   }
 
@@ -1231,5 +1360,8 @@ function updateInfoLabel( fps ) {
   fps_label.innerHTML = 'fps: ' + fps.toFixed( 0 ) + ' ';
 
   let num_balls_label = document.getElementById( 'num_balls_label' );
-  num_balls_label.innerHTML = 'num balls / max: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
+  num_balls_label.innerHTML = 'num balls: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
+
+  let num_particles_label = document.getElementById( 'num_particles_label' );
+  num_particles_label.innerHTML = 'num particles: ' + world.particles.length + ' / ' + world.max_particles.toFixed( 0 );
 }

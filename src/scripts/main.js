@@ -41,6 +41,10 @@ function init() {
   let slider = document.getElementById( 'slider' );
   slider.addEventListener( 'value-change', world.sliding, false );
 
+  let explode_slider = document.getElementById( 'explode_slider' );
+  explode_slider.addEventListener( 'value-change', controller.explodeSlider, false );
+  explode_slider.value = 0.5;
+
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
   canvas.addEventListener( 'mousemove', mouseMove, false );
@@ -138,11 +142,17 @@ function advance() {
 
   if ( smoothed_fps < 45 ) {
     if ( world.max_balls > 75 ) {
-      world.max_balls = world.max_balls - 5;
+      world.max_balls -= 5;
+    }
+    if ( world.max_particles > 50 ) {
+      world.max_particles -= 5;
     }
   } else {
     if ( world.max_balls < 400 ) {
-      world.max_balls = world.max_balls + 0.1;
+      world.max_balls += 0.1;
+    }
+    if ( world.max_particles < 200 ) {
+      world.max_particles += 1;
     }
   }
 
@@ -154,5 +164,8 @@ function updateInfoLabel( fps ) {
   fps_label.innerHTML = 'fps: ' + fps.toFixed( 0 ) + ' ';
 
   let num_balls_label = document.getElementById( 'num_balls_label' );
-  num_balls_label.innerHTML = 'num balls / max: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
+  num_balls_label.innerHTML = 'num balls: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
+
+  let num_particles_label = document.getElementById( 'num_particles_label' );
+  num_particles_label.innerHTML = 'num particles: ' + world.particles.length + ' / ' + world.max_particles.toFixed( 0 );
 }

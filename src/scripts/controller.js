@@ -4,6 +4,8 @@ var ObjectType = {
   PLANET: 3
 };
 
+var EXPLODE_V_FACTOR = 0.5;
+
 class Controller
 {
   constructor( world ) {
@@ -151,6 +153,13 @@ class Controller
         bg.advance( this.dt );
         bg.draw(ctx);
       }
+      // planets also
+      for ( let i = 0; i < this.world.planets.length; i++ ) {
+        let p = this.world.planets[ i ];
+        p.color.copyFrom( bg.rgb );
+        bg.advance( this.dt );
+        bg.draw(ctx);
+      }
     }
     // and when the world turns back from purple...
     else {
@@ -159,6 +168,20 @@ class Controller
         b.color.set( 128, 128, 128 );
         b.color.randColor( 255 );
       }
+      // planets also
+      for ( let i = 0; i < this.world.planets.length; i++ ) {
+        let p = this.world.planets[ i ];
+        p.color.set( 128, 128, 128 );
+        p.color.randColor( 255 );
+      }
     }
   }
+
+  explodeSlider( e ) {
+    EXPLODE_V_FACTOR = e.currentTarget.value;
+    console.log( "EXPLODE_V_FACTOR: " + EXPLODE_V_FACTOR );
+  }
+
+
+
 }

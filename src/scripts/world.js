@@ -15,6 +15,7 @@ class World
     this.shouldDrawBackground = true;
     this.pizza_time = false;
     this.max_balls = 400;
+    this.max_particles = 200;
     this.is_paused = false;
     this.use_quadtree = false;
     this.purple = false;
@@ -52,16 +53,17 @@ class World
   }
 
   advance( dt ) {
+    let particle_dt = dt;
     if ( this.is_paused ) {
       // its sort of cool when we let the object settling process take play while paused
-      // dt = 0;
+      dt = 0;
 
       // but instead we delay any world updates at all
-      return;
+      // return;
     }
     this.background.advance( dt );
 
-    let MIN_BALL_RADIUS = 6;
+    let MIN_BALL_RADIUS = 7;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     let balls = this.balls;
@@ -75,6 +77,33 @@ class World
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
         }
+        // apply gravity
+        if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
+          // F = (G * m1 * m2) / (Distance^2)
+          let d = b.center.distance( b2.center );
+          let G = 1.0;
+          let F = ( G * b.m * b2.m ) / ( d * d );
+          let a = F / b.m;
+          let a2 = F / b2.m;
+          let D = ( b2.center.copy().minus( b.center ) ).normalize();
+          b.v.plus( D.times( a ) );
+          b2.v.minus( D.times( a2 ) );
+        }
+      }
+
+      // interact with particles
+      for ( let j = 0; j < this.particles.length; j++ ) {
+        let b2 = this.particles[ j ];
+        // possibly collide
+        let was_invincible = b.is_invincible;
+        let was_moving = b.is_moving;
+        b.is_invincible = true;
+        b.is_moving = false;
+        if ( b.center.distance( b2.center ) < b.r + b2.r ) {
+          b.collide( b2 );
+        }
+        b.is_invincible = was_invincible;
+        b.is_moving = was_moving;
         // apply gravity
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
@@ -155,13 +184,22 @@ class World
     }
 
     // do particle stuff
-    this.advanceParticles( dt );
+    this.advanceParticles( particle_dt );
 
-    // truncate balls to max
     if ( this.balls.length > this.max_balls ) {
-      console.log( "**************** TRUNCATE ****************");
-      this.balls = this.balls.slice( 0, this.max_balls.toFixed( 0 ) );
+      console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
+      // sort balls by hp
+      this.balls.sort( function(a, b) {
+        return parseFloat( b.hp ) - parseFloat( a.hp );
+      });
+      console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
+
+      // really inefficient splice loop
+      while ( this.balls.length > this.max_balls ) {
+        this.balls.splice( this.balls.length - 1, 1 );
+      }
     }
+
   }
 
   advanceParticles( dt ) {
@@ -169,8 +207,9 @@ class World
 
     for ( let i = this.particles.length; i--; ) {
       let p = this.particles[ i ];
-      // fade em
-      p.hp -= 0.05 * dt;
+      // fade em 10x faster if past some limit
+      let fade_scalar = ( this.particles.length > this.max_particles ) ? 10 : 1;
+      p.hp -= 0.05 * dt * fade_scalar;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );

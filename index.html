@@ -42,6 +42,7 @@
       <div><paper-button id='planet_button' raised toggles>Planet</paper-button></div>
       <div><paper-button id='ball_button' raised toggles>Ball</paper-button></div>
       <div><paper-slider id='slider' pin value='6' min='2' max='10' editable></paper-slider>n divs</div>
+      <div><paper-slider id='explode_slider' pin value='6' min='0.0' max='1.0' step='0.1' editable></paper-slider>explode force</div>
       <div><paper-button id='pizza_button' raised toggles>Pizza Time</paper-button></div>
       <div><paper-button id='background_button' raised toggles>Background Animation</paper-button></div>
       <div><paper-button id='pause_button' raised toggles>Pause</paper-button></div>
@@ -51,6 +52,8 @@
 
     <div id='fps_div' class='container flex'>
       <div id='num_balls_label'>food</div>
+      <span class='invisible'>' '</span>
+      <div id='num_particles_label'></div>
       <span class='invisible'>' '</span>
       <div id='fps_label'>eat</div>
     </div>

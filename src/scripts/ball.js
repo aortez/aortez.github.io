@@ -81,12 +81,20 @@ class Ball
     let elastic_factor = 0.9;
     let dv1t = Dn.copy().times( ( m1 - m2 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
     let dv2t = Dn.times( ( m2 - m1 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
-    this.v = v1t.plus( dv1t.times( elastic_factor ) );
-    b.v = v2t.minus( dv2t.times( elastic_factor ) );
+    if ( this.is_moving ) {
+      this.v = v1t.plus( dv1t.times( elastic_factor ) );
+    }
+    if ( b.is_moving ) {
+      b.v = v2t.minus( dv2t.times( elastic_factor ) );
+    }
 
     // damage life based upon change in momemtum
-    this.hp -= ( dv1t.mag() * m1 * DAMAGE_SCALAR );
-    b.hp -= ( dv2t.mag() * m2  * DAMAGE_SCALAR );
+    if ( !this.is_invincible ) {
+      this.hp -= ( dv1t.mag() * m1 * DAMAGE_SCALAR );
+    }
+    if ( !b.is_invincible ) {
+      b.hp -= ( dv2t.mag() * m2  * DAMAGE_SCALAR );
+    }
     // console.log( "this.hp: " + this.hp );
   }
 
@@ -124,7 +132,6 @@ class Ball
   explode( n_divs ) {
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.2;
     let EXPLODER_SIZE_FACTOR = 0.4;
-    let EXPLODE_V_FACTOR = 0.4;
     let MIN_FRAG_RADIUS = 1;
 
     let frags = [];
@@ -142,7 +149,8 @@ class Ball
         let new_ball = new Ball( x, y, r, c );
 
         let v = new_ball.center.copy().minus( this.center );
-        v.times( Math.random() * EXPLODE_V_FACTOR );
+        let mini_exploder_boost = ( EXPLODE_V_FACTOR < 0.1 && r < 4 ) ? Math.random() * 0.1 : 0;
+        v.times( Math.random() * ( EXPLODE_V_FACTOR + mini_exploder_boost ) );
         v.plus( v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
         new_ball.v = v;
         new_ball.is_affected_by_gravity = true;
