@@ -607,10 +607,7 @@ class Background
       }
     }
 
-    // blue = blue * 0.90 + this.rgb.z * 0.1;
-    // red = red;// + ( Math.random() - 0.5 ) * 128;
-
-    this.rgb.x = (Math.random() * 255).toFixed(0);
+    this.rgb.x = red;
     this.rgb.y = green;
     this.rgb.z = blue;
   }
@@ -723,16 +720,16 @@ class Ball
       imageObj.src = 'http://s3.amazonaws.com/spoonflower/public/design_thumbnails/0289/6414/rrrpizza_pepperoni_shop_preview.png';
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
-
-    var sizeWidth = ctx.canvas.clientWidth;
-    var sizeHeight = ctx.canvas.clientHeight;
-    var scaleWidth = sizeWidth / 100;
-    var scaleHeight = sizeHeight / 100;
-    let scale = sizeHeight / 800;
-    let r_scaled = this.r * scale;
-    // r_scaled = this.r;
-    let x_scaled = this.center.x * scale;
-    let y_scaled = this.center.y * scale;
+    //
+    // var sizeWidth = ctx.canvas.clientWidth;
+    // var sizeHeight = ctx.canvas.clientHeight;
+    // var scaleWidth = sizeWidth / 100;
+    // var scaleHeight = sizeHeight / 100;
+    // let scale = sizeHeight / 800;
+    // let r_scaled = this.r * scale;
+    // // r_scaled = this.r;
+    // let x_scaled = this.center.x * scale;
+    // let y_scaled = this.center.y * scale;
 
     ctx.beginPath();
     // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
@@ -1075,11 +1072,6 @@ class World
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
     }
 
-    for ( let i = 0; i < this.balls.length && !this.use_quadtree; i++ ) {
-      let b = this.balls[ i ];
-      b.draw( ctx, this.pizza_time );
-    }
-
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
       p.draw( ctx, this.pizza_time );
@@ -1090,7 +1082,13 @@ class World
       p.draw( ctx, this.pizza_time );
     }
 
-    if ( this.use_quadtree ) {
+    if ( !this.use_quadtree ) {
+      for ( let i = 0; i < this.balls.length && !this.use_quadtree; i++ ) {
+        let b = this.balls[ i ];
+        b.draw( ctx, this.pizza_time );
+      }
+    } else {
+      // lets try drawing the balls with the quadtree...
       // build quadtree
       let qt = new quadtree( 0, 0, canvas.width, canvas.height, 3 );
 
@@ -1109,6 +1107,29 @@ class World
       let objects = qt.getObjectsRecursive();
       for ( let i = 0; i < objects.length; i++ ) {
         objects[ i ].draw( ctx, false );
+        let o = objects[ i ];
+
+        ctx.beginPath();
+        let alpha = 0.1;
+        let center = new vec2( canvas.width / 2, canvas.height / 2 );
+        let corner = new vec2( 0, 0 );
+        let radius_scalar = 1 - center.distance( o.center ) / center.distance( corner );// / ( canvas.width * 0.5 );
+        // let radius_scalar = center.distance( corner ) / center.distance( o.center );// / ( canvas.width * 0.5 );
+        ctx.arc( o.center.x, o.center.y, o.r * radius_scalar , 0, 2 * Math.PI, false );
+        // ctx.fillStyle = "rgb(" + o.color.x + "," + o.color.y + "," + o.color.z + ")";
+        // let r = ( o.center.x / canvas.width * 255 ).toFixed( 0 );
+        // let g = ( o.center.y / canvas.width * 255 ).toFixed( 0 );
+        // let b = ( radius_scalar * 255 ).toFixed( 0 );//( o.center.x / canvas.width * 255 ).toFixed( 0 );
+
+        let r = this.background.rgb.x; //( o.center.x / canvas.width * 255 ).toFixed( 0 );
+        let g = this.background.rgb.y; //( o.center.y / canvas.width * 255 ).toFixed( 0 );
+        let b = this.background.rgb.z;//( radius_scalar * 255 ).toFixed( 0 );//( o.center.x / canvas.width * 255 ).toFixed( 0 );
+
+        // ctx.fillStyle = "rgb(" + ( o.center.x / canvas.width * 255 ).toFixed( 0 ) + ",100,100)";
+        ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
       }
     }
 
@@ -1138,7 +1159,6 @@ class World
         return p;
       }
     }
-
 
     return null;
   }

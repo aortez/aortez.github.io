@@ -105,16 +105,6 @@ class Ball
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
 
-    var sizeWidth = ctx.canvas.clientWidth;
-    var sizeHeight = ctx.canvas.clientHeight;
-    var scaleWidth = sizeWidth / 100;
-    var scaleHeight = sizeHeight / 100;
-    let scale = sizeHeight / 800;
-    let r_scaled = this.r * scale;
-    // r_scaled = this.r;
-    let x_scaled = this.center.x * scale;
-    let y_scaled = this.center.y * scale;
-
     ctx.beginPath();
     // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
     ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
