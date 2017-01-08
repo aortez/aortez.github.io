@@ -7,6 +7,7 @@ var ObjectType = {
 var EXPLODE_V_FACTOR = 0.5;
 var EXPLODER_SIZE_FACTOR = 0.6;
 var N_DIVS = 2;
+var TIMESCALE_SCALAR = 1.0;
 
 class Controller
 {
@@ -189,6 +190,11 @@ class Controller
   exploderSizeSlider( e ) {
     EXPLODER_SIZE_FACTOR = e.currentTarget.value;
     console.log( "EXPLODER_SIZE_FACTOR: " + EXPLODER_SIZE_FACTOR );
+  }
+
+  timescaleSlider( e ) {
+    TIMESCALE_SCALAR = e.currentTarget.value;
+    console.log( "TIMESCALE_SCALAR: " + TIMESCALE_SCALAR );
   }
 
 }

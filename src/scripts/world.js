@@ -71,13 +71,17 @@ class World
     let MIN_BALL_RADIUS = 6;
     let WALL_ELASTIC_FACTOR = 0.9;
 
-    let balls = this.balls;
-    for ( let i = 0; i < balls.length; i++ ) {
-      let b = balls[ i ];
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
+
+      // move moving stuff
+      if ( b.is_moving ) {
+        b.center.plus( b.v.copy().times( dt ) );
+      }
 
       // interact with other balls
-      for ( let j = i + 1; j < balls.length; j++ ) {
-        let b2 = balls[ j ];
+      for ( let j = i + 1; j < this.balls.length; j++ ) {
+        let b2 = this.balls[ j ];
         // crash em together
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
@@ -122,8 +126,12 @@ class World
           b2.v.minus( D.times( a2 ) );
         }
       }
+    }
 
-      // interact with planets
+    // interact with planets
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
+
       for ( let pIndex = 0; pIndex < this.planets.length; pIndex++ ) {
         let p = this.planets[ pIndex ];
         // apply gravity
@@ -140,12 +148,12 @@ class World
           b.collide( p );
         }
       }
-      // move moving stuff
-      if ( b.is_moving ) {
-        b.center.plus( b.v.copy().times( dt ) );
-      }
+    }
 
       // bounce off walls
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
+
       let fudge = 0.0001;
       if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
@@ -155,12 +163,12 @@ class World
 
     // remove dead balls from world
     let dead_balls = [];
-    for ( let i = balls.length; i--; ) {
-      let b = balls[ i ];
+    for ( let i = this.balls.length; i--; ) {
+      let b = this.balls[ i ];
       if ( !b.is_invincible && b.hp < 0 ) {
         // console.log( "removing dead ball, hp: " + balls.hp );
         dead_balls.push( b );
-        balls.splice( i, 1 );
+        this.balls.splice( i, 1 );
       }
     }
 
@@ -192,12 +200,12 @@ class World
     this.advanceParticles( particle_dt );
 
     if ( this.balls.length > this.max_balls ) {
-      console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
+      // console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
       // sort balls by hp
       this.balls.sort( function(a, b) {
         return parseFloat( b.hp ) - parseFloat( a.hp );
       });
-      console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
+      // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
       // really inefficient splice loop
       while ( this.balls.length > this.max_balls ) {
@@ -236,9 +244,10 @@ class World
         p.v.plus( D.times( a ) );
 
         // crash em together
-        if ( p.center.distance( planet.center ) < p.r + planet.r ) {
+        // if ( p.center.distance( planet.center ) < p.r + planet.r ) {
           p.collide( planet );
-        }
+          // planet.collide( p );
+        // }
       }
 
       // maybe could apply gravity against other ojects

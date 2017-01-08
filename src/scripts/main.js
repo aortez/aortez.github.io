@@ -51,6 +51,10 @@ function init() {
   exploder_size_slider.addEventListener( 'value-change', controller.exploderSizeSlider, false );
   exploder_size_slider.value = EXPLODER_SIZE_FACTOR;
 
+  let timescale_slider = document.getElementById( 'timescale_slider' );
+  timescale_slider.addEventListener( 'value-change', controller.timescaleSlider, false );
+  timescale_slider.value = TIMESCALE_SCALAR;
+
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
   canvas.addEventListener( 'mousemove', mouseMove, false );
@@ -123,7 +127,7 @@ let previous = null;
 let smoothed_fps = 0;
 function advance() {
 
-  let controls_height = document.getElementById('controls_div').offsetHeight;
+  let controls_height = document.getElementById('controls_div').offsetHeight + document.getElementById('controls_div2').offsetHeight;
   let pizza_height = document.getElementById('pizza').offsetHeight;
   let fps_height = document.getElementById('fps_div').offsetHeight;
   canvas.height = window.innerHeight - ( fps_height + controls_height + 30 );
@@ -137,7 +141,7 @@ function advance() {
 
   controller.advance( dt * 0.05 );
 
-  world.advance( dt * 0.05 );
+  world.advance( dt * 0.05 * TIMESCALE_SCALAR );
 
   world.draw( ctx );
 

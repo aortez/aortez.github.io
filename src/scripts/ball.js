@@ -52,13 +52,17 @@ class Ball
     let m2 = b.m;
     let M = m1 + m2;
 
-    // if ( !this.is_moving ) { b.center.minus( T );  }
-    // else if ( !b.is_moving ) { this.center.plus( T ); }
-    // else {
-    //   // push the circles apart proportional to their mass
-    this.center.plus( T.copy().times( m2 / M ) );
-    b.center.minus( T.copy().times( m1 / M ) );
-    // }
+    if ( !this.is_moving ) {
+      b.center.minus( T );
+    }
+    else if ( !b.is_moving ) {
+     this.center.plus( T );
+    }
+    else {
+      // push the circles apart proportional to their mass
+      this.center.plus( T.copy().times( m2 / M ) );
+      b.center.minus( T.copy().times( m1 / M ) );
+    }
 
     // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
     if ( !b.is_moving && !this.is_moving ) {

@@ -380,6 +380,7 @@ var ObjectType = {
 var EXPLODE_V_FACTOR = 0.5;
 var EXPLODER_SIZE_FACTOR = 0.6;
 var N_DIVS = 2;
+var TIMESCALE_SCALAR = 1.0;
 
 class Controller
 {
@@ -564,6 +565,11 @@ class Controller
     console.log( "EXPLODER_SIZE_FACTOR: " + EXPLODER_SIZE_FACTOR );
   }
 
+  timescaleSlider( e ) {
+    TIMESCALE_SCALAR = e.currentTarget.value;
+    console.log( "TIMESCALE_SCALAR: " + TIMESCALE_SCALAR );
+  }
+
 }
 
 class Background
@@ -668,13 +674,17 @@ class Ball
     let m2 = b.m;
     let M = m1 + m2;
 
-    // if ( !this.is_moving ) { b.center.minus( T );  }
-    // else if ( !b.is_moving ) { this.center.plus( T ); }
-    // else {
-    //   // push the circles apart proportional to their mass
-    this.center.plus( T.copy().times( m2 / M ) );
-    b.center.minus( T.copy().times( m1 / M ) );
-    // }
+    if ( !this.is_moving ) {
+      b.center.minus( T );
+    }
+    else if ( !b.is_moving ) {
+     this.center.plus( T );
+    }
+    else {
+      // push the circles apart proportional to their mass
+      this.center.plus( T.copy().times( m2 / M ) );
+      b.center.minus( T.copy().times( m1 / M ) );
+    }
 
     // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
     if ( !b.is_moving && !this.is_moving ) {
@@ -846,13 +856,17 @@ class World
     let MIN_BALL_RADIUS = 6;
     let WALL_ELASTIC_FACTOR = 0.9;
 
-    let balls = this.balls;
-    for ( let i = 0; i < balls.length; i++ ) {
-      let b = balls[ i ];
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
+
+      // move moving stuff
+      if ( b.is_moving ) {
+        b.center.plus( b.v.copy().times( dt ) );
+      }
 
       // interact with other balls
-      for ( let j = i + 1; j < balls.length; j++ ) {
-        let b2 = balls[ j ];
+      for ( let j = i + 1; j < this.balls.length; j++ ) {
+        let b2 = this.balls[ j ];
         // crash em together
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
@@ -897,8 +911,12 @@ class World
           b2.v.minus( D.times( a2 ) );
         }
       }
+    }
 
-      // interact with planets
+    // interact with planets
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
+
       for ( let pIndex = 0; pIndex < this.planets.length; pIndex++ ) {
         let p = this.planets[ pIndex ];
         // apply gravity
@@ -915,12 +933,12 @@ class World
           b.collide( p );
         }
       }
-      // move moving stuff
-      if ( b.is_moving ) {
-        b.center.plus( b.v.copy().times( dt ) );
-      }
+    }
 
       // bounce off walls
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let b = this.balls[ i ];
+
       let fudge = 0.0001;
       if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
@@ -930,12 +948,12 @@ class World
 
     // remove dead balls from world
     let dead_balls = [];
-    for ( let i = balls.length; i--; ) {
-      let b = balls[ i ];
+    for ( let i = this.balls.length; i--; ) {
+      let b = this.balls[ i ];
       if ( !b.is_invincible && b.hp < 0 ) {
         // console.log( "removing dead ball, hp: " + balls.hp );
         dead_balls.push( b );
-        balls.splice( i, 1 );
+        this.balls.splice( i, 1 );
       }
     }
 
@@ -967,12 +985,12 @@ class World
     this.advanceParticles( particle_dt );
 
     if ( this.balls.length > this.max_balls ) {
-      console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
+      // console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
       // sort balls by hp
       this.balls.sort( function(a, b) {
         return parseFloat( b.hp ) - parseFloat( a.hp );
       });
-      console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
+      // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
       // really inefficient splice loop
       while ( this.balls.length > this.max_balls ) {
@@ -1011,9 +1029,10 @@ class World
         p.v.plus( D.times( a ) );
 
         // crash em together
-        if ( p.center.distance( planet.center ) < p.r + planet.r ) {
+        // if ( p.center.distance( planet.center ) < p.r + planet.r ) {
           p.collide( planet );
-        }
+          // planet.collide( p );
+        // }
       }
 
       // maybe could apply gravity against other ojects
@@ -1218,6 +1237,10 @@ function init() {
   exploder_size_slider.addEventListener( 'value-change', controller.exploderSizeSlider, false );
   exploder_size_slider.value = EXPLODER_SIZE_FACTOR;
 
+  let timescale_slider = document.getElementById( 'timescale_slider' );
+  timescale_slider.addEventListener( 'value-change', controller.timescaleSlider, false );
+  timescale_slider.value = TIMESCALE_SCALAR;
+
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
   canvas.addEventListener( 'mousemove', mouseMove, false );
@@ -1290,7 +1313,7 @@ let previous = null;
 let smoothed_fps = 0;
 function advance() {
 
-  let controls_height = document.getElementById('controls_div').offsetHeight;
+  let controls_height = document.getElementById('controls_div').offsetHeight + document.getElementById('controls_div2').offsetHeight;
   let pizza_height = document.getElementById('pizza').offsetHeight;
   let fps_height = document.getElementById('fps_div').offsetHeight;
   canvas.height = window.innerHeight - ( fps_height + controls_height + 30 );
@@ -1304,7 +1327,7 @@ function advance() {
 
   controller.advance( dt * 0.05 );
 
-  world.advance( dt * 0.05 );
+  world.advance( dt * 0.05 * TIMESCALE_SCALAR );
 
   world.draw( ctx );
 
