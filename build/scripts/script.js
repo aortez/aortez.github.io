@@ -195,7 +195,7 @@ class quadtree
     let objects = this.objects;
 
     // add any objects from children
-    for ( const child of this.children ) {
+    for ( let child of this.children ) {
       let child_objects = child.getObjectsRecursive();
       if ( child_objects.length > 0 ) {
         objects = objects.concat( child_objects );
@@ -305,7 +305,7 @@ class quadtree
     }
 
     // interior node w/ objects: interior node
-    for ( const child of this.children ) {
+    for ( let child of this.children ) {
 
     }
   }
@@ -317,13 +317,13 @@ class quadtree
 
     if ( this.hasObjects() ) {
       s = s + "\n\tObjects " + this.objects.length + "/" + this.max_local_objects + ":";
-      for ( const obj of this.objects ) {
+      for ( let obj of this.objects ) {
         s = s + "\n\t\t" + obj.toS().replace( /\n/g, '\n\t' );
       }
     }
     if ( this.hasChildren() ) {
       s = s + "\n\tChildren[" + this.children.length + "]:";
-      for ( const child of this.children ) {
+      for ( let child of this.children ) {
         s = s + "\n\t\t" + child.toS().replace( /\n/g, '\n\t' );
       }
     }
@@ -350,16 +350,16 @@ class quadtree
     insert_node( 90,  10, 5 );
 
     log( "******************* objects belonging to parent tree *******" );
-    for ( const object of qt.getObjectsRecursive() ) {
+    for ( let object of qt.getObjectsRecursive() ) {
       log( object.toS() );
     }
 
     // display each child's object's
     log( "***************** objects belonging to each child subtree ***********" );
-    for ( const node of qt.children ) {
+    for ( let node of qt.children ) {
       log ( node.toS() );
       log_in();
-      for ( const object of node.objects ) {
+      for ( let object of node.objects ) {
         log( object.toS() );
       }
 
@@ -720,16 +720,6 @@ class Ball
       imageObj.src = 'http://s3.amazonaws.com/spoonflower/public/design_thumbnails/0289/6414/rrrpizza_pepperoni_shop_preview.png';
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
-    //
-    // var sizeWidth = ctx.canvas.clientWidth;
-    // var sizeHeight = ctx.canvas.clientHeight;
-    // var scaleWidth = sizeWidth / 100;
-    // var scaleHeight = sizeHeight / 100;
-    // let scale = sizeHeight / 800;
-    // let r_scaled = this.r * scale;
-    // // r_scaled = this.r;
-    // let x_scaled = this.center.x * scale;
-    // let y_scaled = this.center.y * scale;
 
     ctx.beginPath();
     // ctx.arc( x_scaled, y_scaled, r_scaled, 0, 2 * Math.PI, false );
