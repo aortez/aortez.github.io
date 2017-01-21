@@ -816,28 +816,28 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let green = new vec3( 0, 255, 0 );
 
-    let b1 = new Ball( 50, 150, 50, pink );
+    let b1 = new Ball( 50, 150, 50, pink.copy() );
     b1.v.x = 20;
     b1.is_affected_by_gravity = true;
     b1.is_moving = true;
     b1.is_invincible = false;
     this.addBall( b1 );
 
-    let b2 = new Ball( 1750, 150, 50, blue );
+    let b2 = new Ball( 1750, 150, 50, blue.copy() );
     b2.v.x = -20;
     b2.is_affected_by_gravity = true;
     b2.is_moving = true;
     b2.is_invincible = false;
     this.addBall( b2 );
 
-    let b3 = new Ball( 50, 500, 200, pink );
+    let b3 = new Ball( 50, 500, 200, pink.copy() );
     b3.v.x = 20;
     b3.is_affected_by_gravity = true;
     b3.is_moving = true;
     b3.is_invincible = false;
     this.addBall( b3 );
 
-    let b4 = new Ball( 2000, 500, 50, green );
+    let b4 = new Ball( 2000, 500, 50, green.copy() );
     b4.v.x = -20;
     b4.is_affected_by_gravity = true;
     b4.is_moving = true;
