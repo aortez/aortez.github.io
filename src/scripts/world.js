@@ -3,8 +3,8 @@ class World
   constructor() {
     this.min_x = 0;
     this.min_y = 0;
-    this.max_x = 100;
-    this.max_y = 100;
+    this.max_x = 1;
+    this.max_y = 1;
     this.g = 0.1;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
@@ -17,6 +17,7 @@ class World
     this.is_paused = false;
     this.use_quadtree = false;
     this.purple = false;
+    this.debug = false;
   }
 
   init() {
@@ -28,33 +29,33 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let green = new vec3( 0, 255, 0 );
 
-    let b1 = new Ball( 50, 150, 50, pink.copy() );
-    b1.v.x = 20;
+    let b1 = new Ball( 0.5, 0.5, 0.1, pink.copy() );
+    b1.v.x = 0.001;
     b1.is_affected_by_gravity = true;
     b1.is_moving = true;
     b1.is_invincible = false;
     this.addBall( b1 );
 
-    let b2 = new Ball( 1750, 150, 50, blue.copy() );
-    b2.v.x = -20;
-    b2.is_affected_by_gravity = true;
-    b2.is_moving = true;
-    b2.is_invincible = false;
-    this.addBall( b2 );
-
-    let b3 = new Ball( 50, 500, 200, pink.copy() );
-    b3.v.x = 20;
-    b3.is_affected_by_gravity = true;
-    b3.is_moving = true;
-    b3.is_invincible = false;
-    this.addBall( b3 );
-
-    let b4 = new Ball( 2000, 500, 50, green.copy() );
-    b4.v.x = -20;
-    b4.is_affected_by_gravity = true;
-    b4.is_moving = true;
-    b4.is_invincible = false;
-    this.addBall( b4 );
+    // let b2 = new Ball( 1750, 150, 50, blue.copy() );
+    // b2.v.x = -20;
+    // b2.is_affected_by_gravity = true;
+    // b2.is_moving = true;
+    // b2.is_invincible = false;
+    // this.addBall( b2 );
+    //
+    // let b3 = new Ball( 50, 500, 200, pink.copy() );
+    // b3.v.x = 20;
+    // b3.is_affected_by_gravity = true;
+    // b3.is_moving = true;
+    // b3.is_invincible = false;
+    // this.addBall( b3 );
+    //
+    // let b4 = new Ball( 2000, 500, 50, green.copy() );
+    // b4.v.x = -20;
+    // b4.is_affected_by_gravity = true;
+    // b4.is_moving = true;
+    // b4.is_invincible = false;
+    // this.addBall( b4 );
   }
 
   advance( dt ) {
@@ -154,7 +155,7 @@ class World
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
 
-      let fudge = 0.0001;
+      let fudge = 0.00001; // what is this for?
       if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
       if ( b.center.x - b.r <= this.min_x ) { b.center.x = this.min_x + b.r + fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
@@ -314,7 +315,7 @@ class World
     } else {
       // lets try drawing the balls with the quadtree...
       // build quadtree
-      let qt = new quadtree( 0, 0, canvas.width, canvas.height, 3 );
+      let qt = new quadtree( 0, 0, this.max_x, this.max_y, 3 );
 
       // put some objects into the quad tree
       for ( let i = 0; i < this.balls.length; i++ ) {

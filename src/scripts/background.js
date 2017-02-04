@@ -40,7 +40,7 @@ class Background
     }
 
     blue = 128;
-    red = (Math.random() * 256).toFixed(0);
+    // red = (Math.random() * 256).toFixed(0);
 
     this.rgb.x = red;
     this.rgb.y = green;
