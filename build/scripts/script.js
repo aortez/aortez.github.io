@@ -818,7 +818,7 @@ class World
     this.min_y = 0;
     this.max_x = 1;
     this.max_y = 1;
-    this.g = 0.1;
+    this.g = 0.01;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
     this.init();
@@ -904,8 +904,7 @@ class World
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
           let d = b.center.distance( b2.center );
-          let G = 1.0;
-          let F = ( G * b.m * b2.m ) / ( d * d );
+          let F = ( this.g * b.m * b2.m ) / ( d * d );
           let a = F / b.m;
           let a2 = F / b2.m;
           let D = ( b2.center.copy().minus( b.center ) ).normalize();
@@ -931,8 +930,7 @@ class World
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
           let d = b.center.distance( b2.center );
-          let G = 1.0;
-          let F = ( G * b.m * b2.m ) / ( d * d );
+          let F = ( this.g * b.m * b2.m ) / ( d * d );
           let a = F / b.m;
           let a2 = F / b2.m;
           let D = ( b2.center.copy().minus( b.center ) ).normalize();
@@ -1051,8 +1049,7 @@ class World
 
         // apply gravity
         let d = p.center.distance( planet.center );
-        let G = 1.0;
-        let F = ( G * p.m * planet.m ) / ( d * d );
+        let F = ( this.g * p.m * planet.m ) / ( d * d );
         let a = F / p.m;
         let D = ( planet.center.copy().minus( p.center ) ).normalize();
         p.v.plus( D.times( a ) );
