@@ -105,7 +105,7 @@ class Ball
   // objects live inside this bounds
   // when drawing, scale object location to canvas size
 
-  draw( ctx, pizza_time ) {
+  draw( ctx, scale_factor, pizza_time ) {
     if ( !this.pattern ) {
       var imageObj = new Image();
       // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
@@ -114,12 +114,10 @@ class Ball
     }
 
     ctx.beginPath();
-    let min_dim = Math.min( canvas.width, canvas.height );
-    let x = this.center.x * min_dim;
-    let y = this.center.y * min_dim;
-    let r = this.r * min_dim;
+    let x = this.center.x * scale_factor;
+    let y = this.center.y * scale_factor;
+    let r = this.r * scale_factor;
     ctx.arc( x, y, r, 0, 2 * Math.PI, false );
-    // ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
     if ( pizza_time ) {
       ctx.fillStyle = this.pattern;
     } else {

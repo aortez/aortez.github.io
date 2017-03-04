@@ -427,9 +427,8 @@ class Controller
 
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
-      let min_dim = Math.min( canvas.width, canvas.height );
-      let x = this.mousePos.x / min_dim;
-      let y = this.mousePos.y / min_dim;
+      let x = this.mousePos.x / this.world.getDrawScale();
+      let y = this.mousePos.y / this.world.getDrawScale();
       let mouseLocTranslated = new vec2( x, y );
 
       // record cursor movement while the button is down
@@ -451,9 +450,8 @@ class Controller
     this.mouseIsDown = true;
 
     // check if cursor is over any balls
-    let min_dim = Math.min( canvas.width, canvas.height );
-    let x = this.mousePos.x / min_dim;
-    let y = this.mousePos.y / min_dim;
+    let x = this.mousePos.x / this.world.getDrawScale();
+    let y = this.mousePos.y / this.world.getDrawScale();
     let grabbed_ball = this.world.retrieveBall( x, y );
     if ( grabbed_ball ) {
       console.log("grabbed");
@@ -747,7 +745,7 @@ class Ball
   // objects live inside this bounds
   // when drawing, scale object location to canvas size
 
-  draw( ctx, pizza_time ) {
+  draw( ctx, scale_factor, pizza_time ) {
     if ( !this.pattern ) {
       var imageObj = new Image();
       // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
@@ -756,12 +754,10 @@ class Ball
     }
 
     ctx.beginPath();
-    let min_dim = Math.min( canvas.width, canvas.height );
-    let x = this.center.x * min_dim;
-    let y = this.center.y * min_dim;
-    let r = this.r * min_dim;
+    let x = this.center.x * scale_factor;
+    let y = this.center.y * scale_factor;
+    let r = this.r * scale_factor;
     ctx.arc( x, y, r, 0, 2 * Math.PI, false );
-    // ctx.arc( this.center.x, this.center.y, this.r, 0, 2 * Math.PI, false );
     if ( pizza_time ) {
       ctx.fillStyle = this.pattern;
     } else {
@@ -962,13 +958,17 @@ class World
       }
     }
 
-      // bounce off walls
+    // bounce off walls...
+    // compute wall location 
+//    let ratio = canvas.height / canvas.width;
+    let max_x = canvas.width / this.getDrawScale();
+    let max_y = canvas.height / this.getDrawScale();
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
 
       let fudge = 0.00001; // what is this for?
-      if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
-      if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
+      if ( b.center.x + b.r >= max_x ) { b.center.x = max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
+      if ( b.center.y + b.r >= max_y ) { b.center.y = max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
       if ( b.center.x - b.r <= this.min_x ) { b.center.x = this.min_x + b.r + fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y - b.r <= this.min_y ) { b.center.y = this.min_y + b.r + fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
     }
@@ -1106,21 +1106,21 @@ class World
       ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
     }
-
+    
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx, this.pizza_time );
+      p.draw( ctx, this.getDrawScale(), this.pizza_time );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
       let p = this.planets[ i ];
-      p.draw( ctx, this.pizza_time );
+      p.draw( ctx, this.getDrawScale(), this.pizza_time );
     }
 
     if ( !this.use_quadtree ) {
       for ( let i = 0; i < this.balls.length && !this.use_quadtree; i++ ) {
         let b = this.balls[ i ];
-        b.draw( ctx, this.pizza_time );
+        b.draw( ctx, this.getDrawScale(), this.pizza_time );
       }
     } else {
       // lets try drawing the balls with the quadtree...
@@ -1141,26 +1141,20 @@ class World
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
       for ( let i = 0; i < objects.length; i++ ) {
-        objects[ i ].draw( ctx, false );
+        objects[ i ].draw( ctx, this.getDrawScale(), false );
         let o = objects[ i ];
 
         ctx.beginPath();
         let alpha = 0.1;
         let center = new vec2( canvas.width / 2, canvas.height / 2 );
         let corner = new vec2( 0, 0 );
-        let radius_scalar = 1 - center.distance( o.center ) / center.distance( corner );// / ( canvas.width * 0.5 );
-        // let radius_scalar = center.distance( corner ) / center.distance( o.center );// / ( canvas.width * 0.5 );
+        let radius_scalar = 1 - center.distance( o.center ) / center.distance( corner );
         ctx.arc( o.center.x, o.center.y, o.r * radius_scalar , 0, 2 * Math.PI, false );
-        // ctx.fillStyle = "rgb(" + o.color.x + "," + o.color.y + "," + o.color.z + ")";
-        // let r = ( o.center.x / canvas.width * 255 ).toFixed( 0 );
-        // let g = ( o.center.y / canvas.width * 255 ).toFixed( 0 );
-        // let b = ( radius_scalar * 255 ).toFixed( 0 );//( o.center.x / canvas.width * 255 ).toFixed( 0 );
 
-        let r = this.background.rgb.x; //( o.center.x / canvas.width * 255 ).toFixed( 0 );
-        let g = this.background.rgb.y; //( o.center.y / canvas.width * 255 ).toFixed( 0 );
-        let b = this.background.rgb.z;//( radius_scalar * 255 ).toFixed( 0 );//( o.center.x / canvas.width * 255 ).toFixed( 0 );
+        let r = this.background.rgb.x;
+        let g = this.background.rgb.y;
+        let b = this.background.rgb.z;
 
-        // ctx.fillStyle = "rgb(" + ( o.center.x / canvas.width * 255 ).toFixed( 0 ) + ",100,100)";
         ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
         ctx.fill();
         ctx.stroke();
@@ -1174,6 +1168,11 @@ class World
     return this.shouldDrawBackground;
   }
 
+  getDrawScale() {
+    let scale_factor = Math.max( canvas.width, canvas.height );
+    return scale_factor;
+  }
+  
   retrieveBall( x, y ) {
     let pos = new vec2( x, y );
 

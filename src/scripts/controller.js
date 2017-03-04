@@ -54,9 +54,8 @@ class Controller
 
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
-      let min_dim = Math.min( canvas.width, canvas.height );
-      let x = this.mousePos.x / min_dim;
-      let y = this.mousePos.y / min_dim;
+      let x = this.mousePos.x / this.world.getDrawScale();
+      let y = this.mousePos.y / this.world.getDrawScale();
       let mouseLocTranslated = new vec2( x, y );
 
       // record cursor movement while the button is down
@@ -78,9 +77,8 @@ class Controller
     this.mouseIsDown = true;
 
     // check if cursor is over any balls
-    let min_dim = Math.min( canvas.width, canvas.height );
-    let x = this.mousePos.x / min_dim;
-    let y = this.mousePos.y / min_dim;
+    let x = this.mousePos.x / this.world.getDrawScale();
+    let y = this.mousePos.y / this.world.getDrawScale();
     let grabbed_ball = this.world.retrieveBall( x, y );
     if ( grabbed_ball ) {
       console.log("grabbed");
