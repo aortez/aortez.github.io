@@ -326,7 +326,7 @@ class World
       }
 
       // draw quadtree
-      qt.draw( ctx );
+      qt.draw( ctx, this.getDrawScale() );
 
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
