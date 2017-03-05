@@ -6,7 +6,7 @@ class Ball
     this.r = r; // radius
     this.color = c; // color
     this.hp = this.calcHp(); // current hit points
-    this.m = this.r * this.r; // mass
+    this.m = this.r; // mass
     this.is_affected_by_gravity = true;
     this.is_moving = true;
     this.is_invincible = false;
@@ -21,7 +21,7 @@ class Ball
 
   collide( b ) {
     // let DAMAGE_SCALAR = 0.002;
-    let DAMAGE_SCALAR = 0.1;
+    let DAMAGE_SCALAR = 0.01;
 
     // distance between centers
     let D = this.center.copy().minus( b.center );
@@ -128,9 +128,9 @@ class Ball
     ctx.closePath();
   }
 
-  explode( n_divs ) {
+  explode( n_divs, min_frag_radius ) {
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.5;
-    let MIN_FRAG_RADIUS = 1;
+    let EXPLODER_RADIAL_VELOCITY_SCALAR = 1;
 
     let frags = [];
     let div_size = this.r / n_divs;
@@ -140,16 +140,16 @@ class Ball
         if ( new_center.distance( this.center ) > this.r ) continue;
 
         let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.3 + Math.random() * 0.7 );
-        if ( r < MIN_FRAG_RADIUS ) continue;
+        if ( r < min_frag_radius ) continue;
         let c = this.color.copy();
         c.randColor( 100 );
 
         let new_ball = new Ball( x, y, r, c );
 
         let v = new_ball.center.copy().minus( this.center );
+        v.times( EXPLODER_RADIAL_VELOCITY_SCALAR );
         v = v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
-        let mini_exploder_boost = ( EXPLODE_V_FACTOR < 0.1 && r < 4 ) ? Math.random() * 0.1 : 0;
-        v.times( Math.random() * ( EXPLODE_V_FACTOR + mini_exploder_boost ) );
+        v.times( Math.random() * ( EXPLODE_V_FACTOR ) );
         new_ball.v = v;
         new_ball.is_affected_by_gravity = true;
         new_ball.is_moving = true;
@@ -162,7 +162,12 @@ class Ball
   }
 
   toS() {
-    return "ball(" + this.center.toString() + ", " + this.r + ")";
+    return "ball( center: " + this.center.toString() + 
+      ", radius: " + this.r + 
+      ", mass: " + this.m + 
+      ", hp: " + this.hp +
+      ", v: " + this.v +
+      ")";
   }
 
 }

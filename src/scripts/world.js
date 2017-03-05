@@ -5,7 +5,7 @@ class World
     this.min_y = 0;
     this.max_x = 1;
     this.max_y = 1;
-    this.g = 0.01;
+    this.g = 0.0005;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
     this.init();
@@ -67,9 +67,10 @@ class World
       // but instead we delay any world updates at all
       // return;
     }
-    this.background.advance( dt );
+    this.background.advance( dt * 5 );
 
-    let MIN_BALL_RADIUS = 6;
+    let MIN_BALL_RADIUS = 0.004;
+    let MIN_FRAG_RADIUS = 0.001;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     for ( let i = 0; i < this.balls.length; i++ ) {
@@ -136,8 +137,7 @@ class World
         // apply gravity
         // F = (G * m1 * m2) / (Distance^2)
         let d = b.center.distance( p.center );
-        let G = 1.0;
-        let F = ( G * b.m * p.m ) / ( d * d );
+        let F = ( this.g * b.m * p.m ) / ( d * d );
         let a = F / b.m;
         let D = ( p.center.copy().minus( b.center ) ).normalize();
         b.v.plus( D.times( a ) );
@@ -181,7 +181,7 @@ class World
     for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
-      let dead_frags = ball.explode( N_DIVS );
+      let dead_frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
       for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
         let frag = dead_frags[ frag_index ];
         if ( frag.r >= MIN_BALL_RADIUS ) {
@@ -224,7 +224,7 @@ class World
       let p = this.particles[ i ];
       // fade em 10x faster if past some limit
       let fade_scalar = ( this.particles.length > this.max_particles ) ? 10 : 1;
-      p.hp -= 0.05 * dt * fade_scalar;
+      p.hp -= 0.0001 * dt * fade_scalar;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
@@ -251,12 +251,12 @@ class World
         // }
       }
 
-      // maybe could apply gravity against other ojects
-      }
+      // maybe could apply gravity against other objects
+     }
   }
 
   addBall( b ) {
-    console.log( 'adding ball' );
+    console.log( 'adding ball: ' + b.toS() );
     if ( !b ) {
       return;
     }

@@ -456,15 +456,15 @@ class Controller
       console.log("grabbed");
       this.ball = grabbed_ball;
     } else {
-      let r = Math.random() * 0.1 + 0.01;
+      let r = Math.random() * 0.07 + 0.01;
       let c = new vec3( 128, 128, 128 );
       c.randColor( 255 );
       this.ball = new Ball( x, y, r, c );
       if ( this.next_object_type == ObjectType.PLANET ) {
         this.ball.r = this.ball.r * 2;
         this.ball.is_affected_by_gravity = true;
-        this.ball.m = this.ball.r * this.ball.r * 10;
-        this.ball.hp = this.ball.r * this.ball.r * 10000;
+        this.ball.m = this.ball.r * 5;
+        this.ball.hp = this.ball.r * 10000;
         this.ball.is_moving = false;
         this.ball.is_invincible = true;
         this.world.addPlanet( this.ball );
@@ -645,7 +645,7 @@ class Ball
     this.r = r; // radius
     this.color = c; // color
     this.hp = this.calcHp(); // current hit points
-    this.m = this.r * this.r; // mass
+    this.m = this.r; // mass
     this.is_affected_by_gravity = true;
     this.is_moving = true;
     this.is_invincible = false;
@@ -660,7 +660,7 @@ class Ball
 
   collide( b ) {
     // let DAMAGE_SCALAR = 0.002;
-    let DAMAGE_SCALAR = 0.1;
+    let DAMAGE_SCALAR = 0.01;
 
     // distance between centers
     let D = this.center.copy().minus( b.center );
@@ -767,9 +767,9 @@ class Ball
     ctx.closePath();
   }
 
-  explode( n_divs ) {
+  explode( n_divs, min_frag_radius ) {
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.5;
-    let MIN_FRAG_RADIUS = 1;
+    let EXPLODER_RADIAL_VELOCITY_SCALAR = 1;
 
     let frags = [];
     let div_size = this.r / n_divs;
@@ -779,16 +779,16 @@ class Ball
         if ( new_center.distance( this.center ) > this.r ) continue;
 
         let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.3 + Math.random() * 0.7 );
-        if ( r < MIN_FRAG_RADIUS ) continue;
+        if ( r < min_frag_radius ) continue;
         let c = this.color.copy();
         c.randColor( 100 );
 
         let new_ball = new Ball( x, y, r, c );
 
         let v = new_ball.center.copy().minus( this.center );
+        v.times( EXPLODER_RADIAL_VELOCITY_SCALAR );
         v = v.plus( this.v.copy().times( EXPLODER_PARENT_VELOCITY_FACTOR ) );
-        let mini_exploder_boost = ( EXPLODE_V_FACTOR < 0.1 && r < 4 ) ? Math.random() * 0.1 : 0;
-        v.times( Math.random() * ( EXPLODE_V_FACTOR + mini_exploder_boost ) );
+        v.times( Math.random() * ( EXPLODE_V_FACTOR ) );
         new_ball.v = v;
         new_ball.is_affected_by_gravity = true;
         new_ball.is_moving = true;
@@ -801,7 +801,12 @@ class Ball
   }
 
   toS() {
-    return "ball(" + this.center.toString() + ", " + this.r + ")";
+    return "ball( center: " + this.center.toString() + 
+      ", radius: " + this.r + 
+      ", mass: " + this.m + 
+      ", hp: " + this.hp +
+      ", v: " + this.v +
+      ")";
   }
 
 }
@@ -813,7 +818,7 @@ class World
     this.min_y = 0;
     this.max_x = 1;
     this.max_y = 1;
-    this.g = 0.01;
+    this.g = 0.0005;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
     this.init();
@@ -875,9 +880,10 @@ class World
       // but instead we delay any world updates at all
       // return;
     }
-    this.background.advance( dt );
+    this.background.advance( dt * 5 );
 
-    let MIN_BALL_RADIUS = 6;
+    let MIN_BALL_RADIUS = 0.004;
+    let MIN_FRAG_RADIUS = 0.001;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     for ( let i = 0; i < this.balls.length; i++ ) {
@@ -944,8 +950,7 @@ class World
         // apply gravity
         // F = (G * m1 * m2) / (Distance^2)
         let d = b.center.distance( p.center );
-        let G = 1.0;
-        let F = ( G * b.m * p.m ) / ( d * d );
+        let F = ( this.g * b.m * p.m ) / ( d * d );
         let a = F / b.m;
         let D = ( p.center.copy().minus( b.center ) ).normalize();
         b.v.plus( D.times( a ) );
@@ -989,7 +994,7 @@ class World
     for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
-      let dead_frags = ball.explode( N_DIVS );
+      let dead_frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
       for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
         let frag = dead_frags[ frag_index ];
         if ( frag.r >= MIN_BALL_RADIUS ) {
@@ -1032,7 +1037,7 @@ class World
       let p = this.particles[ i ];
       // fade em 10x faster if past some limit
       let fade_scalar = ( this.particles.length > this.max_particles ) ? 10 : 1;
-      p.hp -= 0.05 * dt * fade_scalar;
+      p.hp -= 0.0001 * dt * fade_scalar;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
@@ -1059,12 +1064,12 @@ class World
         // }
       }
 
-      // maybe could apply gravity against other ojects
-      }
+      // maybe could apply gravity against other objects
+     }
   }
 
   addBall( b ) {
-    console.log( 'adding ball' );
+    console.log( 'adding ball: ' + b.toS() );
     if ( !b ) {
       return;
     }
@@ -1345,16 +1350,15 @@ function advance() {
   let fps_height = document.getElementById('fps_div').offsetHeight;
   canvas.height = window.innerHeight - ( fps_height + controls_height + 30 );
   canvas.width  = window.innerWidth * 0.9;
-  // world.max_x = canvas.width;
-  // world.max_y = canvas.height;
 
   let now = window.performance.now();
   let dt = now - previous;
   previous = now;
 
-  controller.advance( dt * 0.05 );
+  let BASE_TIMESTEP_SCALAR = 0.003;
+  controller.advance( dt * BASE_TIMESTEP_SCALAR );
 
-  world.advance( dt * 0.05 * TIMESCALE_SCALAR );
+  world.advance( dt * BASE_TIMESTEP_SCALAR * TIMESCALE_SCALAR );
 
   world.draw( ctx );
 

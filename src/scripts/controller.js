@@ -84,15 +84,15 @@ class Controller
       console.log("grabbed");
       this.ball = grabbed_ball;
     } else {
-      let r = Math.random() * 0.1 + 0.01;
+      let r = Math.random() * 0.07 + 0.01;
       let c = new vec3( 128, 128, 128 );
       c.randColor( 255 );
       this.ball = new Ball( x, y, r, c );
       if ( this.next_object_type == ObjectType.PLANET ) {
         this.ball.r = this.ball.r * 2;
         this.ball.is_affected_by_gravity = true;
-        this.ball.m = this.ball.r * this.ball.r * 10;
-        this.ball.hp = this.ball.r * this.ball.r * 10000;
+        this.ball.m = this.ball.r * 5;
+        this.ball.hp = this.ball.r * 10000;
         this.ball.is_moving = false;
         this.ball.is_invincible = true;
         this.world.addPlanet( this.ball );
