@@ -45,18 +45,17 @@ class quadtree
     this.children = [];
   }
 
-  draw( ctx ) {
+  draw( ctx, scale_factor ) {
     for ( let i = 0; i < this.children.length; i++ ) {
-      this.children[ i ].draw( ctx );
+      this.children[ i ].draw( ctx, scale_factor );
     }
     let canvas = ctx.canvas;
-    // ctx.strokeStyle="#000000";
     ctx.strokeStyle="#FFFFFF";
-    ctx.strokeRect( this.min_x, this.min_y, this.max_x, this.max_y );
-    // ctx.strokeStyle="#FFFFFF";
-    ctx.strokeRect( this.min_x + 1, this.min_y + 1, this.max_x - 1, this.max_y - 1 );
-    // ctx.strokeStyle="#000000";
-    // ctx.strokeRect( this.min_x + 2, this.min_y + 2, this.max_x - 2, this.max_y - 2 );
+    ctx.strokeRect( 
+        this.min_x * scale_factor,
+        this.min_y * scale_factor, 
+        this.max_x * scale_factor, 
+        this.max_y * scale_factor);
   }
 
   fitsInside( element ) {
@@ -96,9 +95,9 @@ class quadtree
     debug( "\ninserting... " + element.toS() );
     log_in();
     if ( !this.fitsInside( element ) ) {
-        log( "self: " + this.toS() );
-        log( "element: " + element.toS() );
-        throw "input OOBs!";
+      log( "self: " + this.toS() );
+      log( "element: " + element.toS() );
+      throw "input OOBs!";
     }
 
     if ( !this.hasChildren() && this.objects.length < this.max_local_objects ) {

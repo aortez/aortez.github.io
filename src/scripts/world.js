@@ -3,9 +3,9 @@ class World
   constructor() {
     this.min_x = 0;
     this.min_y = 0;
-    this.max_x = 100;
-    this.max_y = 100;
-    this.g = 0.1;
+    this.max_x = 1;
+    this.max_y = 1;
+    this.g = 0.0005;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
     this.init();
@@ -17,6 +17,7 @@ class World
     this.is_paused = false;
     this.use_quadtree = false;
     this.purple = false;
+    this.debug = false;
   }
 
   init() {
@@ -28,33 +29,33 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let green = new vec3( 0, 255, 0 );
 
-    let b1 = new Ball( 50, 150, 50, pink.copy() );
-    b1.v.x = 20;
+    let b1 = new Ball( 0.5, 0.5, 0.1, pink.copy() );
+    b1.v.x = 0.001;
     b1.is_affected_by_gravity = true;
     b1.is_moving = true;
     b1.is_invincible = false;
     this.addBall( b1 );
 
-    let b2 = new Ball( 1750, 150, 50, blue.copy() );
-    b2.v.x = -20;
-    b2.is_affected_by_gravity = true;
-    b2.is_moving = true;
-    b2.is_invincible = false;
-    this.addBall( b2 );
-
-    let b3 = new Ball( 50, 500, 200, pink.copy() );
-    b3.v.x = 20;
-    b3.is_affected_by_gravity = true;
-    b3.is_moving = true;
-    b3.is_invincible = false;
-    this.addBall( b3 );
-
-    let b4 = new Ball( 2000, 500, 50, green.copy() );
-    b4.v.x = -20;
-    b4.is_affected_by_gravity = true;
-    b4.is_moving = true;
-    b4.is_invincible = false;
-    this.addBall( b4 );
+    // let b2 = new Ball( 1750, 150, 50, blue.copy() );
+    // b2.v.x = -20;
+    // b2.is_affected_by_gravity = true;
+    // b2.is_moving = true;
+    // b2.is_invincible = false;
+    // this.addBall( b2 );
+    //
+    // let b3 = new Ball( 50, 500, 200, pink.copy() );
+    // b3.v.x = 20;
+    // b3.is_affected_by_gravity = true;
+    // b3.is_moving = true;
+    // b3.is_invincible = false;
+    // this.addBall( b3 );
+    //
+    // let b4 = new Ball( 2000, 500, 50, green.copy() );
+    // b4.v.x = -20;
+    // b4.is_affected_by_gravity = true;
+    // b4.is_moving = true;
+    // b4.is_invincible = false;
+    // this.addBall( b4 );
   }
 
   advance( dt ) {
@@ -66,9 +67,10 @@ class World
       // but instead we delay any world updates at all
       // return;
     }
-    this.background.advance( dt );
+    this.background.advance( dt * 5 );
 
-    let MIN_BALL_RADIUS = 6;
+    let MIN_BALL_RADIUS = 0.004;
+    let MIN_FRAG_RADIUS = 0.001;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     for ( let i = 0; i < this.balls.length; i++ ) {
@@ -90,8 +92,7 @@ class World
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
           let d = b.center.distance( b2.center );
-          let G = 1.0;
-          let F = ( G * b.m * b2.m ) / ( d * d );
+          let F = ( this.g * b.m * b2.m ) / ( d * d );
           let a = F / b.m;
           let a2 = F / b2.m;
           let D = ( b2.center.copy().minus( b.center ) ).normalize();
@@ -117,8 +118,7 @@ class World
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
           let d = b.center.distance( b2.center );
-          let G = 1.0;
-          let F = ( G * b.m * b2.m ) / ( d * d );
+          let F = ( this.g * b.m * b2.m ) / ( d * d );
           let a = F / b.m;
           let a2 = F / b2.m;
           let D = ( b2.center.copy().minus( b.center ) ).normalize();
@@ -137,8 +137,7 @@ class World
         // apply gravity
         // F = (G * m1 * m2) / (Distance^2)
         let d = b.center.distance( p.center );
-        let G = 1.0;
-        let F = ( G * b.m * p.m ) / ( d * d );
+        let F = ( this.g * b.m * p.m ) / ( d * d );
         let a = F / b.m;
         let D = ( p.center.copy().minus( b.center ) ).normalize();
         b.v.plus( D.times( a ) );
@@ -150,13 +149,16 @@ class World
       }
     }
 
-      // bounce off walls
+    // bounce off walls...
+    // compute wall location 
+    let max_x = canvas.width / this.getDrawScale();
+    let max_y = canvas.height / this.getDrawScale();
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
 
-      let fudge = 0.0001;
-      if ( b.center.x + b.r >= this.max_x ) { b.center.x = this.max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
-      if ( b.center.y + b.r >= this.max_y ) { b.center.y = this.max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
+      let fudge = 0.00001; // what is this for?
+      if ( b.center.x + b.r >= max_x ) { b.center.x = max_x - b.r - fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
+      if ( b.center.y + b.r >= max_y ) { b.center.y = max_y - b.r - fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
       if ( b.center.x - b.r <= this.min_x ) { b.center.x = this.min_x + b.r + fudge; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
       if ( b.center.y - b.r <= this.min_y ) { b.center.y = this.min_y + b.r + fudge; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
     }
@@ -179,7 +181,7 @@ class World
     for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
 
-      let dead_frags = ball.explode( N_DIVS );
+      let dead_frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
       for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
         let frag = dead_frags[ frag_index ];
         if ( frag.r >= MIN_BALL_RADIUS ) {
@@ -222,7 +224,7 @@ class World
       let p = this.particles[ i ];
       // fade em 10x faster if past some limit
       let fade_scalar = ( this.particles.length > this.max_particles ) ? 10 : 1;
-      p.hp -= 0.05 * dt * fade_scalar;
+      p.hp -= 0.0001 * dt * fade_scalar;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
@@ -237,8 +239,7 @@ class World
 
         // apply gravity
         let d = p.center.distance( planet.center );
-        let G = 1.0;
-        let F = ( G * p.m * planet.m ) / ( d * d );
+        let F = ( this.g * p.m * planet.m ) / ( d * d );
         let a = F / p.m;
         let D = ( planet.center.copy().minus( p.center ) ).normalize();
         p.v.plus( D.times( a ) );
@@ -250,12 +251,12 @@ class World
         // }
       }
 
-      // maybe could apply gravity against other ojects
-      }
+      // maybe could apply gravity against other objects
+     }
   }
 
   addBall( b ) {
-    console.log( 'adding ball' );
+    console.log( 'adding ball: ' + b.toS() );
     if ( !b ) {
       return;
     }
@@ -295,26 +296,26 @@ class World
       ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
     }
-
+    
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx, this.pizza_time );
+      p.draw( ctx, this.getDrawScale(), this.pizza_time );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
       let p = this.planets[ i ];
-      p.draw( ctx, this.pizza_time );
+      p.draw( ctx, this.getDrawScale(), this.pizza_time );
     }
 
     if ( !this.use_quadtree ) {
       for ( let i = 0; i < this.balls.length && !this.use_quadtree; i++ ) {
         let b = this.balls[ i ];
-        b.draw( ctx, this.pizza_time );
+        b.draw( ctx, this.getDrawScale(), this.pizza_time );
       }
     } else {
       // lets try drawing the balls with the quadtree...
       // build quadtree
-      let qt = new quadtree( 0, 0, canvas.width, canvas.height, 3 );
+      let qt = new quadtree( 0, 0, this.max_x, this.max_y, 3 );
 
       // put some objects into the quad tree
       for ( let i = 0; i < this.balls.length; i++ ) {
@@ -325,31 +326,25 @@ class World
       }
 
       // draw quadtree
-      qt.draw( ctx );
+      qt.draw( ctx, this.getDrawScale() );
 
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
       for ( let i = 0; i < objects.length; i++ ) {
-        objects[ i ].draw( ctx, false );
+        objects[ i ].draw( ctx, this.getDrawScale(), false );
         let o = objects[ i ];
 
         ctx.beginPath();
         let alpha = 0.1;
         let center = new vec2( canvas.width / 2, canvas.height / 2 );
         let corner = new vec2( 0, 0 );
-        let radius_scalar = 1 - center.distance( o.center ) / center.distance( corner );// / ( canvas.width * 0.5 );
-        // let radius_scalar = center.distance( corner ) / center.distance( o.center );// / ( canvas.width * 0.5 );
+        let radius_scalar = 1 - center.distance( o.center ) / center.distance( corner );
         ctx.arc( o.center.x, o.center.y, o.r * radius_scalar , 0, 2 * Math.PI, false );
-        // ctx.fillStyle = "rgb(" + o.color.x + "," + o.color.y + "," + o.color.z + ")";
-        // let r = ( o.center.x / canvas.width * 255 ).toFixed( 0 );
-        // let g = ( o.center.y / canvas.width * 255 ).toFixed( 0 );
-        // let b = ( radius_scalar * 255 ).toFixed( 0 );//( o.center.x / canvas.width * 255 ).toFixed( 0 );
 
-        let r = this.background.rgb.x; //( o.center.x / canvas.width * 255 ).toFixed( 0 );
-        let g = this.background.rgb.y; //( o.center.y / canvas.width * 255 ).toFixed( 0 );
-        let b = this.background.rgb.z;//( radius_scalar * 255 ).toFixed( 0 );//( o.center.x / canvas.width * 255 ).toFixed( 0 );
+        let r = this.background.rgb.x;
+        let g = this.background.rgb.y;
+        let b = this.background.rgb.z;
 
-        // ctx.fillStyle = "rgb(" + ( o.center.x / canvas.width * 255 ).toFixed( 0 ) + ",100,100)";
         ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
         ctx.fill();
         ctx.stroke();
@@ -363,6 +358,11 @@ class World
     return this.shouldDrawBackground;
   }
 
+  getDrawScale() {
+    let scale_factor = Math.max( canvas.width, canvas.height );
+    return scale_factor;
+  }
+  
   retrieveBall( x, y ) {
     let pos = new vec2( x, y );
 

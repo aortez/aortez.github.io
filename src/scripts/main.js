@@ -120,6 +120,10 @@ function init() {
     controller.purple();
   });
 
+  document.getElementById( 'debug_button' ).addEventListener( 'click', function() {
+    controller.debug();
+  });
+
   requestAnimationFrame( advance );
 }
 
@@ -132,16 +136,15 @@ function advance() {
   let fps_height = document.getElementById('fps_div').offsetHeight;
   canvas.height = window.innerHeight - ( fps_height + controls_height + 30 );
   canvas.width  = window.innerWidth * 0.9;
-  world.max_x = canvas.width;
-  world.max_y = canvas.height;
 
   let now = window.performance.now();
   let dt = now - previous;
   previous = now;
 
-  controller.advance( dt * 0.05 );
+  let BASE_TIMESTEP_SCALAR = 0.003;
+  controller.advance( dt * BASE_TIMESTEP_SCALAR );
 
-  world.advance( dt * 0.05 * TIMESCALE_SCALAR );
+  world.advance( dt * BASE_TIMESTEP_SCALAR * TIMESCALE_SCALAR );
 
   world.draw( ctx );
 

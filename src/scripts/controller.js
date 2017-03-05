@@ -30,6 +30,15 @@ class Controller
     }
   }
 
+  debug() {
+    // this.world.debug = true;
+    debug_on = true;
+    console.log('debug it all');
+    this.world.draw( ctx );
+    debug_on = false;
+    // this.world.debug = false;
+  }
+
   pause() {
     world.is_paused = !world.is_paused;
   }
@@ -45,8 +54,12 @@ class Controller
 
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
+      let x = this.mousePos.x / this.world.getDrawScale();
+      let y = this.mousePos.y / this.world.getDrawScale();
+      let mouseLocTranslated = new vec2( x, y );
+
       // record cursor movement while the button is down
-      let d = this.mousePos.copy().minus( b.center );
+      let d = mouseLocTranslated.minus( b.center );
       let alpha = 0.5;
       this.cursor_v.x = this.cursor_v.x * ( 1 - alpha ) + alpha * d.x;
       this.cursor_v.y = this.cursor_v.y * ( 1 - alpha ) + alpha * d.y;
@@ -64,20 +77,22 @@ class Controller
     this.mouseIsDown = true;
 
     // check if cursor is over any balls
-    let grabbed_ball = this.world.retrieveBall( this.mousePos.x, this.mousePos.y );
+    let x = this.mousePos.x / this.world.getDrawScale();
+    let y = this.mousePos.y / this.world.getDrawScale();
+    let grabbed_ball = this.world.retrieveBall( x, y );
     if ( grabbed_ball ) {
       console.log("grabbed");
       this.ball = grabbed_ball;
     } else {
-      let r = Math.random() * 50 + 50;
+      let r = Math.random() * 0.07 + 0.01;
       let c = new vec3( 128, 128, 128 );
       c.randColor( 255 );
-      this.ball = new Ball( this.mousePos.x, this.mousePos.y, r, c );
+      this.ball = new Ball( x, y, r, c );
       if ( this.next_object_type == ObjectType.PLANET ) {
         this.ball.r = this.ball.r * 2;
         this.ball.is_affected_by_gravity = true;
-        this.ball.m = this.ball.r * this.ball.r * 10;
-        this.ball.hp = this.ball.r * this.ball.r * 10000;
+        this.ball.m = this.ball.r * 5;
+        this.ball.hp = this.ball.r * 10000;
         this.ball.is_moving = false;
         this.ball.is_invincible = true;
         this.world.addPlanet( this.ball );
