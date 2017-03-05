@@ -46,16 +46,24 @@ class quadtree
   }
 
   draw( ctx, scale_factor ) {
+    // draw children
     for ( let i = 0; i < this.children.length; i++ ) {
       this.children[ i ].draw( ctx, scale_factor );
     }
-    let canvas = ctx.canvas;
+
+    // draw self as rectangle
     ctx.strokeStyle="#FFFFFF";
+    let epsilon = 0.005;
     ctx.strokeRect( 
-        this.min_x * scale_factor,
-        this.min_y * scale_factor, 
-        this.max_x * scale_factor, 
-        this.max_y * scale_factor);
+      (this.min_x + epsilon) * scale_factor,
+      (this.min_y + epsilon) * scale_factor, 
+      ( (this.max_x - this.min_x) - epsilon) * scale_factor, 
+      ( (this.max_y - this.min_y) - epsilon) * scale_factor
+    );
+    
+    // draw a nice little pizza in center of the quad
+    let b = new Ball( this.centerX(), this.centerY(), 0.01, new vec3(255,255,255) );
+    b.draw( ctx, scale_factor, true );
   }
 
   fitsInside( element ) {
@@ -100,10 +108,15 @@ class quadtree
       throw "input OOBs!";
     }
 
-    if ( !this.hasChildren() && this.objects.length < this.max_local_objects ) {
-      debug( "inserting internally..." );
-      this.objects.push( element );
-    } else if ( this.hasChildren() ) {
+    if ( !this.hasChildren() ) {
+      if ( this.objects.length < this.max_local_objects ) {
+        debug( "inserting internally..." );
+        this.objects.push( element );  
+      } else {
+        this.split();
+        this.insert( element );
+      }
+    } else {
       debug( "child nodes exist, search for destination node" );
       log_in();
       let inserted = false;
@@ -127,10 +140,7 @@ class quadtree
         this.objects.push( element );
       }
       log_out();
-    } else {
-      this.split();
-      this.insert( element );
-    }
+    } 
     debug( "insert is done" );
     log_out();
   }
@@ -202,8 +212,9 @@ class quadtree
     }
     if ( this.hasChildren() ) {
       s = s + "\n\tChildren[" + this.children.length + "]:";
-      for ( let child of this.children ) {
-        s = s + "\n\t\t" + child.toS().replace( /\n/g, '\n\t' );
+      for ( let i = 0; i < this.children.length; i++ ) {
+        let child = this.children[ i ];
+        s = s + "\n\t\t" + "child[" + i + "]" + child.toS().replace( /\n/g, '\n\t' );
       }
     }
     return s;

@@ -315,7 +315,7 @@ class World
     } else {
       // lets try drawing the balls with the quadtree...
       // build quadtree
-      let qt = new quadtree( 0, 0, this.max_x, this.max_y, 3 );
+      let qt = new quadtree( this.min_x, this.min_y, this.max_x, this.max_y, 3 );
 
       // put some objects into the quad tree
       for ( let i = 0; i < this.balls.length; i++ ) {
@@ -324,9 +324,10 @@ class World
           qt.insert( ball );
         }
       }
-
-      // draw quadtree
-      qt.draw( ctx, this.getDrawScale() );
+      
+      if (debug_on) {
+        console.log( qt.toS() );
+      }
 
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
@@ -335,7 +336,6 @@ class World
         let o = objects[ i ];
 
         ctx.beginPath();
-        let alpha = 0.1;
         let center = new vec2( canvas.width / 2, canvas.height / 2 );
         let corner = new vec2( 0, 0 );
         let radius_scalar = 1 - center.distance( o.center ) / center.distance( corner );
@@ -350,6 +350,9 @@ class World
         ctx.stroke();
         ctx.closePath();
       }
+      
+      // draw quadtree
+      qt.draw( ctx, this.getDrawScale() );
     }
 
   }

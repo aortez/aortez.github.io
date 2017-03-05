@@ -166,16 +166,24 @@ class quadtree
   }
 
   draw( ctx, scale_factor ) {
+    // draw children
     for ( let i = 0; i < this.children.length; i++ ) {
       this.children[ i ].draw( ctx, scale_factor );
     }
-    let canvas = ctx.canvas;
+
+    // draw self as rectangle
     ctx.strokeStyle="#FFFFFF";
+    let epsilon = 0.005;
     ctx.strokeRect( 
-        this.min_x * scale_factor,
-        this.min_y * scale_factor, 
-        this.max_x * scale_factor, 
-        this.max_y * scale_factor);
+      (this.min_x + epsilon) * scale_factor,
+      (this.min_y + epsilon) * scale_factor, 
+      ( (this.max_x - this.min_x) - epsilon) * scale_factor, 
+      ( (this.max_y - this.min_y) - epsilon) * scale_factor
+    );
+    
+    // draw a nice little pizza in center of the quad
+    let b = new Ball( this.centerX(), this.centerY(), 0.01, new vec3(255,255,255) );
+    b.draw( ctx, scale_factor, true );
   }
 
   fitsInside( element ) {
@@ -220,10 +228,15 @@ class quadtree
       throw "input OOBs!";
     }
 
-    if ( !this.hasChildren() && this.objects.length < this.max_local_objects ) {
-      debug( "inserting internally..." );
-      this.objects.push( element );
-    } else if ( this.hasChildren() ) {
+    if ( !this.hasChildren() ) {
+      if ( this.objects.length < this.max_local_objects ) {
+        debug( "inserting internally..." );
+        this.objects.push( element );  
+      } else {
+        this.split();
+        this.insert( element );
+      }
+    } else {
       debug( "child nodes exist, search for destination node" );
       log_in();
       let inserted = false;
@@ -247,10 +260,7 @@ class quadtree
         this.objects.push( element );
       }
       log_out();
-    } else {
-      this.split();
-      this.insert( element );
-    }
+    } 
     debug( "insert is done" );
     log_out();
   }
@@ -322,8 +332,9 @@ class quadtree
     }
     if ( this.hasChildren() ) {
       s = s + "\n\tChildren[" + this.children.length + "]:";
-      for ( let child of this.children ) {
-        s = s + "\n\t\t" + child.toS().replace( /\n/g, '\n\t' );
+      for ( let i = 0; i < this.children.length; i++ ) {
+        let child = this.children[ i ];
+        s = s + "\n\t\t" + "child[" + i + "]" + child.toS().replace( /\n/g, '\n\t' );
       }
     }
     return s;
@@ -1128,7 +1139,7 @@ class World
     } else {
       // lets try drawing the balls with the quadtree...
       // build quadtree
-      let qt = new quadtree( 0, 0, this.max_x, this.max_y, 3 );
+      let qt = new quadtree( this.min_x, this.min_y, this.max_x, this.max_y, 3 );
 
       // put some objects into the quad tree
       for ( let i = 0; i < this.balls.length; i++ ) {
@@ -1137,9 +1148,10 @@ class World
           qt.insert( ball );
         }
       }
-
-      // draw quadtree
-      qt.draw( ctx, this.getDrawScale() );
+      
+      if (debug_on) {
+        console.log( qt.toS() );
+      }
 
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
@@ -1148,7 +1160,6 @@ class World
         let o = objects[ i ];
 
         ctx.beginPath();
-        let alpha = 0.1;
         let center = new vec2( canvas.width / 2, canvas.height / 2 );
         let corner = new vec2( 0, 0 );
         let radius_scalar = 1 - center.distance( o.center ) / center.distance( corner );
@@ -1163,6 +1174,9 @@ class World
         ctx.stroke();
         ctx.closePath();
       }
+      
+      // draw quadtree
+      qt.draw( ctx, this.getDrawScale() );
     }
 
   }
