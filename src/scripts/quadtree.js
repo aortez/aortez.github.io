@@ -63,7 +63,7 @@ class quadtree
     
     // draw a nice little pizza in center of the quad
     let b = new Ball( this.centerX(), this.centerY(), 0.01, new vec3(255,255,255) );
-    b.draw( ctx, scale_factor, true );
+    b.draw( ctx, scale_factor, false );
   }
 
   fitsInside( element ) {

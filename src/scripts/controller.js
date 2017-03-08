@@ -60,6 +60,7 @@ class Controller
 
       // record cursor movement while the button is down
       let d = mouseLocTranslated.minus( b.center );
+
       let alpha = 0.5;
       this.cursor_v.x = this.cursor_v.x * ( 1 - alpha ) + alpha * d.x;
       this.cursor_v.y = this.cursor_v.y * ( 1 - alpha ) + alpha * d.y;
@@ -100,7 +101,7 @@ class Controller
       } else {
         this.ball.is_affected_by_gravity = true;
         this.ball.v = this.cursor_v;
-        this.ball.is_moving = false;
+        this.ball.is_moving = true;
         this.ball.is_invincible = false;
         this.ball.can_move = true;
         this.world.addBall( this.ball );
@@ -126,7 +127,7 @@ class Controller
     b.is_invincible = false;
 
     // toss it in the direction of recent movement
-    b.v = this.cursor_v.copy();
+    b.v = this.cursor_v.copy().times(3);
     b.is_moving = true;
 
     // clear recent cursor movement so we don't accidentally reuse it
