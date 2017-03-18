@@ -8,11 +8,6 @@ function log( text ) {
   console.log( text.replace( /^/mg, whitespace.substring( 0, qt_indent ) ) );
 }
 
-function debug( text ) {
-  if ( !debug_on ) return;
-  log( text );
-}
-
 function log_in() { qt_indent = qt_indent + 4; }
 function log_out() { qt_indent = qt_indent - 4; }
 
@@ -72,8 +67,8 @@ class quadtree
       element.center.x + element.r < this.max_x &&
       element.center.y - element.r >= this.min_y &&
       element.center.y + element.r < this.max_y );
-    debug( "fits? " + fits + ": element: " + element.center.toString() + ", r: " + element.r +
-      ", quad x[" + this.min_x + ", " + this.max_x + "], y[" + this.min_y + ", " + this.max_y + "]" );
+    if (debug_on) { console.log( "fits? " + fits + ": element: " + element.center.toString() + ", r: " + element.r +
+      ", quad x[" + this.min_x + ", " + this.max_x + "], y[" + this.min_y + ", " + this.max_y + "]" ); }
     return fits;
   }
 
@@ -149,7 +144,7 @@ class quadtree
   }
 
   insert( element ) {
-    debug( "\ninserting... " + element.toS() );
+    if (debug_on) { console.log( "\ninserting... " + element.toS() ); }
     log_in();
     if ( !this.fitsInside( element ) ) {
       log( "self: " + this.toS() );
@@ -159,21 +154,23 @@ class quadtree
 
     if ( !this.hasChildren() ) {
       if ( this.objects.length < this.max_local_objects ) {
-        debug( "inserting internally..." );
+        if (debug_on) { console.log( "inserting internally..." ); }
         this.objects.push( element );  
       } else {
         this.split();
         this.insert( element );
       }
     } else {
-      debug( "child nodes exist, search for destination node" );
+      if (debug_on) { console.log( "child nodes exist, search for destination node" ); }
       log_in();
       let inserted = false;
       for ( let i = 0; i < this.children.length; i++ ) {
         let child = this.children[ i ];
         if ( child.fitsInside( element ) ) {
-          debug( "fits! insert to child" );
-          debug( "child:\n" + child.toS() );
+          if (debug_on) { 
+            console.log( "fits! insert to child" );
+            console.log( "child:\n" + child.toS() );
+          }
           log_in();
           child.insert( element );
           log_out();
@@ -181,16 +178,16 @@ class quadtree
           break;
         }
         else {
-          debug(" not fits " );
+          if (debug_on) { console.log(" not fits " ); }
         }
       }
       if ( !inserted ) {
-        debug( "could not fit into any children, inserting locally" );
+        if (debug_on) { console.log( "could not fit into any children, inserting locally" ); }
         this.objects.push( element );
       }
       log_out();
     } 
-    debug( "insert is done" );
+    if (debug_on) { console.log( "insert is done" ); }
     log_out();
   }
 
@@ -203,7 +200,7 @@ class quadtree
   }
 
   split() {
-    debug( "splitting..." );
+    if (debug_on) { console.log( "splitting..." ); }
     if ( this.hasChildren() ) {
       throw "can only split once: "  + this;
     }
@@ -213,7 +210,7 @@ class quadtree
       new quadtree( this.centerX(), this.min_y, this.max_x, this.centerY(), this.max_local_objects ), // top right
       new quadtree( this.centerX(), this.centerY(), this.max_x, this.max_y, this.max_local_objects ) // bottom right
     ];
-    debug( "inserting existing objects to children" );
+    if (debug_on) { console.log( "inserting existing objects to children" ); }
     log_in();
     let objects = this.objects;
     this.objects = [];
@@ -222,8 +219,8 @@ class quadtree
       this.insert( obj );
     }
     log_out();
-    debug( this.toS() );
-    debug( "split is done" );
+    if (debug_on) { console.log( this.toS() ); }
+    if (debug_on) { console.log( "split is done" ); }
   }
 
   remove( element ) {

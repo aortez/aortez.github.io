@@ -45,6 +45,7 @@ class Controller
 
   quadtree() {
     world.use_quadtree = !world.use_quadtree;
+    console.log( "world.use_quadtree: " + world.use_quadtree );
   }
 
   mouseMove( canvas, e ) {
