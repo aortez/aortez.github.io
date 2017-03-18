@@ -160,6 +160,11 @@ class Ball
     }
     return frags;
   }
+  
+  intersects( other_ball ) {
+    let i = this.center.distance( other_ball.center ) < ( this.r + other_ball.r );
+    return i;
+  }
 
   toS() {
     return "ball( center: " + this.center.toString() + 

@@ -84,20 +84,26 @@ class World
       // interact with other balls
       for ( let j = i + 1; j < this.balls.length; j++ ) {
         let b2 = this.balls[ j ];
-        // crash em together
-        if ( b.center.distance( b2.center ) < b.r + b2.r ) {
-          b.collide( b2 );
-        }
-        // apply gravity
-        if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
-          // F = (G * m1 * m2) / (Distance^2)
-          let d = b.center.distance( b2.center );
-          let F = ( this.g * b.m * b2.m ) / ( d * d );
-          let a = F / b.m;
-          let a2 = F / b2.m;
-          let D = ( b2.center.copy().minus( b.center ) ).normalize();
-          b.v.plus( D.times( a ) );
-          b2.v.minus( D.times( a2 ) );
+
+        // if we are using the quadtree we will make balls interact elsewhere
+        if (!this.use_quadtree) {
+          
+          // crash em together
+          if ( b.intersects( b2 ) ) {
+            b.collide( b2 );
+          }
+
+          // apply gravity
+          if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
+            // F = (G * m1 * m2) / (Distance^2)
+            let d = b.center.distance( b2.center );
+            let F = ( this.g * b.m * b2.m ) / ( d * d );
+            let a = F / b.m;
+            let a2 = F / b2.m;
+            let D = ( b2.center.copy().minus( b.center ) ).normalize();
+            b.v.plus( D.times( a ) );
+            b2.v.minus( D.times( a2 ) );
+          }
         }
       }
 
@@ -147,6 +153,11 @@ class World
           b.collide( p );
         }
       }
+    }
+    
+    // handle collisions via the quadtree
+    if ( this.use_quadtree ) {
+      this.quadTreeCollide(); 
     }
 
     // bounce off walls...
@@ -209,7 +220,7 @@ class World
       });
       // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
-      // really inefficient splice loop
+      // TODO: improve this really inefficient splice loop
       while ( this.balls.length > this.max_balls ) {
         this.balls.splice( this.balls.length - 1, 1 );
       }
@@ -307,23 +318,21 @@ class World
       p.draw( ctx, this.getDrawScale(), this.pizza_time );
     }
 
-    if ( !this.use_quadtree ) {
+    let draw_quadtree = false;
+    if ( !draw_quadtree ) {
+      for ( let i = 0; i < this.balls.length; i++ ) {
+        let b = this.balls[ i ];
+        b.draw( ctx, this.getDrawScale(), this.pizza_time );
+      }
+    }
+    else if ( !this.use_quadtree ) {
       for ( let i = 0; i < this.balls.length && !this.use_quadtree; i++ ) {
         let b = this.balls[ i ];
         b.draw( ctx, this.getDrawScale(), this.pizza_time );
       }
     } else {
+      let qt = this.getQuadTree();
       // lets try drawing the balls with the quadtree...
-      // build quadtree
-      let qt = new quadtree( this.min_x, this.min_y, this.max_x, this.max_y, 3 );
-
-      // put some objects into the quad tree
-      for ( let i = 0; i < this.balls.length; i++ ) {
-        let ball = this.balls[ i ];
-        if ( qt.fitsInside( ball ) ) {
-          qt.insert( ball );
-        }
-      }
       
       if (debug_on) {
         console.log( qt.toS() );
@@ -366,6 +375,21 @@ class World
     return scale_factor;
   }
   
+  // gets a quad tree with all the balls in the world in it
+  getQuadTree() {
+    let MAX_OBJECTS_PER_QUAD = 3; 
+    let qt = new quadtree( this.min_x, this.min_y, this.max_x, this.max_y, MAX_OBJECTS_PER_QUAD );
+
+    // put some objects into the quad tree
+    for ( let i = 0; i < this.balls.length; i++ ) {
+      let ball = this.balls[ i ];
+      if ( qt.fitsInside( ball ) ) {
+        qt.insert( ball );
+      }
+    }
+    return qt;
+  }
+  
   retrieveBall( x, y ) {
     let pos = new vec2( x, y );
 
@@ -399,5 +423,10 @@ class World
     this.n_divs = this.n_divs.toFixed( 0 );
     console.log( "sliding: " + this.n_divs );
   }
-
+    
+  quadTreeCollide() {
+    let qt = this.getQuadTree();
+    qt.interact( this.g );
+  }
+  
 }

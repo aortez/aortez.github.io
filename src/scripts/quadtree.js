@@ -90,6 +90,55 @@ class quadtree
     }
     return objects;
   }
+  
+  interact( g ) {
+    let qt = this;
+    
+    // for each object at this level
+    for ( let object_index_a = 0; object_index_a < qt.objects.length; object_index_a++ ) {
+      let b = qt.objects[ object_index_a ];
+      
+      // collide against other objects at this level
+      for ( let object_index_b = object_index_a + 1; object_index_b < qt.objects.length; object_index_b++ ) {
+        let b2 = qt.objects[ object_index_b ];
+
+        // crash em together
+        if ( b.intersects( b2 ) ) {
+          b.collide( b2 );
+        }
+        // apply gravity
+        if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
+          // F = (G * m1 * m2) / (Distance^2)
+          let d = b.center.distance( b2.center );
+          let F = ( g * b.m * b2.m ) / ( d * d );
+          let a = F / b.m;
+          let a2 = F / b2.m;
+          let D = ( b2.center.copy().minus( b.center ) ).normalize();
+          b.v.plus( D.times( a ) );
+          b2.v.minus( D.times( a2 ) );
+        }
+      }
+      
+      // collide with children for each sub-tree
+      for ( let child_index = 0; child_index < qt.children.length; child_index++ ) {
+        let child = qt.children[ child_index ];
+        let child_objects = child.getObjectsRecursive();
+        for ( let child_object_index = 0; child_object_index < child_objects.length; child_object_index++ ) {
+          let object_in_child = child_objects[ child_object_index ];
+          if (object_in_child.intersects( b ) ) {
+            b.collide( object_in_child );  
+          }
+        }
+      }
+    }
+  
+    // interact down the tree
+    for ( let i = 0; i < qt.children.length; i++ ) {
+      let child = qt.children[ i ];
+      child.interact( g );
+    }
+    
+  }
 
   hasChildren() {
     return ( this.children.length > 0 );
