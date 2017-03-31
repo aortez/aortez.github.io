@@ -642,6 +642,10 @@ class Controller
     TIMESCALE_SCALAR = e.currentTarget.value;
     console.log( "TIMESCALE_SCALAR: " + TIMESCALE_SCALAR );
   }
+  
+  toggleAsteroids( e ) {
+    console.log("toggle asteroids: " + e );
+  }
 
 }
 
@@ -1343,12 +1347,8 @@ function getTouchPos(canvasDom, touchEvent) {
 }
 
 function polyfillIfNecessary() {
-  if ('registerElement' in document
-      && 'import' in document.createElement('link')
-      && 'content' in document.createElement('template')) {
-    // platform is good!
+  if ('registerElement' in document && 'import' in document.createElement('link') && 'content' in document.createElement('template') ) {
   } else {
-    // polyfill the platform!
     var e = document.createElement('script');
     e.src = '/bower_components/webcomponentsjs/webcomponents-lite.min.js';
     document.body.appendChild(e);
@@ -1358,8 +1358,7 @@ function polyfillIfNecessary() {
 function init() {
 
   polyfillIfNecessary();
-  
-  
+    
   let FPS = 60;
 
   world = new World();
@@ -1451,6 +1450,10 @@ function init() {
     controller.debug();
   });
 
+  document.getElementById( 'asteroids_button' ).addEventListener( 'click', function() {
+    controller.toggleAsteroids();
+  });
+  
   requestAnimationFrame( advance );
 }
 
@@ -1458,11 +1461,10 @@ let previous = null;
 let smoothed_fps = 0;
 function advance() {
 
-  let controls_height = document.getElementById('controls_div').offsetHeight + document.getElementById('controls_div2').offsetHeight;
-  let pizza_height = document.getElementById('pizza').offsetHeight;
+  let controls_width = document.getElementById('controls_div').offsetWidth;
   let fps_height = document.getElementById('fps_div').offsetHeight;
-  canvas.height = window.innerHeight - ( fps_height + controls_height + 30 );
-  canvas.width  = window.innerWidth * 0.9;
+  canvas.width = window.innerWidth - ( controls_width ) - 20;
+  canvas.height  = window.innerHeight - fps_height - 20;
 
   let now = window.performance.now();
   let dt = now - previous;
@@ -1501,11 +1503,11 @@ function advance() {
 
 function updateInfoLabel( fps ) {
   let fps_label = document.getElementById( 'fps_label' );
-  fps_label.innerHTML = 'fps: ' + fps.toFixed( 0 ) + ' ';
+  fps_label.innerHTML = '<p>fps: ' + fps.toFixed( 0 ) + '</p>';
 
   let num_balls_label = document.getElementById( 'num_balls_label' );
-  num_balls_label.innerHTML = 'num balls: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 );
+  num_balls_label.innerHTML = '<p>num balls: ' + world.balls.length + ' / ' + world.max_balls.toFixed( 0 ) + ',</p>';
 
   let num_particles_label = document.getElementById( 'num_particles_label' );
-  num_particles_label.innerHTML = 'num particles: ' + world.particles.length + ' / ' + world.max_particles.toFixed( 0 );
+  num_particles_label.innerHTML = '<p>num particles: ' + world.particles.length + ' / ' + world.max_particles.toFixed( 0 ) + ',</p>';
 }

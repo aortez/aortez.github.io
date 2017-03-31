@@ -213,5 +213,9 @@ class Controller
     TIMESCALE_SCALAR = e.currentTarget.value;
     console.log( "TIMESCALE_SCALAR: " + TIMESCALE_SCALAR );
   }
+  
+  toggleAsteroids( e ) {
+    console.log("toggle asteroids: " + e );
+  }
 
 }
