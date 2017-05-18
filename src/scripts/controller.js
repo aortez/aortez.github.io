@@ -4,10 +4,10 @@ var ObjectType = {
   PLANET: 3
 };
 
-var EXPLODE_V_FACTOR = 0.5;
-var EXPLODER_SIZE_FACTOR = 0.6;
+var EXPLODE_V_FACTOR = 0.1;
+var EXPLODER_SIZE_FACTOR = 1.5;
 var N_DIVS = 2;
-var TIMESCALE_SCALAR = 1.0;
+var TIMESCALE_SCALAR = 0.3;
 
 class Controller
 {

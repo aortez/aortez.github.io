@@ -34,7 +34,7 @@ class World
     b1.is_affected_by_gravity = true;
     b1.is_moving = true;
     b1.is_invincible = false;
-    this.addBall( b1 );
+    // this.addBall( b1 );
 
     // let b2 = new Ball( 1750, 150, 50, blue.copy() );
     // b2.v.x = -20;
@@ -67,7 +67,7 @@ class World
       // but instead we delay any world updates at all
       // return;
     }
-    this.background.advance( dt * 5 );
+    this.background.advance( dt * 13 );
 
     let MIN_BALL_RADIUS = 0.004;
     let MIN_FRAG_RADIUS = 0.001;
@@ -150,7 +150,7 @@ class World
     }
 
     // bounce off walls...
-    // compute wall location 
+    // compute wall location
     let max_x = canvas.width / this.getDrawScale();
     let max_y = canvas.height / this.getDrawScale();
     for ( let i = 0; i < this.balls.length; i++ ) {
@@ -224,7 +224,7 @@ class World
       let p = this.particles[ i ];
       // fade em 10x faster if past some limit
       let fade_scalar = ( this.particles.length > this.max_particles ) ? 10 : 1;
-      p.hp -= 0.0001 * dt * fade_scalar;
+      p.hp -= 0.0005 * dt * fade_scalar;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
@@ -296,7 +296,7 @@ class World
       ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
     }
-    
+
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
       p.draw( ctx, this.getDrawScale(), this.pizza_time );
@@ -324,7 +324,7 @@ class World
           qt.insert( ball );
         }
       }
-      
+
       if (debug_on) {
         console.log( qt.toS() );
       }
@@ -350,7 +350,7 @@ class World
         ctx.stroke();
         ctx.closePath();
       }
-      
+
       // draw quadtree
       qt.draw( ctx, this.getDrawScale() );
     }
@@ -365,7 +365,7 @@ class World
     let scale_factor = Math.max( canvas.width, canvas.height );
     return scale_factor;
   }
-  
+
   retrieveBall( x, y ) {
     let pos = new vec2( x, y );
 

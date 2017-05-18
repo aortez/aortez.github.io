@@ -387,10 +387,10 @@ var ObjectType = {
   PLANET: 3
 };
 
-var EXPLODE_V_FACTOR = 0.5;
-var EXPLODER_SIZE_FACTOR = 0.6;
+var EXPLODE_V_FACTOR = 0.1;
+var EXPLODER_SIZE_FACTOR = 1.5;
 var N_DIVS = 2;
-var TIMESCALE_SCALAR = 1.0;
+var TIMESCALE_SCALAR = 0.3;
 
 class Controller
 {
@@ -859,7 +859,7 @@ class World
     b1.is_affected_by_gravity = true;
     b1.is_moving = true;
     b1.is_invincible = false;
-    this.addBall( b1 );
+    // this.addBall( b1 );
 
     // let b2 = new Ball( 1750, 150, 50, blue.copy() );
     // b2.v.x = -20;
@@ -892,7 +892,7 @@ class World
       // but instead we delay any world updates at all
       // return;
     }
-    this.background.advance( dt * 5 );
+    this.background.advance( dt * 13 );
 
     let MIN_BALL_RADIUS = 0.004;
     let MIN_FRAG_RADIUS = 0.001;
@@ -975,7 +975,7 @@ class World
     }
 
     // bounce off walls...
-    // compute wall location 
+    // compute wall location
     let max_x = canvas.width / this.getDrawScale();
     let max_y = canvas.height / this.getDrawScale();
     for ( let i = 0; i < this.balls.length; i++ ) {
@@ -1049,7 +1049,7 @@ class World
       let p = this.particles[ i ];
       // fade em 10x faster if past some limit
       let fade_scalar = ( this.particles.length > this.max_particles ) ? 10 : 1;
-      p.hp -= 0.0001 * dt * fade_scalar;
+      p.hp -= 0.0005 * dt * fade_scalar;
       // remove the dead ones
       if ( p.hp <= 0 ) {
         this.particles.splice( i, 1 );
@@ -1121,7 +1121,7 @@ class World
       ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
     }
-    
+
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
       p.draw( ctx, this.getDrawScale(), this.pizza_time );
@@ -1149,7 +1149,7 @@ class World
           qt.insert( ball );
         }
       }
-      
+
       if (debug_on) {
         console.log( qt.toS() );
       }
@@ -1175,7 +1175,7 @@ class World
         ctx.stroke();
         ctx.closePath();
       }
-      
+
       // draw quadtree
       qt.draw( ctx, this.getDrawScale() );
     }
@@ -1190,7 +1190,7 @@ class World
     let scale_factor = Math.max( canvas.width, canvas.height );
     return scale_factor;
   }
-  
+
   retrieveBall( x, y ) {
     let pos = new vec2( x, y );
 
@@ -1274,7 +1274,7 @@ function init() {
 
   let explode_slider = document.getElementById( 'explode_slider' );
   explode_slider.addEventListener( 'value-change', controller.explodeSlider, false );
-  explode_slider.value = 0.5;
+  explode_slider.value = EXPLODE_V_FACTOR;
 
   let exploder_size_slider = document.getElementById( 'exploder_size_slider' );
   exploder_size_slider.addEventListener( 'value-change', controller.exploderSizeSlider, false );
@@ -1384,13 +1384,13 @@ function advance() {
 
   if ( smoothed_fps < 45 ) {
     if ( world.max_balls > 75 ) {
-      world.max_balls -= 5;
+      world.max_balls -= 10;
     }
     if ( world.max_particles > 50 ) {
       world.max_particles -= 5;
     }
   } else {
-    if ( world.max_balls < 400 ) {
+    if ( world.max_balls < 300 ) {
       world.max_balls += 0.1;
     }
     if ( world.max_particles < 200 ) {

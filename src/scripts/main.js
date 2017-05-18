@@ -45,7 +45,7 @@ function init() {
 
   let explode_slider = document.getElementById( 'explode_slider' );
   explode_slider.addEventListener( 'value-change', controller.explodeSlider, false );
-  explode_slider.value = 0.5;
+  explode_slider.value = EXPLODE_V_FACTOR;
 
   let exploder_size_slider = document.getElementById( 'exploder_size_slider' );
   exploder_size_slider.addEventListener( 'value-change', controller.exploderSizeSlider, false );
@@ -155,13 +155,13 @@ function advance() {
 
   if ( smoothed_fps < 45 ) {
     if ( world.max_balls > 75 ) {
-      world.max_balls -= 5;
+      world.max_balls -= 10;
     }
     if ( world.max_particles > 50 ) {
       world.max_particles -= 5;
     }
   } else {
-    if ( world.max_balls < 400 ) {
+    if ( world.max_balls < 300 ) {
       world.max_balls += 0.1;
     }
     if ( world.max_particles < 200 ) {
