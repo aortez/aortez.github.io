@@ -3,8 +3,10 @@ import { World } from './world';
 
 @Component({
   selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  template:
+`
+<app-view [world]="world"></app-view>
+`
 })
 export class AppComponent {
   world: World;
@@ -13,3 +15,10 @@ export class AppComponent {
     this.world = new World();
   }
 }
+
+// <div style="text-align:center">
+//   <h1>
+//     Pizza!
+//   </h1>
+// </div>
+// Below is the app-view:
