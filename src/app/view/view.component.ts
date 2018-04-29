@@ -7,11 +7,12 @@ import { World } from '../world';
   template:`
   <div id="view-div" class="container" (window:resize)="onResize($event)">
      <canvas #myCanvas id='canvas' drawing></canvas>
-  </div>`,
+  </div>
+  `,
   styles: [
     `box { display: flex; flex: 1 1 auto; }`,
     `.height-full { height: 100vh; }`,
-    `.container{
+    `.container {
       height: 100%;
       display: flex;
       align-items: center;
