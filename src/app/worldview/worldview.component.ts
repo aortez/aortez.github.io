@@ -5,26 +5,17 @@ import { World } from '../world';
 @Component({
   selector: 'app-view',
   template:`
-  <div id="view-div" class="container" (window:resize)="onResize($event)">
-     <div>     <p>foo!!!!</p> </div>
-     <div class="child" id="canvas-div"><canvas #myCanvas id='canvas' drawing></canvas></div>
-     <div>     <p>fee!!!!</p> </div>
-  </div>
+  <canvas #myCanvas id="canvas" class="canvasStyle" (window:resize)="onResize($event)"></canvas>
   `,
   styles: [`
-    .container {
+    .canvasStyle {
+      width: 100%;
       height: 100%;
-      display: flex;
-      flex-direction: column;
-      flex: 1;
     }
-    .child {
-      display: flex;
-      flex: 1;
-    }
-  `
-   ],
+  `],
 })
+
+
 export class WorldViewComponent {
 
   @ViewChild("myCanvas") canvas: ElementRef;
@@ -46,7 +37,7 @@ export class WorldViewComponent {
 
   onResize(event) {
     this.shouldResize = true;
- }
+  }
 
   private resizeCanvas() {
     if (!this.shouldResize) {
@@ -59,7 +50,7 @@ export class WorldViewComponent {
       const height = positionInfo.height;
       const width = positionInfo.width;
       console.log(`view-div width, height: ${width}/${height}`);
-      this.canvas.nativeElement.width = width;
+      // this.canvas.nativeElement.width = width;
     } else {
       console.log("no element???");
     }
