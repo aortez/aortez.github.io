@@ -60,7 +60,6 @@ export class WorldViewComponent {
       const width = positionInfo.width;
       console.log(`view-div width, height: ${width}/${height}`);
       this.canvas.nativeElement.width = width;
-      this.canvas.nativeElement.height = height;
     } else {
       console.log("no element???");
     }

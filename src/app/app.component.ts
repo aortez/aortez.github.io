@@ -6,17 +6,7 @@ import { World } from './world';
   template:
   `
     <app-view [world]="world"></app-view>
-  `,
-  styles: [
   `
-    .container {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-    }
-  `
- ],
 })
 export class AppComponent {
   world: World;
@@ -25,10 +15,3 @@ export class AppComponent {
     this.world = new World();
   }
 }
-
-// <div style="text-align:center">
-//   <h1>
-//     Pizza!
-//   </h1>
-// </div>
-// Below is the app-view:
