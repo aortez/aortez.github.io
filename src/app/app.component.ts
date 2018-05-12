@@ -4,9 +4,19 @@ import { World } from './world';
 @Component({
   selector: 'app-root',
   template:
-`
-<app-view [world]="world"></app-view>
-`
+  `
+    <app-view [world]="world"></app-view>
+  `,
+  styles: [
+  `
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+  `
+ ],
 })
 export class AppComponent {
   world: World;

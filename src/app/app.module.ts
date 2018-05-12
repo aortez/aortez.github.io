@@ -1,15 +1,14 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 
-
 import { AppComponent } from './app.component';
-import { ViewComponent } from './view/view.component';
+import { WorldViewComponent } from './worldview/worldview.component';
 
 
 @NgModule({
   declarations: [
     AppComponent,
-    ViewComponent
+    WorldViewComponent
   ],
   imports: [
     BrowserModule

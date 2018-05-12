@@ -6,21 +6,26 @@ import { World } from '../world';
   selector: 'app-view',
   template:`
   <div id="view-div" class="container" (window:resize)="onResize($event)">
-     <canvas #myCanvas id='canvas' drawing></canvas>
+     <div>     <p>foo!!!!</p> </div>
+     <div class="child" id="canvas-div"><canvas #myCanvas id='canvas' drawing></canvas></div>
+     <div>     <p>fee!!!!</p> </div>
   </div>
   `,
-  styles: [
-    `box { display: flex; flex: 1 1 auto; }`,
-    `.height-full { height: 100vh; }`,
-    `.container {
+  styles: [`
+    .container {
       height: 100%;
       display: flex;
-      align-items: center;
-      justify-content: center;
-    }`
+      flex-direction: column;
+      flex: 1;
+    }
+    .child {
+      display: flex;
+      flex: 1;
+    }
+  `
    ],
 })
-export class ViewComponent {
+export class WorldViewComponent {
 
   @ViewChild("myCanvas") canvas: ElementRef;
 
@@ -44,22 +49,22 @@ export class ViewComponent {
  }
 
   private resizeCanvas() {
-        if (!this.shouldResize) {
-          return;
-        }
+    if (!this.shouldResize) {
+      return;
+    }
 
-        const element = document.getElementById("view-div");
-        if (element) {
-          const positionInfo = element.getBoundingClientRect();
-          const height = positionInfo.height;
-          const width = positionInfo.width;
-          console.log(`view-div width, height: ${width}/${height}`);
-          this.canvas.nativeElement.width = width;
-          this.canvas.nativeElement.height = height - 25;
-        } else {
-          console.log("no element???");
-        }
-        this.shouldResize = false;
+    const element = document.getElementById("canvas-div");
+    if (element) {
+      const positionInfo = element.getBoundingClientRect();
+      const height = positionInfo.height;
+      const width = positionInfo.width;
+      console.log(`view-div width, height: ${width}/${height}`);
+      this.canvas.nativeElement.width = width;
+      this.canvas.nativeElement.height = height;
+    } else {
+      console.log("no element???");
+    }
+    this.shouldResize = false;
   }
 
   private paint() {
