@@ -3,7 +3,7 @@ import { Ball } from '../ball';
 import { World } from '../world';
 
 @Component({
-  selector: 'app-view',
+  selector: 'world-view',
   template:`
   <canvas #myCanvas id="canvas" class="canvasStyle" (window:resize)="onResize($event)"></canvas>
   `,

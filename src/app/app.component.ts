@@ -8,7 +8,7 @@ import { World } from './world';
     <div>some stuff on top</div>
 
     <div class="growingChild" id="canvas-div">
-      <app-view [world]="world"></app-view>
+      <world-view [world]="world"></world-view>
     </div>
 
     <div>some stuff on bottom</div>
