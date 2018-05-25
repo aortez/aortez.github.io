@@ -4,25 +4,25 @@ import { World } from './world';
 @Component({
   selector: 'app-root',
   template:`
-  <div class="container">
-    <div>foo!!!!</div>
+  <div class="parent">
+    <div>some stuff on top</div>
 
-    <div class="child" id="canvas-div">
+    <div class="growingChild" id="canvas-div">
       <app-view [world]="world"></app-view>
     </div>
 
-    <div>fee!!!!</div>
+    <div>some stuff on bottom</div>
   </div>
   `,
   styles: [`
-    .container {
+    .parent {
       height: 100%;
       width: 100%;
       display: flex;
       flex-direction: column;
       flex: 1;
     }
-    .child {
+    .growingChild {
       display: flex;
       flex: 1;
     }

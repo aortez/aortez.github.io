@@ -9,8 +9,6 @@ import { World } from '../world';
   `,
   styles: [`
     .canvasStyle {
-      width: 100%;
-      height: 100%;
     }
   `],
 })
@@ -50,7 +48,8 @@ export class WorldViewComponent {
       const height = positionInfo.height;
       const width = positionInfo.width;
       console.log(`view-div width, height: ${width}/${height}`);
-      // this.canvas.nativeElement.width = width;
+      this.canvas.nativeElement.width = width;
+      this.canvas.nativeElement.height = height;
     } else {
       console.log("no element???");
     }
