@@ -1,14 +1,19 @@
 import { Component, ElementRef, Input, ViewChild, HostListener } from '@angular/core';
 import { Ball } from '../ball';
+import { Vec2 } from '../vec2';
 import { World } from '../world';
 
 @Component({
   selector: 'world-view',
   template:`
-  <canvas #myCanvas id="canvas" class="canvasStyle" (window:resize)="onResize($event)"></canvas>
+    <canvas #myCanvas id="canvas" class="canvasStyle" (window:resize)="onResize($event)"></canvas>
   `,
   styles: [`
     .canvasStyle {
+      margin: 0;
+      padding: 0;
+      flex-shrink: 1;
+      border: 0px solid black;
     }
   `],
 })
@@ -20,55 +25,74 @@ export class WorldViewComponent {
 
   @Input() world: World;
 
-  private shouldResize = true;
+  private prev_time = 0;
+
+  private should_resize = true;
 
   constructor() {
   }
 
   ngAfterViewInit() {
-    this.shouldResize = true;
-    this.paint();
+    this.should_resize = true;
     const width = this.canvas.nativeElement.width;
     const height = this.canvas.nativeElement.height;
     console.log(`initial canvas width/height: ${width}/${height}`);
+    this.step(0);
   }
 
   onResize(event) {
-    this.shouldResize = true;
+    this.should_resize = true;
   }
 
   private resizeCanvas() {
-    if (!this.shouldResize) {
+    if (!this.should_resize) {
       return;
     }
 
     const element = document.getElementById("canvas-div");
     if (element) {
-      const positionInfo = element.getBoundingClientRect();
-      const height = positionInfo.height;
-      const width = positionInfo.width;
-      console.log(`view-div width, height: ${width}/${height}`);
-      this.canvas.nativeElement.width = width;
-      this.canvas.nativeElement.height = height;
+      const rect = element.getBoundingClientRect();
+      const height = rect.height;
+      const width = rect.width;
+      const canvas = this.canvas.nativeElement;
+      canvas.width = width;
+      canvas.height = height;
+      console.log(`resizeCanvas: width, height: ${width}/${height}`);
     } else {
       console.log("no element???");
     }
-    this.shouldResize = false;
+    this.should_resize = false;
   }
 
-  private paint() {
+  private step( cur_time:number ) {
+    const ctx: CanvasRenderingContext2D = this.canvas.nativeElement.getContext("2d");
     this.resizeCanvas();
 
-    const context: CanvasRenderingContext2D = this.canvas.nativeElement.getContext("2d");
-    context.fillStyle = 'black';
+    // advance simluation
+    const dt = cur_time - this.prev_time;
+    this.prev_time = cur_time;
+    console.log(`step dt: ${dt}`);
+    this.world.advance( dt );
+
+    // clear screen
+    ctx.fillStyle = 'black';
     const width = this.canvas.nativeElement.offsetWidth;
     const height = this.canvas.nativeElement.offsetHeight;
-    context.fillRect(0, 0, width, height);
-    context.fillStyle = this.world.background_color.toRgb();
-    context.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, width, height);
 
-    this.world.advance();
+    // draw the world...
+    this.world.draw( ctx, this.getDrawScale(), this.getTranslation() );
 
-    requestAnimationFrame(() => this.paint());
+    // do it again
+    window.requestAnimationFrame((cur_time) => this.step(cur_time));
+  }
+
+  private getDrawScale() {
+    const scale_factor = Math.max( this.canvas.nativeElement.width, this.canvas.nativeElement.height );
+    return scale_factor;
+  }
+
+  private getTranslation() {
+    return new Vec2(0.5, 0.5);
   }
 }

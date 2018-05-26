@@ -1,5 +1,4 @@
-export class Vec2
-{
+export class Vec2 {
   x: number;
   y: number;
 
@@ -8,10 +7,10 @@ export class Vec2
     this.y = y;
   }
 
-  // copy() {
-  //   let c = new vec2( this.x, this.y );
-  //   return c;
-  // }
+  copy() {
+    const c = new Vec2( this.x, this.y );
+    return c;
+  }
   //
   // distance( b ) {
   //   let dx = this.x - b.x;
@@ -20,24 +19,24 @@ export class Vec2
   //   return d;
   // }
   //
-  // plus( a ) {
-  //   this.x += a.x;
-  //   this.y += a.y;
-  //   return this;
-  // }
+  public plus( a ) {
+    this.x += a.x;
+    this.y += a.y;
+    return this;
+  }
   //
   // minus( a ) {
   //   this.x -= a.x;
   //   this.y -= a.y;
   //   return this;
   // }
-  //
-  // times( scalar ) {
-  //   this.x *= scalar;
-  //   this.y *= scalar;
-  //   return this;
-  // }
-  //
+
+  public times( scalar: number ) {
+    this.x *= scalar;
+    this.y *= scalar;
+    return this;
+  }
+
   // divided_by( scalar ) {
   //   this.x /= scalar;
   //   this.y /= scalar;
