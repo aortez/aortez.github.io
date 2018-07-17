@@ -25,11 +25,21 @@ export class WorldViewComponent {
 
   @Input() world: World;
 
+  private is_paused = false;
   private prev_time = 0;
-
   private should_resize = true;
 
   constructor() {
+  }
+
+  getDims() {
+    const width = this.canvas.nativeElement.width;
+    const height = this.canvas.nativeElement.height;
+    return new Vec2(width, height);
+  }
+
+  get isPaused() {
+    return this.is_paused;
   }
 
   ngAfterViewInit() {
@@ -42,6 +52,15 @@ export class WorldViewComponent {
 
   onResize(event) {
     this.should_resize = true;
+  }
+
+  public setPause(is_paused: boolean) {
+    this.is_paused = is_paused;
+    console.log(`is paused: ${this.is_paused}`);
+    if (!this.is_paused) {
+      this.prev_time = performance.now();
+      this.step(this.prev_time); // kick off animation loop
+    }
   }
 
   private resizeCanvas() {
@@ -64,14 +83,18 @@ export class WorldViewComponent {
     this.should_resize = false;
   }
 
-  private step( cur_time:number ) {
+  private step( cur_time: number ) {
+    if (!this.world || this.is_paused) {
+      console.log(`this.is_paused: ${this.is_paused}`);
+      return;
+    }
     const ctx: CanvasRenderingContext2D = this.canvas.nativeElement.getContext("2d");
     this.resizeCanvas();
 
     // advance simluation
     const dt = cur_time - this.prev_time;
     this.prev_time = cur_time;
-    console.log(`step dt: ${dt}`);
+    // console.log(`step dt: ${dt}`);
     this.world.advance( dt );
 
     // clear screen
@@ -88,11 +111,13 @@ export class WorldViewComponent {
   }
 
   private getDrawScale() {
-    const scale_factor = Math.max( this.canvas.nativeElement.width, this.canvas.nativeElement.height );
+    const scale_factor = Math.max( this.canvas.nativeElement.width, this.canvas.nativeElement.height ) * 0.5;
     return scale_factor;
   }
 
   private getTranslation() {
-    return new Vec2(0.5, 0.5);
+    let trans = new Vec2(this.canvas.nativeElement.width / 2, this.canvas.nativeElement.height / 2);
+    trans.div(this.getDrawScale());
+    return trans;
   }
 }

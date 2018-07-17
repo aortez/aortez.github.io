@@ -29,9 +29,9 @@ export class Ball {
     // }
 
     ctx.beginPath();
-    let x = ( this.center.x + trans.x ) * scale;
-    let y = ( this.center.y + trans.y ) * scale;
-    let r = this.r * scale;
+    const x = ( this.center.x + trans.x) * scale;
+    const y = ( this.center.y + trans.y) * scale;
+    const r = this.r * scale;
     console.log(`x: ${x}, y: ${y}, r: ${r}`);
     ctx.arc( x, y, r, 0, 2 * Math.PI, false );
     // if ( pizza_time ) {

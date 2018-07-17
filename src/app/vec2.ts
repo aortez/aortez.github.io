@@ -37,11 +37,11 @@ export class Vec2 {
     return this;
   }
 
-  // divided_by( scalar ) {
-  //   this.x /= scalar;
-  //   this.y /= scalar;
-  //   return this;
-  // }
+  public div( scalar: number ) {
+    this.x /= scalar;
+    this.y /= scalar;
+    return this;
+  }
   //
   // mag() {
   //   let m = Math.sqrt( this.x * this.x + this.y * this.y );

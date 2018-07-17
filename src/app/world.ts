@@ -30,8 +30,16 @@ export class World {
     b.center.plus( b.v.copy().times( dt ) );
 
     const WALL_ELASTIC_FACTOR = 1;
-    if ( b.center.x + b.r >= this.max.x ) { b.center.x = this.max.x - b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
-    if ( b.center.y + b.r >= this.max.y ) { b.center.y = this.max.y - b.r; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
+    if ( b.center.x + b.r >= this.max.x ) {
+      b.center.x = this.max.x - b.r;
+      b.v.x = -b.v.x * WALL_ELASTIC_FACTOR;
+      console.log("bounce max x");
+    }
+    if ( b.center.y + b.r >= this.max.y ) {
+      b.center.y = this.max.y - b.r;
+      b.v.y = -b.v.y * WALL_ELASTIC_FACTOR;
+      console.log("bounce max y");
+    }
     if ( b.center.x - b.r <= this.min.x ) { b.center.x = this.min.x + b.r; b.v.x = -b.v.x * WALL_ELASTIC_FACTOR; }
     if ( b.center.y - b.r <= this.min.y ) { b.center.y = this.min.y + b.r; b.v.y = -b.v.y * WALL_ELASTIC_FACTOR; }
 
@@ -41,5 +49,10 @@ export class World {
 
     this.ball.draw( ctx, scale, trans, false );
 
+  }
+
+  public setBoundingBox( min: Vec2, max: Vec2, ) {
+    this.min = min;
+    this.max = max;
   }
 }
