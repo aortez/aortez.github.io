@@ -49,20 +49,15 @@ export class AppComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     const viewDims = this.view.getDims();
-    // convert from 1000 x 500
-    // = 2 x 1
-    // shift left 50%
-    //
-    const ratio = viewDims.y / viewDims.x;
-    console.log(`ratio: ${ratio}`);
-    const min = new Vec2(-1 / ratio, -1 * ratio);
-    const max = new Vec2(1 / ratio, 1 * ratio);
-    console.log(`min: ${JSON.stringify(min)}, max: ${JSON.stringify(max)}`);
-    this.world.setBoundingBox(min, max);
-    // this.world.setBoundingBox(new Vec2(-1,-0.5), new Vec2(1, 0.5));
-    console.log(`viewDims: ${JSON.stringify(viewDims)} 🍕`);
+    const scale = this.view.getDrawScale() * 2;
+
+    const min = new Vec2( -viewDims.x / scale, -viewDims.y / scale );
+    const max = new Vec2( viewDims.x / scale, viewDims.y / scale );
+
+    this.world.setBoundingBox( min, max );
     this.view.setPause( true );
     this.controller.setWorld( this.world );
     this.controller.setView( this.view );
+    console.log(`viewDims: ${JSON.stringify(viewDims)} 🍕`);
  }
 }

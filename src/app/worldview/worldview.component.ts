@@ -110,7 +110,7 @@ export class WorldViewComponent {
     window.requestAnimationFrame((cur_time) => this.step(cur_time));
   }
 
-  private getDrawScale() {
+  public getDrawScale() {
     const scale_factor = Math.max( this.canvas.nativeElement.width, this.canvas.nativeElement.height ) * 0.5;
     return scale_factor;
   }
