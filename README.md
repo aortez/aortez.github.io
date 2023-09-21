@@ -4,4 +4,4 @@ It is hosted at http://allan.pizza
 
 Click on the black background area to see some action. Wait a bit and the colliding balls will explode and subdivide. :pizza:
 
-This repo also contains golang-wasm implementation, which can be accessed at http://allan.pizza/go
+This repo also contains a golang-wasm implementation, which can be accessed at http://allan.pizza/go
