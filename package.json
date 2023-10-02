@@ -1,0 +1,19 @@
+{
+  "name": "allan.pizza",
+  "version": "1.0",
+  "main": "build/scripts/script.js",
+  "repository": "https://github.com/aortez/aortez.github.io",
+  "author": "Allan Ortiz",
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "@polymer/iron-flex-layout": "^3.0.1",
+    "@polymer/paper-button": "^3.0.1",
+    "@polymer/paper-slider": "^3.0.1",
+    "@webcomponents/webcomponentsjs": "^2.8.0"
+  },
+  "devDependencies": {
+    "gulp": "^4.0.2",
+    "gulp-concat": "^2.6.1",
+    "gulp-jshint": "^2.1.0"
+  }
+}

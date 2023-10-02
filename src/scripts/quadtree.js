@@ -1,5 +1,3 @@
-"use strict";
-
 let qt_indent = 0;
 let debug_on = false;
 
@@ -54,13 +52,13 @@ class quadtree
     // draw self as rectangle
     ctx.strokeStyle="#FFFFFF";
     let epsilon = 0.005;
-    ctx.strokeRect( 
+    ctx.strokeRect(
       (this.min_x + epsilon) * scale_factor,
-      (this.min_y + epsilon) * scale_factor, 
-      ( (this.max_x - this.min_x) - epsilon) * scale_factor, 
+      (this.min_y + epsilon) * scale_factor,
+      ( (this.max_x - this.min_x) - epsilon) * scale_factor,
       ( (this.max_y - this.min_y) - epsilon) * scale_factor
     );
-    
+
     // draw a nice little pizza in center of the quad
     let b = new Ball( this.centerX(), this.centerY(), 0.01, new vec3(255,255,255) );
     b.draw( ctx, scale_factor, false );
@@ -111,7 +109,7 @@ class quadtree
     if ( !this.hasChildren() ) {
       if ( this.objects.length < this.max_local_objects ) {
         debug( "inserting internally..." );
-        this.objects.push( element );  
+        this.objects.push( element );
       } else {
         this.split();
         this.insert( element );
@@ -140,7 +138,7 @@ class quadtree
         this.objects.push( element );
       }
       log_out();
-    } 
+    }
     debug( "insert is done" );
     log_out();
   }
