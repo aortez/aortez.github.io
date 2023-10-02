@@ -25,7 +25,7 @@ function mouseMove( e ) {
 }
 
 function getTouchPos(canvasDom, touchEvent) {
-  var rect = canvasDom.getBoundingClientRect();
+  let rect = canvasDom.getBoundingClientRect();
   return {
     x: touchEvent.touches[0].clientX - rect.left,
     y: touchEvent.touches[0].clientY - rect.top
@@ -131,11 +131,8 @@ let previous = null;
 let smoothed_fps = 0;
 function advance() {
 
-  let controls_height = document.getElementById('controls_div').offsetHeight + document.getElementById('controls_div2').offsetHeight;
-  let pizza_height = document.getElementById('pizza').offsetHeight;
-  let fps_height = document.getElementById('fps_div').offsetHeight;
-  canvas.height = window.innerHeight - ( fps_height + controls_height + 30 );
-  canvas.width  = window.innerWidth * 0.9;
+  canvas.height = window.innerHeight - document.getElementById('controls').offsetHeight - 30;
+  canvas.width = document.body.clientWidth;
 
   let now = window.performance.now();
   let dt = now - previous;

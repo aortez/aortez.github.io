@@ -1,15 +1,23 @@
-var gulp = require('gulp');
+const { src, dest, series } = require('gulp');
+const concat = require('gulp-concat');
+const jshint = require('gulp-jshint');
 
-var jshint = require('gulp-jshint');
-gulp.task('jshint', function() {
-  gulp.src('./src/scripts/*.js')
-    .pipe(jshint())
-    .pipe(jshint.reporter('default'));
-});
+// The `clean` function is not exported so it can be considered a private task.
+// It can still be used within the `series()` composition.
+function clean(cb) {
+  cb();
+}
 
-var concat = require('gulp-concat');
-gulp.task('scripts', function() {
-  gulp.src([
+function lint(cb) {
+  src('./src/scripts/*.js')
+  .pipe(jshint())
+  .pipe(jshint.reporter('default'));
+
+  cb();
+}
+
+function build(cb) {
+  src([
     './src/scripts/vec3.js',
     './src/scripts/vec2.js',
     './src/scripts/quadtree.js',
@@ -20,8 +28,11 @@ gulp.task('scripts', function() {
     './src/scripts/main.js'
   ])
   .pipe(concat('script.js'))
-  .pipe(gulp.dest('./build/scripts/'));
-});
+  .pipe(dest('./build/scripts'));
 
-// default task
-gulp.task('default', ['jshint', 'scripts'], function() {});
+  cb();
+}
+
+exports.build = build;
+// exports.default = series(clean, build);
+exports.default = series(lint, clean, build);
