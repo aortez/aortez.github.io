@@ -1,70 +1,86 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset='utf-8'/>
-    <title>pizza</title>
+<head>
+  <meta charset='utf-8'/>
+  <title>pizza</title>
 
-    <script type='text/javascript' src='build/scripts/script.js'></script>
-    <script type="module"> import '@polymer/paper-button/paper-button.js'; </script>
-    <script type="module"> import '@polymer/paper-slider/paper-slider.js'; </script>
-    <script type='text/javascript'>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-      ga('create', 'UA-75046726-1', 'auto');
-      ga('send', 'pageview');
-    </script>
-
-    <style>
-      .vbox {
-        display: flex;
-        flex-direction: column;
+  <!--
+  I was unable to resolve the issue with a `rm -rf node_modules package-lock.json && npm install`, as described here:
+  https://www.polymer-project.org/blog/2018-05-25-polymer-elements-3-faq
+  But the original solution listed here seems to work: https://stackoverflow.com/a/50362769
+  Thus the following script:
+  -->
+  <script type="text/javascript">
+    const _customElementsDefine = window.customElements.define;
+    window.customElements.define = function(name, clazz, config) {
+      if (!customElements.get(name)) {
+        _customElementsDefine.call(window.customElements, name, clazz, config);
       }
-      .box {
-        display: flex;
-        flex-direction: row;
-      }
-      canvas { border: 1px solid black; }
-    </style>
-  </head>
+    };
+  </script>
 
-  <body onload='init();'>
+  <script type='text/javascript' src='build/scripts/script.js'></script>
+  <script src="https://unpkg.com/@polymer/paper-button@next/paper-button.js?module" type="module" ></script>
+  <script src="https://unpkg.com/@polymer/paper-slider@next/paper-slider.js?module" type="module" ></script>
 
-    <div class='vbox'>
-      <canvas id='pizza' width='1' height='1'></canvas>
+  <script type='text/javascript'>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-      <div id='controls' class="vbox">
-        <div id='controls_div' class="box">
-          <div><paper-button id='reset_button' raised toggles>Reset</paper-button></div>
-          <div><paper-button id='planet_button' raised toggles>Planet</paper-button></div>
-          <div><paper-button id='ball_button' raised toggles>Ball</paper-button></div>
-          <div><paper-button id='pizza_button' raised toggles>Pizza Time</paper-button></div>
-          <div><paper-button id='background_button' raised toggles>Background Animation</paper-button></div>
-          <div><paper-button id='pause_button' raised toggles>Pause</paper-button></div>
-          <div><paper-button id='quadtree_button' raised toggles>Quadtree</paper-button> (quadtree is WIP)</div>
-          <div><paper-button id='purple_button' raised toggles>Purple</paper-button></div>
-          <div><paper-button id='debug_button' raised toggles>Debug</paper-button></div>
-        </div>
+    ga('create', 'UA-75046726-1', 'auto');
+    ga('send', 'pageview');
+  </script>
 
-        <div id='controls_div2' class="box">
-          <div><paper-slider id='slider' pin value='6' min='1' max='8' editable></paper-slider>n divs</div>
-          <div><paper-slider id='explode_slider' min='0.0' max='1.0' step='0.1' editable></paper-slider>explode force</div>
-          <div><paper-slider id='exploder_size_slider' min='0.20' max='1.5' step='0.1' editable></paper-slider>exploder size slider</div>
-          <div><paper-slider id='timescale_slider' min='0.1' max='2.0' step='0.1' editable></paper-slider>timestep scalar</div>
-        </div>
+  <style>
+    .vbox {
+      display: flex;
+      flex-direction: column;
+    }
+    .box {
+      display: flex;
+      flex-direction: row;
+    }
+    canvas { border: 1px solid black; }
+  </style>
+</head>
 
-        <div id='fps_div' class="box">
-          <div id='num_balls_label'>food</div>
-          <span class='invisible'>' '</span>
-          <div id='num_particles_label'></div>
-          <span class='invisible'>' '</span>
-          <div id='fps_label'>eat</div>
-        </div>
-      </div>
+<body onload='init();'>
+
+<div class='vbox'>
+  <canvas id='pizza' width='1' height='1'></canvas>
+
+  <div id='controls' class="vbox">
+    <div id='controls_div' class="box">
+      <div><paper-button id='reset_button' raised toggles>Reset</paper-button></div>
+      <div><paper-button id='planet_button' raised toggles>Planet</paper-button></div>
+      <div><paper-button id='ball_button' raised toggles>Ball</paper-button></div>
+      <div><paper-button id='pizza_button' raised toggles>Pizza Time</paper-button></div>
+      <div><paper-button id='background_button' raised toggles>Background Animation</paper-button></div>
+      <div><paper-button id='pause_button' raised toggles>Pause</paper-button></div>
+      <div><paper-button id='quadtree_button' raised toggles>Quadtree</paper-button> (quadtree is WIP)</div>
+      <div><paper-button id='purple_button' raised toggles>Purple</paper-button></div>
+      <div><paper-button id='debug_button' raised toggles>Debug</paper-button></div>
     </div>
 
-  </body>
+    <div id='controls_div2' class="box">
+      <div><paper-slider id='slider' pin value='6' min='1' max='8' editable></paper-slider>n divs</div>
+      <div><paper-slider id='explode_slider' min='0.0' max='1.0' step='0.1' editable></paper-slider>explode force</div>
+      <div><paper-slider id='exploder_size_slider' min='0.20' max='1.5' step='0.1' editable></paper-slider>exploder size slider</div>
+      <div><paper-slider id='timescale_slider' min='0.1' max='2.0' step='0.1' editable></paper-slider>timestep scalar</div>
+    </div>
+    <hr>
+    <div id='fps_div' class="box">
+      <div id='num_balls_label'>food</div>
+      <div>,&ensp;</div>
+      <div id='num_particles_label'></div>
+      <div>,&ensp;</div>
+      <div id='fps_label'>eat</div>
+    </div>
+  </div>
+</div>
+
+</body>
 
 </html>
