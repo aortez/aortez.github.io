@@ -1,7 +1,10 @@
-This was just an experiment to learn about webcomponents. It is now suffering from bitrot. The UI component rendering is mostly broken, as I initially targeted a pre-release version of webcomponents and things have changed since then.
-
-It is hosted at http://allan.pizza
-
+This was just a random experiment to play with javascript.
 Click on the black background area to see some action. Wait a bit and the colliding balls will explode and subdivide. :pizza:
 
-This repo also contains a golang-wasm implementation, which can be accessed at http://allan.pizza/go
+It is hosted at:
+http://allan.pizza
+
+This repo also hosts golang-wasm implementation, which can be accessed at:
+http://allan.pizza/go
+
+The go-wasm implementation works a little better on mobile, but has fewer controls.
