@@ -30,7 +30,7 @@ class Controller
       // Compute the vector from the ball to the mouse.
       let d = this.mousePos.copy().minus( b.center );
       let distance = d.mag();
-      console.log("d: " + d + "mousePos: " + this.mousePos.toString());
+      // console.log("d: " + d + "mousePos: " + this.mousePos.toString());
 
       // Normalize to the direction component.
       if ( distance > 0 ) {
@@ -42,7 +42,7 @@ class Controller
       // Anything closer will be relatively slower.
       if ( distance > b.r ) {
         distance = b.r;
-        console.log("d2: " + d + ", d2.mag(): " + d.mag() + ", b.r: " + b.r, ", ball.m: " + b.m);
+        // console.log("d2: " + d + ", d2.mag(): " + d.mag() + ", b.r: " + b.r, ", ball.m: " + b.m);
       }
 
       // Thus, at the max distance, with a force of 1, the velocity will be enough to move

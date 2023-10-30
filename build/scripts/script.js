@@ -419,7 +419,7 @@ class Controller
       // Compute the vector from the ball to the mouse.
       let d = this.mousePos.copy().minus( b.center );
       let distance = d.mag();
-      console.log("d: " + d + "mousePos: " + this.mousePos.toString());
+      // console.log("d: " + d + "mousePos: " + this.mousePos.toString());
 
       // Normalize to the direction component.
       if ( distance > 0 ) {
@@ -431,7 +431,7 @@ class Controller
       // Anything closer will be relatively slower.
       if ( distance > b.r ) {
         distance = b.r;
-        console.log("d2: " + d + ", d2.mag(): " + d.mag() + ", b.r: " + b.r, ", ball.m: " + b.m);
+        // console.log("d2: " + d + ", d2.mag(): " + d.mag() + ", b.r: " + b.r, ", ball.m: " + b.m);
       }
 
       // Thus, at the max distance, with a force of 1, the velocity will be enough to move
@@ -788,6 +788,7 @@ class Ball
     if ( !this.pattern ) {
       var imageObj = new Image();
       // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
+      // TODO: Maybe I should serve this myself...
       imageObj.src = 'http://s3.amazonaws.com/spoonflower/public/design_thumbnails/0289/6414/rrrpizza_pepperoni_shop_preview.png';
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
@@ -1063,7 +1064,7 @@ class World
       // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
       // Remove any balls beyond the limit.
-      // TODO: Is there a better way to do this than removing the last one in a loop?
+      // TODO: There is probably a better way to prune this than in a loop.
       while ( this.balls.length > this.max_balls ) {
         this.balls.splice( this.balls.length - 1, 1 );
       }
