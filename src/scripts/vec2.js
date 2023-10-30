@@ -6,6 +6,14 @@ class vec2
     this.y = y;
   }
 
+  // Assigns the values of b to this vector.
+  assign( b ) {
+    this.x = b.x;
+    this.y = b.y;
+    return this;
+  }
+
+  // Makes a copy of this vector.
   copy() {
     let c = new vec2( this.x, this.y );
     return c;

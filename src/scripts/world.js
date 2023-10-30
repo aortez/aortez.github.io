@@ -209,7 +209,8 @@ class World
       });
       // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
-      // really inefficient splice loop
+      // Remove any balls beyond the limit.
+      // TODO: There is probably a better way to prune this than in a loop.
       while ( this.balls.length > this.max_balls ) {
         this.balls.splice( this.balls.length - 1, 1 );
       }
