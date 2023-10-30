@@ -24,9 +24,47 @@ class Controller
   advance( dt ) {
     this.dt = dt;
 
+    // If the user is mouse down on a ball, move it to follow the cursor.
     let b = this.ball;
     if ( this.mouseIsDown && b ) {
-      b.is_invincible = true;
+      // Compute the vector from the ball to the mouse.
+      let d = this.mousePos.copy().minus( b.center );
+      let distance = d.mag();
+      console.log("d: " + d + "mousePos: " + this.mousePos.toString());
+
+      // Normalize to the direction component.
+      if ( distance > 0 ) {
+        d.normalize();
+      }
+
+      // The velocity will be relative to the distance to the mouse.
+      // But let's clamp it, such that whenever the mouse is outside the ball's radius, this is the max speed.
+      // Anything closer will be relatively slower.
+      if ( distance > b.r ) {
+        distance = b.r;
+        console.log("d2: " + d + ", d2.mag(): " + d.mag() + ", b.r: " + b.r, ", ball.m: " + b.m);
+      }
+
+      // Thus, at the max distance, with a force of 1, the velocity will be enough to move
+      // a ball of mass 1 to the mouse in 1 second. However, a mass of 1 is pretty big, as the mass is the square of the
+      // radius and the world is 1.0 x 1.0.  So let's use a value that is relative to the expected masses
+      // (something significantly less than 1.0).
+      // TODO: Maybe parameterize with a slider.
+      let f = 0.05;
+
+      // Apply a force to the ball in the direction of the mouse.
+      // f = m * a
+      // a = f / m
+      // v = a * t ... thus:
+      // v = f / m * t
+      let v = d.times( f / b.m ).times( distance );
+
+      // Do a bit of smoothing. It gives it a nice rubbery feel.
+      let alpha = 0.80;
+      this.cursor_v.times( alpha ).plus( v.times( 1 - alpha ) );
+
+      // Manually apply the velocity to the ball.
+      b.center.plus( this.cursor_v.copy().times( this.dt ) );
     }
   }
 
@@ -48,38 +86,22 @@ class Controller
   }
 
   mouseMove( canvas, e ) {
+    // Compute the mouse location in world coordinates.
     let rect = canvas.getBoundingClientRect();
-    this.mousePos.x = e.clientX - rect.left;
-    this.mousePos.y = e.clientY - rect.top;
 
-    let b = this.ball;
-    if ( this.mouseIsDown && b ) {
-      let x = this.mousePos.x / this.world.getDrawScale();
-      let y = this.mousePos.y / this.world.getDrawScale();
-      let mouseLocTranslated = new vec2( x, y );
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
 
-      // record cursor movement while the button is down
-      let d = mouseLocTranslated.minus( b.center );
-
-      let alpha = 0.5;
-      this.cursor_v.x = this.cursor_v.x * ( 1 - alpha ) + alpha * d.x;
-      this.cursor_v.y = this.cursor_v.y * ( 1 - alpha ) + alpha * d.y;
-
-      // keep the ball alive and move it to follow the cursor
-      b.is_invincible = true;
-      b.center.x = b.center.x + this.cursor_v.x;
-      b.center.y = b.center.y + this.cursor_v.y;
-    }
-
+    this.mousePos.x = x / this.world.getDrawScale();
+    this.mousePos.y = y / this.world.getDrawScale();
   }
 
   mouseDown( e ) {
     console.log( "mouse down" );
-    this.mouseIsDown = true;
 
-    // check if cursor is over any balls
-    let x = this.mousePos.x / this.world.getDrawScale();
-    let y = this.mousePos.y / this.world.getDrawScale();
+    // If cursor is over a ball, grab it, otherwise create a new one.
+    let x = this.mousePos.x;
+    let y = this.mousePos.y;
     let grabbed_ball = this.world.retrieveBall( x, y );
     if ( grabbed_ball ) {
       console.log("grabbed");
@@ -101,13 +123,14 @@ class Controller
       } else {
         this.ball.is_affected_by_gravity = true;
         this.ball.v = this.cursor_v;
-        this.ball.is_moving = true;
-        this.ball.is_invincible = false;
+        this.ball.is_moving = false;
+        this.ball.is_invincible = true;
         this.ball.can_move = true;
         this.world.addBall( this.ball );
         console.log("adding ball");
       }
     }
+    this.mouseIsDown = true;
   }
 
   mouseUp( e ) {
@@ -126,8 +149,7 @@ class Controller
     // make it mortal
     b.is_invincible = false;
 
-    // toss it in the direction of recent movement
-    b.v = this.cursor_v.copy().times(3);
+    // Let the normal physics take over.
     b.is_moving = true;
 
     // clear recent cursor movement so we don't accidentally reuse it

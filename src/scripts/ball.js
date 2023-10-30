@@ -6,7 +6,7 @@ class Ball
     this.r = r; // radius
     this.color = c; // color
     this.hp = this.calcHp(); // current hit points
-    this.m = this.r; // mass
+    this.m = this.r * this.r; // mass
     this.is_affected_by_gravity = true;
     this.is_moving = true;
     this.is_invincible = false;
@@ -109,6 +109,7 @@ class Ball
     if ( !this.pattern ) {
       var imageObj = new Image();
       // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
+      // TODO: Maybe I should serve this myself...
       imageObj.src = 'http://s3.amazonaws.com/spoonflower/public/design_thumbnails/0289/6414/rrrpizza_pepperoni_shop_preview.png';
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
@@ -162,9 +163,9 @@ class Ball
   }
 
   toS() {
-    return "ball( center: " + this.center.toString() + 
-      ", radius: " + this.r + 
-      ", mass: " + this.m + 
+    return "ball( center: " + this.center.toString() +
+      ", radius: " + this.r +
+      ", mass: " + this.m +
       ", hp: " + this.hp +
       ", v: " + this.v +
       ")";
