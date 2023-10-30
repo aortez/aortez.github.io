@@ -106,6 +106,8 @@ class Controller
     if ( grabbed_ball ) {
       console.log("grabbed");
       this.ball = grabbed_ball;
+      this.ball.is_moving = false;
+      this.ball.v = this.cursor_v;
     } else {
       let r = Math.random() * 0.07 + 0.01;
       let c = new vec3( 128, 128, 128 );
