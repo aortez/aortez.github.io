@@ -13,7 +13,7 @@ class World
     this.shouldDrawBackground = true;
     this.pizza_time = false;
     this.max_balls = 400;
-    this.max_particles = 200;
+    this.max_particles = 300;
     this.is_paused = false;
     this.use_quadtree = false;
     this.purple = false;
@@ -71,8 +71,8 @@ class World
     }
     this.background.advance( dt * 13 );
 
-    let MIN_BALL_RADIUS = 0.004;
-    let MIN_FRAG_RADIUS = 0.001;
+    let MIN_BALL_RADIUS = 0.002;
+    let MIN_FRAG_RADIUS = 0.0002;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     for ( let i = 0; i < this.balls.length; i++ ) {

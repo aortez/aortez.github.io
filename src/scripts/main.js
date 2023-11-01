@@ -161,7 +161,7 @@ function advance() {
     if ( world.max_balls < 300 ) {
       world.max_balls += 0.1;
     }
-    if ( world.max_particles < 200 ) {
+    if ( world.max_particles < 300 ) {
       world.max_particles += 1;
     }
   }

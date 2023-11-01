@@ -140,7 +140,7 @@ class Ball
         const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.3 + Math.random() * 0.7 );
+        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.1 + Math.random() * 0.9 );
         if ( r < min_frag_radius ) continue;
         let c = this.color.copy();
         c.randColor( 100 );

@@ -831,7 +831,7 @@ class Ball
         const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.3 + Math.random() * 0.7 );
+        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.1 + Math.random() * 0.9 );
         if ( r < min_frag_radius ) continue;
         let c = this.color.copy();
         c.randColor( 100 );
@@ -879,7 +879,7 @@ class World
     this.shouldDrawBackground = true;
     this.pizza_time = false;
     this.max_balls = 400;
-    this.max_particles = 200;
+    this.max_particles = 300;
     this.is_paused = false;
     this.use_quadtree = false;
     this.purple = false;
@@ -895,18 +895,20 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let green = new vec3( 0, 255, 0 );
 
-    let b1 = new Ball( 0.5, 0.5, 0.1, pink.copy() );
-    b1.v.x = 0.001;
-    b1.is_affected_by_gravity = true;
-    b1.is_moving = true;
-    b1.is_invincible = false;
+    // let b1 = new Ball( 0.5, 0.2, 0.05, pink.copy() );
+    // b1.v.x = -0.01;
+    // b1.is_affected_by_gravity = true;
+    // b1.is_moving = true;
+    // b1.is_invincible = false;
+    // b1.hp = 0.00001;
     // this.addBall( b1 );
-
-    // let b2 = new Ball( 1750, 150, 50, blue.copy() );
-    // b2.v.x = -20;
+    //
+    // let b2 = new Ball( 0.2, 0.2, 0.10, blue.copy() );
+    // b2.v.x = 0.02;
     // b2.is_affected_by_gravity = true;
     // b2.is_moving = true;
     // b2.is_invincible = false;
+    // b2.hp = 0.00001;
     // this.addBall( b2 );
     //
     // let b3 = new Ball( 50, 500, 200, pink.copy() );
@@ -935,8 +937,8 @@ class World
     }
     this.background.advance( dt * 13 );
 
-    let MIN_BALL_RADIUS = 0.004;
-    let MIN_FRAG_RADIUS = 0.001;
+    let MIN_BALL_RADIUS = 0.002;
+    let MIN_FRAG_RADIUS = 0.0002;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     for ( let i = 0; i < this.balls.length; i++ ) {
@@ -1443,7 +1445,7 @@ function advance() {
     if ( world.max_balls < 300 ) {
       world.max_balls += 0.1;
     }
-    if ( world.max_particles < 200 ) {
+    if ( world.max_particles < 300 ) {
       world.max_particles += 1;
     }
   }
