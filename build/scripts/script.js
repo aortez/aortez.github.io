@@ -755,7 +755,7 @@ class Ball
       b.center.minus( T.copy().times( m1 / M ) );
     }
 
-    // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
+    // If neither can move, as soon as we've separated the objects, we don't need to adjust their velocity any further.
     if ( !b.is_moving && !this.is_moving ) {
       return;
     }
@@ -782,7 +782,7 @@ class Ball
       b.v = v2t.minus( dv2t.times( elastic_factor ) );
     }
 
-    // damage life based upon change in momemtum
+    // Apply damage, based upon change in momentum.
     if ( !this.is_invincible ) {
       this.hp -= ( dv1t.mag() * DAMAGE_SCALAR );
     }
@@ -970,17 +970,21 @@ class World
       // interact with particles
       for ( let j = 0; j < this.particles.length; j++ ) {
         let b2 = this.particles[ j ];
-        // possibly collide
+
+        // Anything colliding with a particle cannot be destroyed or bumped.
         let was_invincible = b.is_invincible;
         let was_moving = b.is_moving;
         b.is_invincible = true;
         b.is_moving = false;
+
+        // Possibly collide.
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
         }
         b.is_invincible = was_invincible;
         b.is_moving = was_moving;
-        // apply gravity
+
+        // Apply gravity.
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
           let d = b.center.distance( b2.center );
@@ -1073,6 +1077,7 @@ class World
     // do particle stuff
     this.advanceParticles( particle_dt );
 
+    // Prune excess balls.
     if ( this.balls.length > this.max_balls ) {
       // console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
       // sort balls by hp

@@ -64,7 +64,7 @@ class Ball
       b.center.minus( T.copy().times( m1 / M ) );
     }
 
-    // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
+    // If neither can move, as soon as we've separated the objects, we don't need to adjust their velocity any further.
     if ( !b.is_moving && !this.is_moving ) {
       return;
     }
@@ -91,7 +91,7 @@ class Ball
       b.v = v2t.minus( dv2t.times( elastic_factor ) );
     }
 
-    // damage life based upon change in momemtum
+    // Apply damage, based upon change in momentum.
     if ( !this.is_invincible ) {
       this.hp -= ( dv1t.mag() * DAMAGE_SCALAR );
     }
