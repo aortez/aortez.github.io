@@ -174,9 +174,11 @@ class World
       }
     }
 
-    // deal with the dead balls
-    // some get removed from the world
-    // some get exploded
+    // Deal with the dead balls.
+    // Some get removed from the world. Others get exploded into more balls.
+    // First though, randomly sort the dead balls. This helps prevent new balls from having a bias
+    // toward one direction.
+    shuffle(dead_balls);
     let new_balls = [];
     for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
       let ball = dead_balls[ i ];
@@ -193,9 +195,13 @@ class World
       }
     }
 
-    // add exploded fragments to the main collection
-    for ( let i = 0; i < new_balls.length && this.balls.length < this.max_balls; i++ ) {
-      this.balls.push( new_balls[ i ] );
+    // Add exploded fragments to the main collection.
+    // Since we exit early if we're at max capacity, shuffle the new balls to prevent bias from the output
+    // from the `explode` function.  Without it, we tend to get a bias toward new balls appearing in one direction.
+    shuffle(new_balls);
+    for (let i = 0; i < new_balls.length && this.balls.length < this.max_balls; i++) {
+      let new_ball = new_balls[ i ];
+      this.balls.push( new_ball );
     }
 
     // do particle stuff
