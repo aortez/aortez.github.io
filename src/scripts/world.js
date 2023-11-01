@@ -262,7 +262,7 @@ class World
      }
   }
 
-  addBall( b ) {
+  addBall( b, addEvenIfFull = false ) {
     console.log( 'adding ball: ' + b.toS() );
     if ( !b ) {
       return;
@@ -276,7 +276,7 @@ class World
     if ( this.balls.length < this.max_balls ) {
       this.balls.push( b );
       console.log( 'ball added' );
-    } else {
+    } else if ( addEvenIfFull ) {
       // if we've exceeded capacity, replace a random ball
       let ball_index = Math.trunc( Math.random() * this.balls.length );
       this.balls[ ball_index ] = b;

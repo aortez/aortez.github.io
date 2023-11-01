@@ -511,8 +511,8 @@ class Controller
     if ( grabbed_ball ) {
       console.log("grabbed");
       this.ball = grabbed_ball;
-      this.ball.is_moving = false;
       this.ball.v = this.cursor_v;
+      this.ball.is_invincible = true;
     } else {
       let r = Math.random() * 0.07 + 0.01;
       let c = new vec3( 128, 128, 128 );
@@ -520,23 +520,17 @@ class Controller
       this.ball = new Ball( x, y, r, c );
       if ( this.next_object_type == ObjectType.PLANET ) {
         this.ball.r = this.ball.r * 2;
-        this.ball.is_affected_by_gravity = true;
-        this.ball.m = this.ball.r * 5;
-        this.ball.hp = this.ball.r * 10000;
-        this.ball.is_moving = false;
-        this.ball.is_invincible = true;
         this.world.addPlanet( this.ball );
         console.log("adding planet");
       } else {
-        this.ball.is_affected_by_gravity = true;
         this.ball.v = this.cursor_v;
-        this.ball.is_moving = false;
-        this.ball.is_invincible = true;
-        this.ball.can_move = true;
-        this.world.addBall( this.ball );
+        this.world.addBall( this.ball, true );
         console.log("adding ball");
       }
     }
+    this.ball.is_affected_by_gravity = true;
+    this.ball.is_moving = false;
+    this.ball.is_invincible = true;
     this.mouseIsDown = true;
   }
 
@@ -1134,7 +1128,7 @@ class World
      }
   }
 
-  addBall( b ) {
+  addBall( b, addEvenIfFull = false ) {
     console.log( 'adding ball: ' + b.toS() );
     if ( !b ) {
       return;
@@ -1148,7 +1142,7 @@ class World
     if ( this.balls.length < this.max_balls ) {
       this.balls.push( b );
       console.log( 'ball added' );
-    } else {
+    } else if ( addEvenIfFull ) {
       // if we've exceeded capacity, replace a random ball
       let ball_index = Math.trunc( Math.random() * this.balls.length );
       this.balls[ ball_index ] = b;
