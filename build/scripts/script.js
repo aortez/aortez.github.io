@@ -1099,13 +1099,10 @@ class World
       });
       // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
-      // Remove any balls beyond the limit.
-      // TODO: There is probably a better way to prune this than in a loop.
-      while ( this.balls.length > this.max_balls ) {
-        this.balls.splice( this.balls.length - 1, 1 );
-      }
+      // Remove excess balls.
+      let to_remove = this.max_balls - this.balls.length;
+      this.balls.splice( this.balls.length - to_remove, to_remove );
     }
-
   }
 
   advanceParticles( dt ) {
@@ -1290,7 +1287,6 @@ class World
     this.n_divs = this.n_divs.toFixed( 0 );
     console.log( "sliding: " + this.n_divs );
   }
-
 }
 
 let ctx;
