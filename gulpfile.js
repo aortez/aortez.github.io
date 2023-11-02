@@ -18,6 +18,7 @@ function lint(cb) {
 
 function build(cb) {
   src([
+    './src/scripts/utils.js',
     './src/scripts/vec3.js',
     './src/scripts/vec2.js',
     './src/scripts/quadtree.js',

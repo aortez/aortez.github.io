@@ -1,3 +1,19 @@
+// O(n) in-place array shuffle.
+function shuffle( a ) {
+    // Durstenfeld shuffle:
+    // (https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm)
+    // -- To shuffle an array a of n elements (indices 0..n-1):
+    // for i from n−1 down to 1 do
+    //   j ← random integer such that 0 ≤ j ≤ i
+    //   exchange a[j] and a[i]
+    for ( let i = a.length - 1; i > 0; i-- ) {
+        let j = Math.floor( Math.random() * ( i + 1 ) );
+        let temp = a[i];
+        a[i] = a[j];
+        a[j] = temp;
+    }
+}
+
 class vec3
 {
   constructor( x, y, z ) {
@@ -495,8 +511,8 @@ class Controller
     if ( grabbed_ball ) {
       console.log("grabbed");
       this.ball = grabbed_ball;
-      this.ball.is_moving = false;
       this.ball.v = this.cursor_v;
+      this.ball.is_invincible = true;
     } else {
       let r = Math.random() * 0.07 + 0.01;
       let c = new vec3( 128, 128, 128 );
@@ -504,23 +520,17 @@ class Controller
       this.ball = new Ball( x, y, r, c );
       if ( this.next_object_type == ObjectType.PLANET ) {
         this.ball.r = this.ball.r * 2;
-        this.ball.is_affected_by_gravity = true;
-        this.ball.m = this.ball.r * 5;
-        this.ball.hp = this.ball.r * 10000;
-        this.ball.is_moving = false;
-        this.ball.is_invincible = true;
         this.world.addPlanet( this.ball );
         console.log("adding planet");
       } else {
-        this.ball.is_affected_by_gravity = true;
         this.ball.v = this.cursor_v;
-        this.ball.is_moving = false;
-        this.ball.is_invincible = true;
-        this.ball.can_move = true;
-        this.world.addBall( this.ball );
+        this.world.addBall( this.ball, true );
         console.log("adding ball");
       }
     }
+    this.ball.is_affected_by_gravity = true;
+    this.ball.is_moving = false;
+    this.ball.is_invincible = true;
     this.mouseIsDown = true;
   }
 
@@ -740,12 +750,12 @@ class Ball
      this.center.plus( T );
     }
     else {
-      // push the circles apart proportional to their mass
+      // Separate the circles so they don't overlap, proportional to their mass.
       this.center.plus( T.copy().times( m2 / M ) );
       b.center.minus( T.copy().times( m1 / M ) );
     }
 
-    // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
+    // If neither can move, as soon as we've separated the objects, we don't need to adjust their velocity any further.
     if ( !b.is_moving && !this.is_moving ) {
       return;
     }
@@ -763,8 +773,8 @@ class Ball
 
     // calculate new velocity vectors of the balls, the tangential component stays the same, the normal component changes
     let elastic_factor = 0.9;
-    let dv1t = Dn.copy().times( ( m1 - m2 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
-    let dv2t = Dn.times( ( m2 - m1 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
+    let dv1t = Dn.copy().times( ( m2 - m1 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
+    let dv2t = Dn.times( ( m1 - m2 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
     if ( this.is_moving ) {
       this.v = v1t.plus( dv1t.times( elastic_factor ) );
     }
@@ -772,7 +782,7 @@ class Ball
       b.v = v2t.minus( dv2t.times( elastic_factor ) );
     }
 
-    // damage life based upon change in momemtum
+    // Apply damage, based upon change in momentum.
     if ( !this.is_invincible ) {
       this.hp -= ( dv1t.mag() * DAMAGE_SCALAR );
     }
@@ -821,7 +831,7 @@ class Ball
         const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.3 + Math.random() * 0.7 );
+        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.1 + Math.random() * 0.9 );
         if ( r < min_frag_radius ) continue;
         let c = this.color.copy();
         c.randColor( 100 );
@@ -869,7 +879,7 @@ class World
     this.shouldDrawBackground = true;
     this.pizza_time = false;
     this.max_balls = 400;
-    this.max_particles = 200;
+    this.max_particles = 300;
     this.is_paused = false;
     this.use_quadtree = false;
     this.purple = false;
@@ -885,18 +895,20 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let green = new vec3( 0, 255, 0 );
 
-    let b1 = new Ball( 0.5, 0.5, 0.1, pink.copy() );
-    b1.v.x = 0.001;
-    b1.is_affected_by_gravity = true;
-    b1.is_moving = true;
-    b1.is_invincible = false;
+    // let b1 = new Ball( 0.5, 0.2, 0.01, pink.copy() );
+    // b1.v.x = -0.02;
+    // b1.is_affected_by_gravity = true;
+    // b1.is_moving = true;
+    // b1.is_invincible = false;
+    // b1.hp = 0.00001;
     // this.addBall( b1 );
-
-    // let b2 = new Ball( 1750, 150, 50, blue.copy() );
-    // b2.v.x = -20;
+    //
+    // let b2 = new Ball( 0.2, 0.2, 0.10, blue.copy() );
+    // b2.v.x = 0.02;
     // b2.is_affected_by_gravity = true;
     // b2.is_moving = true;
     // b2.is_invincible = false;
+    // b2.hp = 0.00001;
     // this.addBall( b2 );
     //
     // let b3 = new Ball( 50, 500, 200, pink.copy() );
@@ -925,8 +937,8 @@ class World
     }
     this.background.advance( dt * 13 );
 
-    let MIN_BALL_RADIUS = 0.004;
-    let MIN_FRAG_RADIUS = 0.001;
+    let MIN_BALL_RADIUS = 0.002;
+    let MIN_FRAG_RADIUS = 0.0002;
     let WALL_ELASTIC_FACTOR = 0.9;
 
     for ( let i = 0; i < this.balls.length; i++ ) {
@@ -960,17 +972,21 @@ class World
       // interact with particles
       for ( let j = 0; j < this.particles.length; j++ ) {
         let b2 = this.particles[ j ];
-        // possibly collide
+
+        // Anything colliding with a particle cannot be destroyed or bumped.
         let was_invincible = b.is_invincible;
         let was_moving = b.is_moving;
         b.is_invincible = true;
         b.is_moving = false;
+
+        // Possibly collide.
         if ( b.center.distance( b2.center ) < b.r + b2.r ) {
           b.collide( b2 );
         }
         b.is_invincible = was_invincible;
         b.is_moving = was_moving;
-        // apply gravity
+
+        // Apply gravity.
         if ( b.is_affected_by_gravity && b2.is_affected_by_gravity ) {
           // F = (G * m1 * m2) / (Distance^2)
           let d = b.center.distance( b2.center );
@@ -1030,48 +1046,63 @@ class World
       }
     }
 
-    // deal with the dead balls
-    // some get removed from the world
-    // some get exploded
+    // Deal with the dead balls.
+    // Some get removed from the world. Others get exploded into more balls.
+    // First though, randomly sort the dead balls. This helps prevent new balls from having a bias
+    // toward one direction.
+    shuffle(dead_balls);
     let new_balls = [];
-    for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
-      let ball = dead_balls[ i ];
+    for ( let i = 0; i < dead_balls.length; i++ ) {
+      // If we're already at max capacity, just remove the ball.
+      if ( this.balls.length >= this.max_balls ) {
+        break;
+      }
 
-      let dead_frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
-      for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
-        let frag = dead_frags[ frag_index ];
+      // Otherwise, explode it and add its frags to the world.
+      let ball = dead_balls[ i ];
+      let frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
+      for ( let frag_index = 0; frag_index < frags.length; frag_index++ ) {
+        // If the fragment is big enough, and there is capacity, add it to the world as a ball.
+        // Otherwise, add it as a particle.
+        let frag = frags[ frag_index ];
         if ( frag.r >= MIN_BALL_RADIUS ) {
           new_balls.push( frag );
-        } else {
-          frag.hp = frag.calcHp() * Math.random(); // add randomness to particle lifespan
+        } else if ( this.particles.length < this.max_particles ) {
+          // Add randomness to particle lifespan.
+          frag.hp = frag.calcHp() * Math.random();
+          // Give particles a velocity boost.
+          frag.v.normalize().times(MIN_FRAG_RADIUS * 1000 * Math.random());
           this.particles.push( frag );
         }
       }
     }
 
-    // add exploded fragments to the main collection
-    for ( let i = 0; i < new_balls.length && this.balls.length < this.max_balls; i++ ) {
-      this.balls.push( new_balls[ i ] );
+    // Add exploded fragments to the main collection.
+    // Since we exit early if we're at max capacity, shuffle the new balls to prevent bias from the output
+    // from the `explode` function.  Without it, we tend to get a bias toward new balls appearing in one direction.
+    shuffle(new_balls);
+    for (let i = 0; i < new_balls.length && this.balls.length < this.max_balls; i++) {
+      let new_ball = new_balls[ i ];
+      this.balls.push( new_ball );
     }
 
     // do particle stuff
     this.advanceParticles( particle_dt );
 
+    // Prune excess balls.
     if ( this.balls.length > this.max_balls ) {
       // console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
-      // sort balls by hp
+
+      // Sort the balls by size, as removing large balls will be less obvious than removing small ones.
       this.balls.sort( function(a, b) {
-        return parseFloat( b.hp ) - parseFloat( a.hp );
+        return parseFloat( b.r ) - parseFloat( a.r );
       });
       // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
-      // Remove any balls beyond the limit.
-      // TODO: There is probably a better way to prune this than in a loop.
-      while ( this.balls.length > this.max_balls ) {
-        this.balls.splice( this.balls.length - 1, 1 );
-      }
+      // Remove excess balls.
+      let to_remove = this.max_balls - this.balls.length;
+      this.balls.splice( this.balls.length - to_remove, to_remove );
     }
-
   }
 
   advanceParticles( dt ) {
@@ -1112,7 +1143,7 @@ class World
      }
   }
 
-  addBall( b ) {
+  addBall( b, addEvenIfFull = false ) {
     console.log( 'adding ball: ' + b.toS() );
     if ( !b ) {
       return;
@@ -1126,7 +1157,7 @@ class World
     if ( this.balls.length < this.max_balls ) {
       this.balls.push( b );
       console.log( 'ball added' );
-    } else {
+    } else if ( addEvenIfFull ) {
       // if we've exceeded capacity, replace a random ball
       let ball_index = Math.trunc( Math.random() * this.balls.length );
       this.balls[ ball_index ] = b;
@@ -1256,7 +1287,6 @@ class World
     this.n_divs = this.n_divs.toFixed( 0 );
     console.log( "sliding: " + this.n_divs );
   }
-
 }
 
 let ctx;
@@ -1422,7 +1452,7 @@ function advance() {
     if ( world.max_balls < 300 ) {
       world.max_balls += 0.1;
     }
-    if ( world.max_particles < 200 ) {
+    if ( world.max_particles < 300 ) {
       world.max_particles += 1;
     }
   }

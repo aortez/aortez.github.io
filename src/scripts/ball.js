@@ -59,12 +59,12 @@ class Ball
      this.center.plus( T );
     }
     else {
-      // push the circles apart proportional to their mass
+      // Separate the circles so they don't overlap, proportional to their mass.
       this.center.plus( T.copy().times( m2 / M ) );
       b.center.minus( T.copy().times( m1 / M ) );
     }
 
-    // if neither can move, as soon as we've moved the objects, we don't need to adjust their velocity any further
+    // If neither can move, as soon as we've separated the objects, we don't need to adjust their velocity any further.
     if ( !b.is_moving && !this.is_moving ) {
       return;
     }
@@ -82,8 +82,8 @@ class Ball
 
     // calculate new velocity vectors of the balls, the tangential component stays the same, the normal component changes
     let elastic_factor = 0.9;
-    let dv1t = Dn.copy().times( ( m1 - m2 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
-    let dv2t = Dn.times( ( m2 - m1 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
+    let dv1t = Dn.copy().times( ( m2 - m1 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
+    let dv2t = Dn.times( ( m1 - m2 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
     if ( this.is_moving ) {
       this.v = v1t.plus( dv1t.times( elastic_factor ) );
     }
@@ -91,7 +91,7 @@ class Ball
       b.v = v2t.minus( dv2t.times( elastic_factor ) );
     }
 
-    // damage life based upon change in momemtum
+    // Apply damage, based upon change in momentum.
     if ( !this.is_invincible ) {
       this.hp -= ( dv1t.mag() * DAMAGE_SCALAR );
     }
@@ -101,11 +101,10 @@ class Ball
     // console.log( "this.hp: " + this.hp );
   }
 
-  // world goes from 0 - 1
-  // objects live inside this bounds
-  // when drawing, scale object location to canvas size
-
   draw( ctx, scale_factor, pizza_time ) {
+    // The world goes from 0 to 1, across the largest dimension.
+    // The smaller dimension is sized relative to the larger.
+
     if ( !this.pattern ) {
       var imageObj = new Image();
       // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
@@ -114,6 +113,7 @@ class Ball
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
 
+    // Scale object location to canvas size.
     ctx.beginPath();
     let x = this.center.x * scale_factor;
     let y = this.center.y * scale_factor;
@@ -140,7 +140,7 @@ class Ball
         const new_center = new vec2( x, y );
         if ( new_center.distance( this.center ) > this.r ) continue;
 
-        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.3 + Math.random() * 0.7 );
+        let r = div_size * EXPLODER_SIZE_FACTOR * ( 0.1 + Math.random() * 0.9 );
         if ( r < min_frag_radius ) continue;
         let c = this.color.copy();
         c.randColor( 100 );
