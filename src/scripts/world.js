@@ -186,16 +186,26 @@ class World
     // toward one direction.
     shuffle(dead_balls);
     let new_balls = [];
-    for ( let i = 0; i < dead_balls.length && this.balls.length < this.max_balls; i++ ) {
-      let ball = dead_balls[ i ];
+    for ( let i = 0; i < dead_balls.length; i++ ) {
+      // If we're already at max capacity, just remove the ball.
+      if ( this.balls.length >= this.max_balls ) {
+        break;
+      }
 
-      let dead_frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
-      for ( let frag_index = 0; frag_index < dead_frags.length && this.balls.length < this.max_balls; frag_index++ ) {
-        let frag = dead_frags[ frag_index ];
+      // Otherwise, explode it and add its frags to the world.
+      let ball = dead_balls[ i ];
+      let frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
+      for ( let frag_index = 0; frag_index < frags.length; frag_index++ ) {
+        // If the fragment is big enough, and there is capacity, add it to the world as a ball.
+        // Otherwise, add it as a particle.
+        let frag = frags[ frag_index ];
         if ( frag.r >= MIN_BALL_RADIUS ) {
           new_balls.push( frag );
-        } else {
-          frag.hp = frag.calcHp() * Math.random(); // add randomness to particle lifespan
+        } else if ( this.particles.length < this.max_particles ) {
+          // Add randomness to particle lifespan.
+          frag.hp = frag.calcHp() * Math.random();
+          // Give particles a velocity boost.
+          frag.v.normalize().times(MIN_FRAG_RADIUS * 1000 * Math.random());
           this.particles.push( frag );
         }
       }
