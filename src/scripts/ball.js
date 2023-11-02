@@ -59,7 +59,7 @@ class Ball
      this.center.plus( T );
     }
     else {
-      // push the circles apart proportional to their mass
+      // Separate the circles so they don't overlap, proportional to their mass.
       this.center.plus( T.copy().times( m2 / M ) );
       b.center.minus( T.copy().times( m1 / M ) );
     }
@@ -82,8 +82,8 @@ class Ball
 
     // calculate new velocity vectors of the balls, the tangential component stays the same, the normal component changes
     let elastic_factor = 0.9;
-    let dv1t = Dn.copy().times( ( m1 - m2 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
-    let dv2t = Dn.times( ( m2 - m1 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
+    let dv1t = Dn.copy().times( ( m2 - m1 ) /  M * v1n.mag() + 2 * m2 / M * v2n.mag() );
+    let dv2t = Dn.times( ( m1 - m2 ) / M * v2n.mag() + 2 * m1 / M * v1n.mag() );
     if ( this.is_moving ) {
       this.v = v1t.plus( dv1t.times( elastic_factor ) );
     }

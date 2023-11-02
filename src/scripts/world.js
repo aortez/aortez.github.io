@@ -29,8 +29,8 @@ class World
     let blue = new vec3( 0, 0, 255 );
     let green = new vec3( 0, 255, 0 );
 
-    // let b1 = new Ball( 0.5, 0.2, 0.05, pink.copy() );
-    // b1.v.x = -0.01;
+    // let b1 = new Ball( 0.5, 0.2, 0.01, pink.copy() );
+    // b1.v.x = -0.02;
     // b1.is_affected_by_gravity = true;
     // b1.is_moving = true;
     // b1.is_invincible = false;
