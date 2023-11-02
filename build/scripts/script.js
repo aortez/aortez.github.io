@@ -1092,9 +1092,10 @@ class World
     // Prune excess balls.
     if ( this.balls.length > this.max_balls ) {
       // console.log( "Before: this.balls[0].hp: " + this.balls[0].hp );
-      // sort balls by hp
+
+      // Sort the balls by size, as removing large balls will be less obvious than removing small ones.
       this.balls.sort( function(a, b) {
-        return parseFloat( b.hp ) - parseFloat( a.hp );
+        return parseFloat( b.r ) - parseFloat( a.r );
       });
       // console.log( "After: this.balls[0].hp: " + this.balls[0].hp );
 
