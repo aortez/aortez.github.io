@@ -101,11 +101,10 @@ class Ball
     // console.log( "this.hp: " + this.hp );
   }
 
-  // world goes from 0 - 1
-  // objects live inside this bounds
-  // when drawing, scale object location to canvas size
-
   draw( ctx, scale_factor, pizza_time ) {
+    // The world goes from 0 to 1, across the largest dimension.
+    // The smaller dimension is sized relative to the larger.
+
     if ( !this.pattern ) {
       var imageObj = new Image();
       // imageObj.src = 'http://www.html5canvastutorials.com/demos/assets/wood-pattern.png';
@@ -114,6 +113,7 @@ class Ball
       this.pattern = ctx.createPattern(imageObj, 'repeat');
     }
 
+    // Scale object location to canvas size.
     ctx.beginPath();
     let x = this.center.x * scale_factor;
     let y = this.center.y * scale_factor;

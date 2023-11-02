@@ -19,3 +19,7 @@ gulp
 ```
 http-server
 ```
+
+## Disclaimer
+Do not take anything in this repo seriously. It is buggy and poorly written. It does not have any real goal, other
+than to serve as a personal playground.
