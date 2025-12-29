@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Setup - Sparkle Duck</title>
+  <style>
+    :root {
+      --earth-brown: #8B4513;
+      --dirt-tan: #D2B48C;
+      --grass-green: #6B8E23;
+      --sky-blue: #87CEEB;
+      --cream: #FFF8DC;
+      --dark-soil: #3E2723;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, var(--sky-blue) 0%, var(--cream) 40%, var(--dirt-tan) 70%, var(--earth-brown) 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      color: var(--dark-soil);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+    }
+
+    .subtitle {
+      color: var(--earth-brown);
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(62, 39, 35, 0.2);
+      margin-bottom: 1.5rem;
+    }
+
+    .status-area {
+      min-height: 60px;
+      margin-bottom: 1.5rem;
+    }
+
+    .status {
+      padding: 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .status.idle {
+      background: var(--cream);
+      color: var(--dark-soil);
+    }
+
+    .status.connecting {
+      background: #FFF3E0;
+      color: #E65100;
+    }
+
+    .status.provisioning {
+      background: #E3F2FD;
+      color: #1565C0;
+    }
+
+    .status.success {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+
+    .status.error {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+
+    .device-name {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: var(--grass-green);
+      margin-bottom: 0.5rem;
+    }
+
+    .redirect-url {
+      margin-top: 1rem;
+    }
+
+    .redirect-url a {
+      display: inline-block;
+      background: var(--grass-green);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .redirect-url a:hover {
+      background: #557B1A;
+    }
+
+    /* Improv WiFi button styling. */
+    improv-wifi-launch-button {
+      --improv-primary-color: var(--earth-brown);
+      --improv-on-primary-color: white;
+    }
+
+    .unsupported-notice {
+      background: #FFF3E0;
+      border: 2px solid #FFB74D;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .unsupported-notice h3 {
+      color: #E65100;
+      margin-bottom: 0.75rem;
+    }
+
+    .unsupported-notice ul {
+      text-align: left;
+      margin: 1rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .unsupported-notice li {
+      margin: 0.5rem 0;
+      color: var(--dark-soil);
+    }
+
+    .instructions {
+      text-align: left;
+      color: var(--dark-soil);
+      line-height: 1.6;
+    }
+
+    .instructions ol {
+      margin: 1rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .instructions li {
+      margin: 0.75rem 0;
+    }
+
+    .duck-emoji {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      color: var(--dark-soil);
+      opacity: 0.7;
+      font-size: 0.875rem;
+    }
+
+    .footer a {
+      color: var(--earth-brown);
+    }
+
+    /* Hide elements based on browser support. */
+    .show-if-supported {
+      display: none;
+    }
+
+    .show-if-unsupported {
+      display: block;
+    }
+
+    body.bluetooth-supported .show-if-supported {
+      display: block;
+    }
+
+    body.bluetooth-supported .show-if-unsupported {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="duck-emoji">🦆</div>
+    <h1>Sparkle Duck WiFi Setup</h1>
+    <p class="subtitle">Connect your device to WiFi</p>
+
+    <div class="card">
+      <div class="status-area">
+        <div id="status" class="status idle">
+          Ready to connect
+        </div>
+        <div id="device-info" style="display: none;">
+          <div class="device-name" id="device-name"></div>
+        </div>
+        <div id="redirect-area" class="redirect-url" style="display: none;">
+          <a id="redirect-link" href="#">Open Device</a>
+        </div>
+      </div>
+
+      <div class="show-if-supported">
+        <script
+          type="module"
+          src="https://www.improv-wifi.com/sdk-js/launch-button.js"
+        ></script>
+        <improv-wifi-launch-button></improv-wifi-launch-button>
+      </div>
+
+      <div class="show-if-unsupported">
+        <div class="unsupported-notice">
+          <h3>Browser Not Supported</h3>
+          <p>Web Bluetooth is required for WiFi setup.</p>
+          <ul>
+            <li><strong>On Android:</strong> Use Chrome or Edge</li>
+            <li><strong>On Windows/Mac/Linux:</strong> Use Chrome or Edge</li>
+            <li><strong>On iOS:</strong> Not supported (use a computer)</li>
+          </ul>
+          <p>Alternatively, use <a href="https://www.home-assistant.io/integrations/improv_ble" target="_blank">Home Assistant</a> which auto-discovers Improv devices.</p>
+        </div>
+      </div>
+
+      <div class="instructions show-if-supported">
+        <h3 style="margin-bottom: 0.5rem; color: var(--earth-brown);">How it works</h3>
+        <ol>
+          <li>Click <strong>"Connect device to Wi-Fi"</strong></li>
+          <li>Select your device from the Bluetooth picker</li>
+          <li>Choose your WiFi network and enter the password</li>
+          <li>Wait for connection, then click the link to open your device</li>
+        </ol>
+      </div>
+    </div>
+
+    <p class="footer">
+      Powered by <a href="https://www.improv-wifi.com/" target="_blank">Improv WiFi</a>
+    </p>
+  </div>
+
+  <script type="module">
+    // Check for Web Bluetooth support.
+    const isSupported = 'bluetooth' in navigator;
+    if (isSupported) {
+      document.body.classList.add('bluetooth-supported');
+    }
+
+    // Wait for the launch button to be defined.
+    customElements.whenDefined('improv-wifi-launch-button').then(() => {
+      const launchButton = document.querySelector('improv-wifi-launch-button');
+      const statusEl = document.getElementById('status');
+      const deviceInfoEl = document.getElementById('device-info');
+      const deviceNameEl = document.getElementById('device-name');
+      const redirectAreaEl = document.getElementById('redirect-area');
+      const redirectLinkEl = document.getElementById('redirect-link');
+
+      if (!launchButton) return;
+
+      launchButton.addEventListener('state-changed', (event) => {
+        const state = event.detail.state;
+
+        // Reset UI on new connection attempt.
+        if (state === 'CONNECTING') {
+          deviceInfoEl.style.display = 'none';
+          redirectAreaEl.style.display = 'none';
+        }
+
+        switch (state) {
+          case 'CONNECTING':
+            statusEl.className = 'status connecting';
+            statusEl.textContent = 'Connecting to device...';
+            break;
+
+          case 'AUTHORIZATION_REQUIRED':
+            statusEl.className = 'status connecting';
+            statusEl.textContent = 'Please authorize on device...';
+            break;
+
+          case 'AUTHORIZED':
+            statusEl.className = 'status connecting';
+            statusEl.textContent = 'Connected! Select WiFi network...';
+
+            // Try to get device info for display.
+            if (event.detail.deviceInfo) {
+              const info = event.detail.deviceInfo;
+              deviceNameEl.textContent = info.name || 'Device';
+              deviceInfoEl.style.display = 'block';
+            }
+            break;
+
+          case 'PROVISIONING':
+            statusEl.className = 'status provisioning';
+            statusEl.textContent = 'Connecting to WiFi...';
+            break;
+
+          case 'PROVISIONED':
+            statusEl.className = 'status success';
+            statusEl.textContent = 'WiFi connected successfully!';
+
+            // Show redirect URL if available.
+            if (event.detail.redirectUrl) {
+              redirectLinkEl.href = event.detail.redirectUrl;
+              redirectLinkEl.textContent = 'Open ' + (deviceNameEl.textContent || 'Device');
+              redirectAreaEl.style.display = 'block';
+            }
+            break;
+
+          case 'ERROR':
+            statusEl.className = 'status error';
+            statusEl.textContent = 'Error: ' + (event.detail.message || 'Connection failed');
+            break;
+
+          default:
+            statusEl.className = 'status idle';
+            statusEl.textContent = 'Ready to connect';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
