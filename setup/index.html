@@ -235,11 +235,8 @@
       </div>
 
       <div class="status-area">
-        <div id="status-wrapper" class="sparkle-container">
-          <div class="sparkle-orbit" id="status-orbit"></div>
-          <div id="status" class="status idle">
-            Ready to connect
-          </div>
+        <div id="status" class="status idle">
+          Ready to connect
         </div>
         <div id="device-info" style="display: none;">
           <div class="device-name" id="device-name"></div>
@@ -279,16 +276,11 @@
       }
     }
 
-    // Add sparkles to the button orbit (always for now, to debug).
+    // Add sparkles to the button orbit only if Bluetooth is supported.
+    const isSupported = 'bluetooth' in navigator && window.isSecureContext;
     const buttonOrbit = document.getElementById('button-orbit');
-    if (buttonOrbit) {
+    if (isSupported && buttonOrbit) {
       addSparkles(buttonOrbit, 12);
-    }
-
-    // Add sparkles to the status box (for debugging).
-    const statusOrbit = document.getElementById('status-orbit');
-    if (statusOrbit) {
-      addSparkles(statusOrbit, 12);
     }
 
     // Wait for the launch button to be defined.
