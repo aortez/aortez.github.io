@@ -229,7 +229,10 @@
     <p class="subtitle">Connect your device to WiFi</p>
 
     <div class="card">
-      <improv-wifi-launch-button></improv-wifi-launch-button>
+      <div id="button-wrapper" class="sparkle-container">
+        <div class="sparkle-orbit" id="button-orbit"></div>
+        <improv-wifi-launch-button></improv-wifi-launch-button>
+      </div>
 
       <div class="status-area">
         <div id="status-wrapper" class="sparkle-container">
@@ -276,7 +279,13 @@
       }
     }
 
-    // Add sparkles to the status box (always, for debugging).
+    // Add sparkles to the button orbit (always for now, to debug).
+    const buttonOrbit = document.getElementById('button-orbit');
+    if (buttonOrbit) {
+      addSparkles(buttonOrbit, 12);
+    }
+
+    // Add sparkles to the status box (for debugging).
     const statusOrbit = document.getElementById('status-orbit');
     if (statusOrbit) {
       addSparkles(statusOrbit, 12);
@@ -285,23 +294,6 @@
     // Wait for the launch button to be defined.
     customElements.whenDefined('improv-wifi-launch-button').then(() => {
       const launchButton = document.querySelector('improv-wifi-launch-button');
-
-      // Only add sparkles if Web Bluetooth is supported.
-      const isSupported = 'bluetooth' in navigator && window.isSecureContext;
-      if (isSupported && launchButton) {
-        // Create sparkle container.
-        const container = document.createElement('div');
-        container.className = 'sparkle-container';
-
-        const orbit = document.createElement('div');
-        orbit.className = 'sparkle-orbit';
-        addSparkles(orbit, 12);
-
-        // Wrap the button with the sparkle container.
-        launchButton.parentNode.insertBefore(container, launchButton);
-        container.appendChild(orbit);
-        container.appendChild(launchButton);
-      }
       const statusEl = document.getElementById('status');
       const deviceInfoEl = document.getElementById('device-info');
       const deviceNameEl = document.getElementById('device-name');
