@@ -168,6 +168,46 @@
       margin-top: 0.25rem;
     }
 
+    .fire-container {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+      height: 1.2rem;
+      position: relative;
+    }
+
+    .fire-emoji {
+      font-size: 1rem;
+      animation: wander 3s ease-in-out infinite;
+      position: relative;
+    }
+
+    .fire-emoji:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    .fire-emoji:nth-child(2) {
+      animation-delay: 0.5s;
+    }
+
+    .fire-emoji:nth-child(3) {
+      animation-delay: 1s;
+    }
+
+    .fire-emoji:nth-child(4) {
+      animation-delay: 1.5s;
+    }
+
+    @keyframes wander {
+      0%, 100% {
+        transform: translateX(-8px);
+      }
+      50% {
+        transform: translateX(8px);
+      }
+    }
+
     /* Sparkle container orbiting the button. */
     .sparkle-container {
       position: relative;
@@ -273,6 +313,12 @@
           <button slot="activate" class="duck-button">
             <img src="duck.png" alt="Duck" class="duck-icon">
             <span class="duck-text">Tap to Connect</span>
+            <div class="fire-container">
+              <span class="fire-emoji">🔥</span>
+              <span class="fire-emoji">💥</span>
+              <span class="fire-emoji">🔥</span>
+              <span class="fire-emoji">⭐</span>
+            </div>
           </button>
         </improv-wifi-launch-button>
       </div>
