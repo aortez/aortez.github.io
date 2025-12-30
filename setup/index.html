@@ -232,8 +232,11 @@
       <improv-wifi-launch-button></improv-wifi-launch-button>
 
       <div class="status-area">
-        <div id="status" class="status idle">
-          Ready to connect
+        <div id="status-wrapper" class="sparkle-container">
+          <div class="sparkle-orbit" id="status-orbit"></div>
+          <div id="status" class="status idle">
+            Ready to connect
+          </div>
         </div>
         <div id="device-info" style="display: none;">
           <div class="device-name" id="device-name"></div>
@@ -260,6 +263,25 @@
   </div>
 
   <script type="module">
+    // Helper to create sparkles in an orbit container.
+    function addSparkles(orbitEl, count = 12) {
+      const emojis = ['✨', '⭐', '💫', '✨', '⭐', '✨', '💫', '✨', '⭐', '✨', '💫', '⭐'];
+      for (let i = 0; i < count; i++) {
+        const sparkle = document.createElement('span');
+        sparkle.className = 'sparkle';
+        sparkle.textContent = emojis[i % emojis.length];
+        const angle = (i / count) * 360;
+        sparkle.style.setProperty('--start-angle', `${angle}deg`);
+        orbitEl.appendChild(sparkle);
+      }
+    }
+
+    // Add sparkles to the status box (always, for debugging).
+    const statusOrbit = document.getElementById('status-orbit');
+    if (statusOrbit) {
+      addSparkles(statusOrbit, 12);
+    }
+
     // Wait for the launch button to be defined.
     customElements.whenDefined('improv-wifi-launch-button').then(() => {
       const launchButton = document.querySelector('improv-wifi-launch-button');
@@ -273,18 +295,7 @@
 
         const orbit = document.createElement('div');
         orbit.className = 'sparkle-orbit';
-
-        // Create 12 sparkles evenly distributed.
-        const sparkleCount = 12;
-        const emojis = ['✨', '⭐', '💫', '✨', '⭐', '✨', '💫', '✨', '⭐', '✨', '💫', '⭐'];
-        for (let i = 0; i < sparkleCount; i++) {
-          const sparkle = document.createElement('span');
-          sparkle.className = 'sparkle';
-          sparkle.textContent = emojis[i % emojis.length];
-          const angle = (i / sparkleCount) * 360;
-          sparkle.style.setProperty('--start-angle', `${angle}deg`);
-          orbit.appendChild(sparkle);
-        }
+        addSparkles(orbit, 12);
 
         // Wrap the button with the sparkle container.
         launchButton.parentNode.insertBefore(container, launchButton);
