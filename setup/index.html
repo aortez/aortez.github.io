@@ -266,7 +266,7 @@
         </improv-wifi-launch-button>
       </div>
 
-      <div class="status-area">
+      <div class="status-area" id="status-area" style="display: none;">
         <div id="status" class="status idle">
           Ready to connect
         </div>
@@ -318,6 +318,7 @@
     // Wait for the launch button to be defined.
     customElements.whenDefined('improv-wifi-launch-button').then(() => {
       const launchButton = document.querySelector('improv-wifi-launch-button');
+      const statusAreaEl = document.getElementById('status-area');
       const statusEl = document.getElementById('status');
       const deviceInfoEl = document.getElementById('device-info');
       const deviceNameEl = document.getElementById('device-name');
@@ -328,6 +329,11 @@
 
       launchButton.addEventListener('state-changed', (event) => {
         const state = event.detail.state;
+
+        // Show status area when something is happening.
+        if (state && state !== 'UNKNOWN') {
+          statusAreaEl.style.display = 'block';
+        }
 
         // Reset UI on new connection attempt.
         if (state === 'CONNECTING') {
