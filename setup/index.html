@@ -186,7 +186,7 @@
 <body>
   <div class="container">
     <div class="duck-emoji">🦆</div>
-    <h1>Sparkle Duck Setup</h1>
+    <h1>✨ Sparkle Duck Setup</h1>
     <p class="subtitle">Connect your device to WiFi</p>
 
     <div class="card">
@@ -206,20 +206,7 @@
         type="module"
         src="https://www.improv-wifi.com/sdk-js/launch-button.js"
       ></script>
-      <improv-wifi-launch-button>
-        <span slot="unsupported">
-          <div class="unsupported-notice">
-            <h3>Browser Not Supported</h3>
-            <p>Web Bluetooth is required for WiFi setup.</p>
-            <ul>
-              <li><strong>On Android:</strong> Use Chrome or Edge</li>
-              <li><strong>On Windows/Mac/Linux:</strong> Use Chrome or Edge</li>
-              <li><strong>On iOS:</strong> Not supported (use a computer)</li>
-            </ul>
-            <p>Alternatively, use <a href="https://www.home-assistant.io/integrations/improv_ble" target="_blank">Home Assistant</a> which auto-discovers Improv devices.</p>
-          </div>
-        </span>
-      </improv-wifi-launch-button>
+      <improv-wifi-launch-button></improv-wifi-launch-button>
 
       <div class="instructions">
         <h3 style="margin-bottom: 0.5rem; color: var(--earth-brown);">How it works</h3>
