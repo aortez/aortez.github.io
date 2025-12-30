@@ -126,11 +126,44 @@
 
     /* Improv WiFi button styling. */
     improv-wifi-launch-button {
-      --improv-primary-color: #2E7D32;
-      --improv-on-primary-color: white;
       display: inline-block;
-      transform: scale(1.3);
-      margin: 1.5rem 0;
+      margin: 1rem 0;
+    }
+
+    .duck-button {
+      background: linear-gradient(145deg, #4CAF50, #2E7D32);
+      border: none;
+      border-radius: 50%;
+      width: 120px;
+      height: 120px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .duck-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px rgba(46, 125, 50, 0.5);
+    }
+
+    .duck-button:active {
+      transform: scale(0.98);
+    }
+
+    .duck-icon {
+      font-size: 3.5rem;
+      line-height: 1;
+    }
+
+    .duck-text {
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.25rem;
     }
 
     /* Sparkle container orbiting the button. */
@@ -203,11 +236,6 @@
       margin: 0.75rem 0;
     }
 
-    .duck-emoji {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-
     .footer {
       margin-top: 2rem;
       color: var(--dark-soil);
@@ -224,14 +252,18 @@
 </head>
 <body>
   <div class="container">
-    <div class="duck-emoji">🦆</div>
     <h1>✨ Sparkle Duck Setup</h1>
     <p class="subtitle">Connect your device to WiFi</p>
 
     <div class="card">
       <div id="button-wrapper" class="sparkle-container">
         <div class="sparkle-orbit" id="button-orbit"></div>
-        <improv-wifi-launch-button></improv-wifi-launch-button>
+        <improv-wifi-launch-button>
+          <button slot="activate" class="duck-button">
+            <span class="duck-icon">🦆</span>
+            <span class="duck-text">Tap to Connect</span>
+          </button>
+        </improv-wifi-launch-button>
       </div>
 
       <div class="status-area">
@@ -249,7 +281,7 @@
       <div class="instructions">
         <h3 style="margin-bottom: 0.5rem; color: var(--earth-brown);">How it works</h3>
         <ol>
-          <li>Click <strong>"Connect device to Wi-Fi"</strong></li>
+          <li>Tap the <strong>duck</strong> 🦆</li>
           <li>Select your device from the Bluetooth picker</li>
           <li>Choose your WiFi network and enter the password</li>
           <li>Wait for connection, then click the link to open your device</li>
