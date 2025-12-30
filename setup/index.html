@@ -54,10 +54,10 @@
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(0, 0, 0, 0.85);
       border-radius: 16px;
       padding: 2rem;
-      box-shadow: 0 8px 32px rgba(62, 39, 35, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       margin-bottom: 1.5rem;
     }
 
@@ -74,28 +74,28 @@
     }
 
     .status.idle {
-      background: var(--cream);
-      color: var(--dark-soil);
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
     }
 
     .status.connecting {
-      background: #FFF3E0;
-      color: #E65100;
+      background: rgba(255, 152, 0, 0.2);
+      color: #FFB74D;
     }
 
     .status.provisioning {
-      background: #E3F2FD;
-      color: #1565C0;
+      background: rgba(33, 150, 243, 0.2);
+      color: #64B5F6;
     }
 
     .status.success {
-      background: #E8F5E9;
-      color: #2E7D32;
+      background: rgba(76, 175, 80, 0.2);
+      color: #81C784;
     }
 
     .status.error {
-      background: #FFEBEE;
-      color: #C62828;
+      background: rgba(244, 67, 54, 0.2);
+      color: #E57373;
     }
 
     .device-name {
@@ -198,16 +198,21 @@
     }
 
     .unsupported-notice {
-      background: #FFF3E0;
-      border: 2px solid #FFB74D;
+      background: rgba(255, 152, 0, 0.15);
+      border: 2px solid rgba(255, 183, 77, 0.5);
       border-radius: 12px;
       padding: 1.5rem;
       margin-top: 1rem;
     }
 
     .unsupported-notice h3 {
-      color: #E65100;
+      color: #FFB74D;
       margin-bottom: 0.75rem;
+    }
+
+    .unsupported-notice p,
+    .unsupported-notice a {
+      color: rgba(255, 255, 255, 0.9);
     }
 
     .unsupported-notice ul {
@@ -218,13 +223,17 @@
 
     .unsupported-notice li {
       margin: 0.5rem 0;
-      color: var(--dark-soil);
+      color: rgba(255, 255, 255, 0.85);
     }
 
     .instructions {
       text-align: left;
-      color: var(--dark-soil);
+      color: rgba(255, 255, 255, 0.9);
       line-height: 1.6;
+    }
+
+    .instructions h3 {
+      color: rgba(255, 255, 255, 0.95) !important;
     }
 
     .instructions ol {
