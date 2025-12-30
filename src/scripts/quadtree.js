@@ -1,5 +1,13 @@
+import { vec2 } from './vec2.js';
+import { Ball } from './ball.js';
+import { vec3 } from './vec3.js';
+
 let qt_indent = 0;
-let debug_on = false;
+export let debug_on = false;
+
+export function setDebugOn(value) {
+  debug_on = value;
+}
 
 function log( text ) {
   const whitespace = '                                                         ';
@@ -14,7 +22,7 @@ function debug( text ) {
 function log_in() { qt_indent = qt_indent + 4; }
 function log_out() { qt_indent = qt_indent - 4; }
 
-class qtElement
+export class qtElement
 {
   constructor( x, y, r ) {
     this.center = new vec2( x, y );
@@ -26,7 +34,7 @@ class qtElement
   }
 }
 
-class quadtree
+export class quadtree
 {
   constructor(
     min_x,
@@ -218,43 +226,4 @@ class quadtree
     return s;
   }
 
-  static test() {
-    let qt = new quadtree( 0, 0, 100, 100, 2 );
-    console.log( "**************** initial state: ********************" );
-    console.log( qt.toS() );
-
-    let insert_node = function( x, y, r ) {
-      let node = new qtElement( x, y, r );
-      console.log( "inserting node: " + node.toS() );
-      qt.insert( node );
-      console.log( "resulting qtree: " + qt.toS() );
-    };
-    console.log( "**************** inserting *************************" );
-    insert_node( 5, 5, 5 );
-    insert_node( 5, 75, 5 );
-    insert_node( 75, 75, 5 );
-    insert_node( 75,  5, 5 );
-    insert_node( 80,  10, 10 );
-    insert_node( 90,  10, 5 );
-
-    log( "******************* objects belonging to parent tree *******" );
-    for ( let object of qt.getObjectsRecursive() ) {
-      log( object.toS() );
-    }
-
-    // display each child's object's
-    log( "***************** objects belonging to each child subtree ***********" );
-    for ( let node of qt.children ) {
-      log ( node.toS() );
-      log_in();
-      for ( let object of node.objects ) {
-        log( object.toS() );
-      }
-
-      log_out();
-    }
-  }
-
 }
-
-quadtree.test();

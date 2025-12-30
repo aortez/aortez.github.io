@@ -1,5 +1,5 @@
 // O(n) in-place array shuffle.
-function shuffle( a ) {
+export function shuffle( a ) {
     // Durstenfeld shuffle:
     // (https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm)
     // -- To shuffle an array a of n elements (indices 0..n-1):

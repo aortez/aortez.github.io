@@ -1,3 +1,6 @@
+import { World } from './world.js';
+import { Controller } from './controller.js';
+
 let ctx;
 let world;
 let controller;
@@ -32,7 +35,7 @@ function getTouchPos(canvasDom, touchEvent) {
   };
 }
 
-function init() {
+export function init() {
   let FPS = 60;
 
   world = new World();
@@ -40,20 +43,33 @@ function init() {
   controller = new Controller( world );
 
   let slider = document.getElementById( 'slider' );
-  slider.addEventListener( 'value-change', world.sliding, false );
-  slider.value = N_DIVS;
+  slider.addEventListener( 'input', (e) => {
+    world.N_DIVS = parseInt(e.currentTarget.value);
+    console.log( "N_DIVS: " + world.N_DIVS );
+  }, false );
+  slider.value = world.N_DIVS;
 
   let explode_slider = document.getElementById( 'explode_slider' );
-  explode_slider.addEventListener( 'value-change', controller.explodeSlider, false );
-  explode_slider.value = EXPLODE_V_FACTOR;
+  explode_slider.addEventListener( 'input', (e) => {
+    world.EXPLODE_V_FACTOR = parseFloat(e.currentTarget.value);
+    console.log( "EXPLODE_V_FACTOR: " + world.EXPLODE_V_FACTOR );
+  }, false );
+  explode_slider.value = world.EXPLODE_V_FACTOR;
 
   let exploder_size_slider = document.getElementById( 'exploder_size_slider' );
-  exploder_size_slider.addEventListener( 'value-change', controller.exploderSizeSlider, false );
-  exploder_size_slider.value = EXPLODER_SIZE_FACTOR;
+  exploder_size_slider.addEventListener( 'input', (e) => {
+    world.EXPLODER_SIZE_FACTOR = parseFloat(e.currentTarget.value);
+    console.log( "EXPLODER_SIZE_FACTOR: " + world.EXPLODER_SIZE_FACTOR );
+  }, false );
+  exploder_size_slider.value = world.EXPLODER_SIZE_FACTOR;
 
   let timescale_slider = document.getElementById( 'timescale_slider' );
-  timescale_slider.addEventListener( 'value-change', controller.timescaleSlider, false );
-  timescale_slider.value = TIMESCALE_SCALAR;
+  let timescale_scalar = 0.3;
+  timescale_slider.addEventListener( 'input', (e) => {
+    timescale_scalar = parseFloat(e.currentTarget.value);
+    console.log( "TIMESCALE_SCALAR: " + timescale_scalar );
+  }, false );
+  timescale_slider.value = timescale_scalar;
 
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
@@ -117,53 +133,53 @@ function init() {
   });
 
   document.getElementById( 'purple_button' ).addEventListener( 'click', function() {
-    controller.purple();
+    controller.purple(canvas, ctx);
   });
 
   document.getElementById( 'debug_button' ).addEventListener( 'click', function() {
-    controller.debug();
+    controller.debug(canvas, ctx);
   });
 
-  requestAnimationFrame( advance );
-}
+  let previous = null;
+  let smoothed_fps = 0;
 
-let previous = null;
-let smoothed_fps = 0;
-function advance() {
+  function advance() {
+    canvas.height = window.innerHeight - document.getElementById('controls').offsetHeight - 30;
+    canvas.width = document.body.clientWidth;
 
-  canvas.height = window.innerHeight - document.getElementById('controls').offsetHeight - 30;
-  canvas.width = document.body.clientWidth;
+    let now = window.performance.now();
+    let dt = now - previous;
+    previous = now;
 
-  let now = window.performance.now();
-  let dt = now - previous;
-  previous = now;
+    let BASE_TIMESTEP_SCALAR = 0.003;
+    controller.advance( dt * BASE_TIMESTEP_SCALAR );
 
-  let BASE_TIMESTEP_SCALAR = 0.003;
-  controller.advance( dt * BASE_TIMESTEP_SCALAR );
+    world.advance( dt * BASE_TIMESTEP_SCALAR * timescale_scalar, canvas );
 
-  world.advance( dt * BASE_TIMESTEP_SCALAR * TIMESCALE_SCALAR );
+    world.draw( canvas, ctx );
 
-  world.draw( ctx );
+    let fps = 1000.0 / dt;
+    let fps_alpha = 0.1;
+    smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
+    updateInfoLabel( smoothed_fps );
 
-  let fps = 1000.0 / dt;
-  let fps_alpha = 0.1;
-  smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
-  updateInfoLabel( smoothed_fps );
-
-  if ( smoothed_fps < 45 ) {
-    if ( world.max_balls > 75 ) {
-      world.max_balls -= 10;
+    if ( smoothed_fps < 45 ) {
+      if ( world.max_balls > 75 ) {
+        world.max_balls -= 10;
+      }
+      if ( world.max_particles > 50 ) {
+        world.max_particles -= 5;
+      }
+    } else {
+      if ( world.max_balls < 300 ) {
+        world.max_balls += 0.1;
+      }
+      if ( world.max_particles < 300 ) {
+        world.max_particles += 1;
+      }
     }
-    if ( world.max_particles > 50 ) {
-      world.max_particles -= 5;
-    }
-  } else {
-    if ( world.max_balls < 300 ) {
-      world.max_balls += 0.1;
-    }
-    if ( world.max_particles < 300 ) {
-      world.max_particles += 1;
-    }
+
+    requestAnimationFrame( advance );
   }
 
   requestAnimationFrame( advance );
