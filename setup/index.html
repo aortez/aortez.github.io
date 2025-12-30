@@ -137,54 +137,31 @@
     .sparkle-container {
       position: relative;
       display: inline-block;
-      padding: 2rem;
     }
 
     .sparkle-orbit {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 200px;
-      height: 80px;
-      margin-left: -100px;
-      margin-top: -40px;
+      width: 0;
+      height: 0;
       pointer-events: none;
     }
 
     .sparkle {
       position: absolute;
-      font-size: 0.9rem;
-      animation: orbit 4s linear infinite, twinkle 0.8s ease-in-out infinite alternate;
-      transform-origin: 100px 40px;
+      font-size: 1rem;
+      animation: orbit 3s linear infinite;
+      opacity: 0.9;
     }
 
     @keyframes orbit {
       from {
-        transform: rotate(0deg) translateX(100px) rotate(0deg);
+        transform: rotate(var(--start-angle)) translateX(140px) translateY(-20px) scaleY(0.4) rotate(calc(-1 * var(--start-angle)));
       }
       to {
-        transform: rotate(360deg) translateX(100px) rotate(-360deg);
+        transform: rotate(calc(var(--start-angle) + 360deg)) translateX(140px) translateY(-20px) scaleY(0.4) rotate(calc(-1 * (var(--start-angle) + 360deg)));
       }
-    }
-
-    @keyframes twinkle {
-      0% {
-        opacity: 0.3;
-        transform: rotate(var(--angle)) translateX(100px) rotate(calc(-1 * var(--angle))) scale(0.6);
-      }
-      100% {
-        opacity: 1;
-        transform: rotate(var(--angle)) translateX(100px) rotate(calc(-1 * var(--angle))) scale(1.1);
-      }
-    }
-
-    /* Elliptical orbit using scaleY. */
-    .sparkle-orbit {
-      transform: scaleY(0.5);
-    }
-
-    .sparkle {
-      transform-origin: center;
     }
 
     .unsupported-notice {
@@ -304,7 +281,8 @@
           const sparkle = document.createElement('span');
           sparkle.className = 'sparkle';
           sparkle.textContent = emojis[i % emojis.length];
-          sparkle.style.animationDelay = `${(i / sparkleCount) * -4}s, ${(i / sparkleCount) * -0.8}s`;
+          const angle = (i / sparkleCount) * 360;
+          sparkle.style.setProperty('--start-angle', `${angle}deg`);
           orbit.appendChild(sparkle);
         }
 
