@@ -1,12 +1,18 @@
-- show ball count
+COMPLETED (2024-12 modernization):
+- ✅ show ball count
+- ✅ slider for time scale
+- ✅ add reset button
+- ✅ add gravity between objects
+- ✅ create a nice compact combo slider object w/ name and value
+- ✅ reintroduce particles
+- ✅ Modernized to ES6 modules + Vite
+- ✅ Replaced Polymer with native HTML5 controls
+- ✅ Added automated Playwright tests
+
+TODO:
 - slider for max balls
 - slider to scale damage
 - slider to scale gravity
-- slider for time scale
-- add reset button
-- add gravity between objects
-- create a nice compact combo slider object w/ name and value
-- reintroduce particles
 
 Q: what to do in quadtree when we have more nodes at the exact same space than is
 the maximum object count?

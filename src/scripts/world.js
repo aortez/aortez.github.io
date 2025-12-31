@@ -1,4 +1,11 @@
-class World
+import { vec2 } from './vec2.js';
+import { vec3 } from './vec3.js';
+import { Ball } from './ball.js';
+import { Background } from './background.js';
+import { shuffle } from './utils.js';
+import { quadtree, debug_on } from './quadtree.js';
+
+export class World
 {
   constructor() {
     this.min_x = 0;
@@ -18,6 +25,9 @@ class World
     this.use_quadtree = false;
     this.purple = false;
     this.debug = false;
+    this.EXPLODE_V_FACTOR = 0.1;
+    this.EXPLODER_SIZE_FACTOR = 1.5;
+    this.N_DIVS = 2;
   }
 
   init() {
@@ -60,7 +70,7 @@ class World
     // this.addBall( b4 );
   }
 
-  advance( dt ) {
+  advance( dt, canvas ) {
     let particle_dt = dt;
     if ( this.is_paused ) {
       // its sort of cool when we let the object settling process take play while paused
@@ -157,8 +167,8 @@ class World
 
     // bounce off walls...
     // compute wall location
-    let max_x = canvas.width / this.getDrawScale();
-    let max_y = canvas.height / this.getDrawScale();
+    let max_x = canvas.width / this.getDrawScale(canvas);
+    let max_y = canvas.height / this.getDrawScale(canvas);
     for ( let i = 0; i < this.balls.length; i++ ) {
       let b = this.balls[ i ];
 
@@ -194,7 +204,7 @@ class World
 
       // Otherwise, explode it and add its frags to the world.
       let ball = dead_balls[ i ];
-      let frags = ball.explode( N_DIVS, MIN_FRAG_RADIUS );
+      let frags = ball.explode( this.N_DIVS, MIN_FRAG_RADIUS, this.EXPLODE_V_FACTOR, this.EXPLODER_SIZE_FACTOR );
       for ( let frag_index = 0; frag_index < frags.length; frag_index++ ) {
         // If the fragment is big enough, and there is capacity, add it to the world as a ball.
         // Otherwise, add it as a particle.
@@ -311,9 +321,9 @@ class World
     }
   }
 
-  draw( ctx ) {
+  draw( canvas, ctx ) {
     if ( this.shouldDrawBackground ) {
-      this.background.draw();
+      this.background.draw(canvas, ctx);
     } else {
       ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
@@ -321,18 +331,18 @@ class World
 
     for ( let i = 0; i < this.particles.length; i++ ) {
       let p = this.particles[ i ];
-      p.draw( ctx, this.getDrawScale(), this.pizza_time );
+      p.draw( ctx, this.getDrawScale(canvas), this.pizza_time );
     }
 
     for ( let i = 0; i < this.planets.length; i++ ) {
       let p = this.planets[ i ];
-      p.draw( ctx, this.getDrawScale(), this.pizza_time );
+      p.draw( ctx, this.getDrawScale(canvas), this.pizza_time );
     }
 
     if ( !this.use_quadtree ) {
       for ( let i = 0; i < this.balls.length && !this.use_quadtree; i++ ) {
         let b = this.balls[ i ];
-        b.draw( ctx, this.getDrawScale(), this.pizza_time );
+        b.draw( ctx, this.getDrawScale(canvas), this.pizza_time );
       }
     } else {
       // lets try drawing the balls with the quadtree...
@@ -354,7 +364,7 @@ class World
       // draw its contained objects
       let objects = qt.getObjectsRecursive();
       for ( let i = 0; i < objects.length; i++ ) {
-        objects[ i ].draw( ctx, this.getDrawScale(), false );
+        objects[ i ].draw( ctx, this.getDrawScale(canvas), false );
         let o = objects[ i ];
 
         ctx.beginPath();
@@ -374,7 +384,7 @@ class World
       }
 
       // draw quadtree
-      qt.draw( ctx, this.getDrawScale() );
+      qt.draw( ctx, this.getDrawScale(canvas) );
     }
 
   }
@@ -383,7 +393,7 @@ class World
     return this.shouldDrawBackground;
   }
 
-  getDrawScale() {
+  getDrawScale(canvas) {
     let scale_factor = Math.max( canvas.width, canvas.height );
     return scale_factor;
   }

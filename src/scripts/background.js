@@ -1,4 +1,6 @@
-class Background
+import { vec3 } from './vec3.js';
+
+export class Background
 {
   constructor() {
     this.counter = -100;
@@ -14,7 +16,7 @@ class Background
     if ( this.counter <= -100 ) this.dir = 1;
   }
 
-  draw() {
+  draw(canvas, ctx) {
     let ratio = canvas.height / canvas.width;
 
     let num_cols = 20;

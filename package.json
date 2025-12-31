@@ -1,17 +1,20 @@
 {
   "name": "allan.pizza",
-  "version": "1.0",
-  "main": "build/scripts/script.js",
+  "version": "2.0.0",
+  "type": "module",
   "repository": "https://github.com/aortez/aortez.github.io",
   "author": "Allan Ortiz",
   "license": "GPL-3.0-only",
-  "dependencies": {
-    "@polymer/paper-button": "^3.0.1",
-    "@polymer/paper-slider": "^3.0.1"
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "gulp": "^4.0.2",
-    "gulp-concat": "^2.6.1",
-    "gulp-jshint": "^2.1.0"
+    "@playwright/test": "^1.40.0",
+    "vite": "^5.0.0"
   }
 }

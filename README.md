@@ -10,14 +10,21 @@ This repo also hosts a deployment of the golang-wasm implementation, which can b
 http://allan.pizza/go
 (and the source can be found at https://github.com/aortez/pizza-pizza)
 
-## Build it
-```
-gulp
+## Development
+
+Start the development server with hot reload:
+```bash
+npm run dev
 ```
 
-## Run it locally
+## Build for production
+```bash
+npm run build
 ```
-http-server
+
+## Preview production build
+```bash
+npm run preview
 ```
 
 ## Disclaimer

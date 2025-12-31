@@ -1,15 +1,15 @@
-var ObjectType = {
+import { vec2 } from './vec2.js';
+import { vec3 } from './vec3.js';
+import { Ball } from './ball.js';
+import { setDebugOn } from './quadtree.js';
+
+export const ObjectType = {
   NONE: 1,
   BALL: 2,
   PLANET: 3
 };
 
-var EXPLODE_V_FACTOR = 0.1;
-var EXPLODER_SIZE_FACTOR = 1.5;
-var N_DIVS = 2;
-var TIMESCALE_SCALAR = 0.3;
-
-class Controller
+export class Controller
 {
   constructor( world ) {
     this.ball = null;
@@ -68,21 +68,21 @@ class Controller
     }
   }
 
-  debug() {
+  debug(canvas, ctx) {
     // this.world.debug = true;
-    debug_on = true;
+    setDebugOn(true);
     console.log('debug it all');
-    this.world.draw( ctx );
-    debug_on = false;
+    this.world.draw( canvas, ctx );
+    setDebugOn(false);
     // this.world.debug = false;
   }
 
   pause() {
-    world.is_paused = !world.is_paused;
+    this.world.is_paused = !this.world.is_paused;
   }
 
   quadtree() {
-    world.use_quadtree = !world.use_quadtree;
+    this.world.use_quadtree = !this.world.use_quadtree;
   }
 
   mouseMove( canvas, e ) {
@@ -92,8 +92,8 @@ class Controller
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;
 
-    this.mousePos.x = x / this.world.getDrawScale();
-    this.mousePos.y = y / this.world.getDrawScale();
+    this.mousePos.x = x / this.world.getDrawScale(canvas);
+    this.mousePos.y = y / this.world.getDrawScale(canvas);
   }
 
   mouseDown( e ) {
@@ -176,7 +176,7 @@ class Controller
     this.next_object_type = ObjectType.BALL;
   }
 
-  purple() {
+  purple(canvas, ctx) {
     console.log( "purple" );
 
     // flip the purple flag
@@ -190,14 +190,14 @@ class Controller
         let b = this.world.balls[ i ];
         b.color.copyFrom( bg.rgb );
         bg.advance( this.dt );
-        bg.draw(ctx);
+        bg.draw(canvas, ctx);
       }
       // planets also
       for ( let i = 0; i < this.world.planets.length; i++ ) {
         let p = this.world.planets[ i ];
         p.color.copyFrom( bg.rgb );
         bg.advance( this.dt );
-        bg.draw(ctx);
+        bg.draw(canvas, ctx);
       }
     }
     // and when the world turns back from purple...
@@ -214,21 +214,6 @@ class Controller
         p.color.randColor( 255 );
       }
     }
-  }
-
-  explodeSlider( e ) {
-    EXPLODE_V_FACTOR = e.currentTarget.value;
-    console.log( "EXPLODE_V_FACTOR: " + EXPLODE_V_FACTOR );
-  }
-
-  exploderSizeSlider( e ) {
-    EXPLODER_SIZE_FACTOR = e.currentTarget.value;
-    console.log( "EXPLODER_SIZE_FACTOR: " + EXPLODER_SIZE_FACTOR );
-  }
-
-  timescaleSlider( e ) {
-    TIMESCALE_SCALAR = e.currentTarget.value;
-    console.log( "TIMESCALE_SCALAR: " + TIMESCALE_SCALAR );
   }
 
 }

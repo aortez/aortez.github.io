@@ -1,4 +1,7 @@
-class Ball
+import { vec2 } from './vec2.js';
+import { vec3 } from './vec3.js';
+
+export class Ball
 {
   constructor( x, y, r, c ) {
     this.center = new vec2( x, y );
@@ -129,7 +132,7 @@ class Ball
     ctx.closePath();
   }
 
-  explode( n_divs, min_frag_radius ) {
+  explode( n_divs, min_frag_radius, EXPLODE_V_FACTOR, EXPLODER_SIZE_FACTOR ) {
     let EXPLODER_PARENT_VELOCITY_FACTOR = 0.5;
     let EXPLODER_RADIAL_VELOCITY_SCALAR = 1;
 
