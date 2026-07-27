@@ -1,4 +1,5 @@
-This was just a random experiment to play with javascript and canvas.
+This is a small art piece application.  It implements a 2d world/physics engine.
+
 Click on the black background area some for action. Wait a bit and the colliding balls will explode and subdivide. :pizza:
 
 ![Example of Web Page](./pizza.png "Example of Web Page")
