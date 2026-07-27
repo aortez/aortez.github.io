@@ -12,7 +12,11 @@ import { BENCHMARK_SCENARIOS } from './scenarios.js';
 const DEFAULT_SIZES = [1000, 5000, 10000];
 const DEFAULT_SCENARIOS = ['jittered', 'clustered'];
 const GRAVITY_SCENARIOS = [...BENCHMARK_SCENARIOS, 'busy'];
-const GRAVITY_IMPLEMENTATIONS = ['reference', 'optimized'];
+const ESTABLISHED_GRAVITY_IMPLEMENTATIONS = ['reference', 'optimized'];
+const GRAVITY_IMPLEMENTATIONS = [
+  ...ESTABLISHED_GRAVITY_IMPLEMENTATIONS,
+  'flat',
+];
 
 function parseInteger(value, option, minimum = 1) {
   const parsed = Number(value);
@@ -147,12 +151,15 @@ function parseArguments(argumentsList) {
           argument,
         );
         if (implementation === 'both') {
+          options.implementations = ESTABLISHED_GRAVITY_IMPLEMENTATIONS;
+        } else if (implementation === 'all') {
           options.implementations = GRAVITY_IMPLEMENTATIONS;
         } else if (GRAVITY_IMPLEMENTATIONS.includes(implementation)) {
           options.implementations = [implementation];
         } else {
           throw new Error(
-            `${argument} requires one of: reference, optimized, both`,
+            `${argument} requires one of: ` +
+            `reference, optimized, flat, both, all`,
           );
         }
         index++;
@@ -196,7 +203,8 @@ Options:
   --diagnostic-targets NUMBER
                         Targets sampled for structural traversal diagnostics
                         outside the timed region (default: 128).
-  --implementation NAME Reference, optimized, or both (default: both).
+  --implementation NAME Reference, optimized, flat, both, or all
+                        (default: all).
   --profile-allocations  Collect a V8 sampling allocation profile. This
                          perturbs timings and should be a separate run.
   --allocation-sampling-interval NUMBER
@@ -460,6 +468,7 @@ async function collectSamples(page, warmup, sampleCount) {
           checksumX,
           checksumY,
           exactSources: gravityStats.exactInteractions,
+          flattenMs: gravityStats.flattenMs,
           gravityMs: totalEnd - buildEnd,
           totalMs: totalEnd - totalStart,
           traversalMs: gravityStats.traversalMs,
@@ -477,6 +486,11 @@ async function collectSamples(page, warmup, sampleCount) {
 async function collectDiagnostics(page, requestedTargetCount) {
   return await page.evaluate(requestedTargets => {
     const { tree, world } = globalThis.__gravityBenchmark;
+    if (typeof tree.massAccessor !== 'function') {
+      tree.calculateMassProperties(body => (
+        body.is_affected_by_gravity ? body.m : 0
+      ));
+    }
     const targetCount = Math.min(requestedTargets, world.balls.length);
     if (targetCount === 0) {
       return {
@@ -654,9 +668,13 @@ async function main() {
     let caseIndex = 0;
     for (const scenario of options.scenarios) {
       for (const bodyCount of options.sizes) {
-        const implementations = caseIndex % 2 === 0
-          ? options.implementations
-          : [...options.implementations].reverse();
+        const implementationOffset = (
+          caseIndex % options.implementations.length
+        );
+        const implementations = [
+          ...options.implementations.slice(implementationOffset),
+          ...options.implementations.slice(0, implementationOffset),
+        ];
         caseIndex++;
         for (const implementation of implementations) {
           await page.goto(benchmarkUrl);
@@ -710,6 +728,7 @@ async function main() {
             bodies: bodyCount,
             caseInfo,
             build: summarize(samples.map(sample => sample.buildMs)),
+            flatten: summarize(samples.map(sample => sample.flattenMs)),
             aggregate: summarize(
               samples.map(sample => sample.aggregateMs),
             ),
@@ -736,10 +755,45 @@ async function main() {
         candidate.bodies === result.bodies
       ));
       result.traversalSpeedup = (
-        reference && result.implementation === 'optimized'
+        reference && result.implementation !== 'reference'
           ? reference.traversal.medianMs / result.traversal.medianMs
           : null
       );
+      const optimized = results.find(candidate => (
+        candidate.implementation === 'optimized' &&
+        candidate.scenario === result.scenario &&
+        candidate.bodies === result.bodies
+      ));
+      result.totalSpeedupVersusOptimized = (
+        optimized && result.implementation === 'flat'
+          ? optimized.total.medianMs / result.total.medianMs
+          : null
+      );
+
+      if (!reference) {
+        result.matchesReference = null;
+        continue;
+      }
+      if (result.implementation === 'reference') {
+        result.matchesReference = true;
+        continue;
+      }
+      const comparableFields = [
+        'appliedSources',
+        'approximations',
+        'checksumX',
+        'checksumY',
+        'exactSources',
+      ];
+      result.matchesReference = comparableFields.every(field => (
+        result.lastSample[field] === reference.lastSample[field]
+      ));
+      if (!result.matchesReference) {
+        throw new Error(
+          `${result.implementation}/${result.scenario}/` +
+          `${result.bodies} did not match the reference gravity result`,
+        );
+      }
     }
 
     if (browserErrors.length > 0) {
@@ -784,6 +838,7 @@ async function main() {
         bodies: result.bodies.toLocaleString('en-US'),
         total: formatTiming(result.total),
         build: formatTiming(result.build),
+        flatten: formatTiming(result.flatten),
         aggregate: formatTiming(result.aggregate),
         traversal: formatTiming(result.traversal),
         sources: result.lastSample.appliedSources.toLocaleString('en-US'),
@@ -800,6 +855,14 @@ async function main() {
         speedup: result.traversalSpeedup === null
           ? '—'
           : `${result.traversalSpeedup.toFixed(2)}×`,
+        totalVsOptimized: result.totalSpeedupVersusOptimized === null
+          ? '—'
+          : `${result.totalSpeedupVersusOptimized.toFixed(2)}×`,
+        matches: result.matchesReference === null
+          ? '—'
+          : result.matchesReference
+            ? 'yes'
+            : 'NO',
         rmsError: formatPercent(
           result.accuracy?.normalizedRmsError ?? null,
         ),

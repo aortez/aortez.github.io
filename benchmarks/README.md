@@ -71,10 +71,11 @@ npm run bench:browser -- --full-gravity
 npm run bench:browser -- --theta 0.6
 ```
 
-Select the production optimized gravity traversal or its retained reference
+Select the production flat gravity traversal or either retained object-tree
 implementation explicitly:
 
 ```bash
+npm run bench:browser -- --busy --gravity-implementation flat
 npm run bench:browser -- --busy --gravity-implementation optimized
 npm run bench:browser -- --busy --gravity-implementation reference
 ```
@@ -91,12 +92,13 @@ production animation loop:
 npm run bench:gravity
 ```
 
-The gravity benchmark uses seeded, stationary fixtures and runs the reference
-and optimized implementations as adjacent pairs with balanced ordering. Every
-recorded iteration resets velocity outside the timed region, rebuilds the
-production quadtree, aggregates its mass, and applies gravity to every body.
-It reports build, mass-aggregation, traversal, and combined times separately,
-along with applied sources and nanoseconds per source.
+The gravity benchmark uses seeded, stationary fixtures and runs the reference,
+optimized object-tree, and flat implementations as adjacent cases with balanced
+ordering. Every recorded iteration resets velocity outside the timed region,
+rebuilds the production quadtree, aggregates its mass, and applies gravity to
+every body. It reports object-tree build, flat-view construction,
+mass-aggregation, traversal, and combined times separately, along with applied
+sources and nanoseconds per source.
 
 Exercise the explosion-shaped distribution beyond the app's current 10,000
 ball cap:
@@ -115,9 +117,16 @@ default. Select one implementation, change the oracle limit, or emit JSON with:
 
 ```bash
 npm run bench:gravity -- --implementation reference
+npm run bench:gravity -- --implementation flat
+npm run bench:gravity -- --implementation both
 npm run bench:gravity -- --oracle-limit 2000
 npm run bench:gravity -- --json > /tmp/gravity-results.json
 ```
+
+`--implementation both` compares the two retained object-tree paths;
+`--implementation all` includes the flat path and is the default. The harness
+exits unsuccessfully, whenever the reference is included, if an implementation
+changes the final velocity checksum or any exact/approximated source count.
 
 Allocation sampling is deliberately a separate diagnostic mode because the V8
 profiler perturbs timings:

@@ -67,7 +67,7 @@ function parseArguments(argumentsList) {
     highLoadOutlineRadius: 8,
     sharedRenderColor: false,
     rendererBackend: 'canvas2d',
-    gravityImplementation: 'optimized',
+    gravityImplementation: 'flat',
     softwareWebgl: false,
     simulationFrameMs: 1000 / 60,
     json: false,
@@ -202,9 +202,13 @@ function parseArguments(argumentsList) {
           index,
           argument,
         );
-        if (!['reference', 'optimized'].includes(gravityImplementation)) {
+        if (
+          !['reference', 'optimized', 'flat'].includes(
+            gravityImplementation,
+          )
+        ) {
           throw new Error(
-            `${argument} requires one of: reference, optimized`,
+            `${argument} requires one of: reference, optimized, flat`,
           );
         }
         options.gravityImplementation = gravityImplementation;
@@ -266,8 +270,8 @@ Options:
   --shared-color      Benchmark every body with one shared fill color.
   --renderer NAME     Rendering backend: canvas2d or webgl2 (default: canvas2d).
   --gravity-implementation NAME
-                      Gravity traversal: reference or optimized
-                      (default: optimized).
+                      Gravity traversal: reference, optimized, or flat
+                      (default: flat).
   --software-webgl    Force SwiftShader for headless WebGL functional runs.
   --simulation-frame-ms NUMBER
                       Fixed active-scene simulation step (default: 16.67).
@@ -947,6 +951,9 @@ async function main() {
       const gravityMassAggregationTiming = summarize(frames.map(frame => (
         frame.gravity?.massAggregationMs ?? 0
       )));
+      const gravityFlattenTiming = summarize(frames.map(frame => (
+        frame.gravity?.flattenMs ?? 0
+      )));
       const gravityTraversalTiming = summarize(frames.map(frame => (
         frame.gravity?.traversalMs ?? 0
       )));
@@ -998,6 +1005,7 @@ async function main() {
         ballRenderTiming: renderStageSummary('ballMs'),
         treeBuild,
         gravityTiming: stageSummary('gravityMs'),
+        gravityFlattenTiming,
         gravityMassAggregationTiming,
         gravityTraversalTiming,
         collisionTiming,
@@ -1080,6 +1088,7 @@ async function main() {
         renderBalls: formatTiming(result.ballRenderTiming),
         trees: formatTiming(result.treeBuild),
         gravity: formatTiming(result.gravityTiming),
+        gravityFlatten: formatTiming(result.gravityFlattenTiming),
         gravityMass: formatTiming(result.gravityMassAggregationTiming),
         gravityWalk: formatTiming(result.gravityTraversalTiming),
         collisions: formatTiming(result.collisionTiming),

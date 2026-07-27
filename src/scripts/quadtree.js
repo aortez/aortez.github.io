@@ -138,6 +138,7 @@ export class Quadtree
     this.aggregateCenterY = this.centerY();
     this.aggregateSourceCount = 0;
     this.massPathMarker = 0;
+    this.gravityFlatIndex = -1;
     this.parent = normalized.parent;
     this.root = normalized.root ?? this;
     if (this.root === this) {

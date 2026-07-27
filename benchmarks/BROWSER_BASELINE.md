@@ -354,8 +354,64 @@ reference iterations versus 6.5 MiB to the optimized path. Allocation profiling
 perturbs timings, so these values diagnose allocation sources rather than
 measure throughput.
 
-The retained object-node quadtree is now the larger remaining gravity target.
-Flattening node bounds, aggregate mass, centers, child indices, and traversal
-markers into reusable typed arrays would improve locality and remove much of
-the residual tree and traversal allocation. That change should be evaluated
-against this reference implementation and the same deterministic fixtures.
+These results motivated evaluating a contiguous view of the retained
+object-node quadtree against the same reference implementation and fixtures.
+
+## Flattened Gravity View
+
+Captured on 2026-07-26 from the dirty `optimize-more` worktree after commit
+`f1ee19b8802ca35aaad50db9c52ed2c4a3144913`. The flat implementation copies
+the current quadtree's node structure and leaf body references into reusable
+typed arrays. Barnes–Hut then walks integer node IDs instead of object
+references. Collision indexing remains on the established object tree, making
+this a deliberately isolated gravity change.
+
+The benchmark times the copy rather than hiding it. At 10,000 bodies it costs
+roughly 0.2–0.3 ms, and mass aggregation costs another 0.2–0.3 ms. Thirty
+samples after ten warmups measured:
+
+| Fixture | Optimized object build + gravity | Flat build + copy + gravity | Change |
+|---|---:|---:|---:|
+| Clustered | 24.1 ms | 21.6 ms | 10% lower |
+| Busy mixed-radius | 23.9 ms | 21.7–21.9 ms | 8–9% lower |
+| Jittered | 11.9 ms | 13.1 ms | 10% higher |
+
+The regular jittered layout is an important counterexample: contiguous storage
+is not intrinsically faster when the object traversal is shallow and
+predictable. Broader 10,000-body checks were favorable for application-shaped
+layouts: uniform, mixed-radius, moving, boundary, clustered, and busy fixtures
+improved the complete pipeline by roughly 7–18%; a perfect grid regressed about
+4%.
+
+The advantage persists above the app's current cap:
+
+| Busy bodies | Optimized traversal | Flat traversal | Optimized total | Flat total |
+|---:|---:|---:|---:|---:|
+| 25,000 | 62.3 ms | 52.8 ms | 72.9 ms | 63.0 ms |
+| 50,000 | 145.5 ms | 125.3 ms | 170.6 ms | 149.8 ms |
+
+The flat and object paths applied exactly 3,713,767 sources at 25,000 bodies and
+8,104,797 at 50,000. The harness now treats equal source counts and velocity
+checksums as a requirement and fails a comparison if they differ.
+
+In the active 10,000-ball plus 10,000-particle Fast fixture, flat storage
+reduced median gravity from 26.3 to 23.5 ms and total physics from 41.3 to
+39.4 ms. The complete measured frame fell from 43.6 to 41.8 ms. Full gravity
+uses flat views for both trees: at 5,000 balls plus 5,000 particles, gravity
+fell from 51.2 to 43.5 ms and physics from 58.0 to 49.7 ms. Paired workload
+traces and final state checksums were identical.
+
+The flat implementation is therefore the production default, while
+`optimized` and `reference` remain selectable in the benchmarks. It uses
+`Float64Array` for physical values to preserve JavaScript's existing numerical
+precision, integer arrays for topology and traversal state, geometrically grown
+capacities, and reusable body/node stacks.
+
+This view improves locality but does not yet remove construction of the
+collision tree. A five-iteration V8 sampling profile at 10,000 busy bodies
+attributed roughly 28 MiB to both flat and optimized runs; object `Quadtree`
+construction and `split` dominated both profiles. The profiler perturbs timing,
+so the absolute byte count is diagnostic rather than a throughput measurement.
+The result nevertheless makes the next architectural boundary clear: replacing
+the canonical object collision tree is required to eliminate its per-frame
+node allocation rather than merely accelerating gravity traversal.
