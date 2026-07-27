@@ -14,6 +14,14 @@ export const GravityMode = Object.freeze({
   FULL: 'full',
 });
 
+export const MAX_DESIRED_BALLS = 500;
+export const MIN_BALL_SPAWN_RATE = 0.01;
+export const MAX_BALL_SPAWN_RATE = 0.99;
+export const DEFAULT_BALL_SPAWN_RATE = 0.10;
+export const PARTICLE_PIXEL_RADIUS = 0.75;
+export const MAX_FULL_OUTLINE_BODY_COUNT = 2000;
+export const HIGH_LOAD_OUTLINE_RADIUS = 5;
+
 const GRAVITY_MODE_SETTINGS = Object.freeze({
   [GravityMode.FAST]: Object.freeze({
     barnesHutTheta: 0.7,
@@ -48,6 +56,8 @@ export class World
     this.g = 0.0005;
     this.c = new vec3( 0, 0, 255 );
     this.n_divs = 3;
+    this.desiredBallCount = 0;
+    this.ballSpawnRate = DEFAULT_BALL_SPAWN_RATE;
     this.init();
     this.background = new Background();
     this.shouldDrawBackground = true;
@@ -66,6 +76,80 @@ export class World
     this.EXPLODE_V_FACTOR = 0.1;
     this.EXPLODER_SIZE_FACTOR = 1.5;
     this.N_DIVS = 2;
+    this.renderOutlines = true;
+    this.adaptiveOutlines = true;
+    this.maxFullOutlineBodyCount = MAX_FULL_OUTLINE_BODY_COUNT;
+    this.highLoadOutlineRadius = HIGH_LOAD_OUTLINE_RADIUS;
+    this.renderFillStyleOverride = null;
+  }
+
+  setDesiredBallCount( count ) {
+    const numericCount = Number( count );
+    if ( !Number.isFinite( numericCount ) ) {
+      throw new TypeError( 'Desired ball count must be a finite number' );
+    }
+
+    this.desiredBallCount = Math.min(
+      MAX_DESIRED_BALLS,
+      Math.max( 0, Math.round( numericCount ) ),
+    );
+    if ( this.balls.length > this.desiredBallCount ) {
+      this.balls.length = this.desiredBallCount;
+    }
+    return this.desiredBallCount;
+  }
+
+  setBallSpawnRate( rate ) {
+    const numericRate = Number( rate );
+    if ( !Number.isFinite( numericRate ) ) {
+      throw new TypeError( 'Ball spawn rate must be a finite number' );
+    }
+
+    this.ballSpawnRate = Math.min(
+      MAX_BALL_SPAWN_RATE,
+      Math.max( MIN_BALL_SPAWN_RATE, numericRate ),
+    );
+    return this.ballSpawnRate;
+  }
+
+  createRandomBall( canvas, random = Math.random ) {
+    const scale = this.getDrawScale( canvas );
+    const maxX = canvas.width / scale;
+    const maxY = canvas.height / scale;
+    const maxRadius = Math.min( 0.08, maxX / 2, maxY / 2 );
+    const minRadius = Math.min( 0.01, maxRadius );
+    const radius = minRadius + random() * ( maxRadius - minRadius );
+    const availableX = Math.max( 0, maxX - 2 * radius );
+    const availableY = Math.max( 0, maxY - 2 * radius );
+    const color = new vec3(
+      Math.floor( random() * 256 ),
+      Math.floor( random() * 256 ),
+      Math.floor( random() * 256 ),
+    );
+    const ball = new Ball(
+      radius + random() * availableX,
+      radius + random() * availableY,
+      radius,
+      color,
+    );
+
+    if ( this.purple && this.background ) {
+      ball.color.copyFrom( this.background.rgb );
+    }
+    return ball;
+  }
+
+  advanceBallSpawner( canvas, random = Math.random ) {
+    if (
+      this.balls.length >= this.desiredBallCount ||
+      this.balls.length >= this.max_balls ||
+      random() >= this.ballSpawnRate
+    ) {
+      return 0;
+    }
+
+    this.balls.push( this.createRandomBall( canvas, random ) );
+    return 1;
   }
 
   setGravityMode( mode ) {
@@ -105,6 +189,7 @@ export class World
       ballParticleCollisions: 0,
     };
     this.lastPhysicsBreakdown = null;
+    this.lastRenderBreakdown = null;
 
     let pink = new vec3( 255, 50, 50 );
     let blue = new vec3( 0, 0, 255 );
@@ -918,28 +1003,116 @@ export class World
     }
   }
 
+  drawBodies(
+    canvas,
+    ctx,
+    bodies,
+    scale,
+    useParticleLod = false,
+    useOutlineLod = false,
+  ) {
+    const stats = {
+      attemptedBodies: bodies.length,
+      drawnBodies: 0,
+      culledBodies: 0,
+      pixelBodies: 0,
+      circleBodies: 0,
+      outlinedBodies: 0,
+    };
+    let activeFillStyle = null;
+
+    for ( const body of bodies ) {
+      const x = body.center.x * scale;
+      const y = body.center.y * scale;
+      const radius = body.r * scale;
+      if (
+        x + radius < 0 ||
+        y + radius < 0 ||
+        x - radius > canvas.width ||
+        y - radius > canvas.height
+      ) {
+        stats.culledBodies++;
+        continue;
+      }
+
+      const fillStyle = (
+        this.renderFillStyleOverride ??
+        body.getFillStyle( ctx, this.pizza_time )
+      );
+      if ( fillStyle !== activeFillStyle ) {
+        ctx.fillStyle = fillStyle;
+        activeFillStyle = fillStyle;
+      }
+
+      if ( useParticleLod && radius <= PARTICLE_PIXEL_RADIUS ) {
+        body.drawPixel( ctx, x, y );
+        stats.pixelBodies++;
+      } else {
+        const shouldStroke = (
+          this.renderOutlines &&
+          ( !useOutlineLod || radius >= this.highLoadOutlineRadius )
+        );
+        body.drawCircle( ctx, x, y, radius, shouldStroke );
+        if ( shouldStroke ) {
+          stats.outlinedBodies++;
+        }
+        stats.circleBodies++;
+      }
+      stats.drawnBodies++;
+    }
+
+    return stats;
+  }
+
   draw( canvas, ctx ) {
+    const renderStart = nowMilliseconds();
+    const scale = this.getDrawScale( canvas );
+    const attemptedBodies = (
+      this.particles.length +
+      this.planets.length +
+      this.balls.length
+    );
+    const useOutlineLod = (
+      this.adaptiveOutlines &&
+      attemptedBodies > this.maxFullOutlineBodyCount
+    );
     if ( this.shouldDrawBackground ) {
       this.background.draw(canvas, ctx);
     } else {
-      ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+      ctx.fillStyle = "rgb(0,0,0)";
       ctx.fillRect( 0, 0, canvas.width, canvas.height );
     }
+    const backgroundEnd = nowMilliseconds();
 
-    for ( let i = 0; i < this.particles.length; i++ ) {
-      let p = this.particles[ i ];
-      p.draw( ctx, this.getDrawScale(canvas), this.pizza_time );
-    }
+    const particleStats = this.drawBodies(
+      canvas,
+      ctx,
+      this.particles,
+      scale,
+      true,
+      useOutlineLod,
+    );
+    const particlesEnd = nowMilliseconds();
 
-    for ( let i = 0; i < this.planets.length; i++ ) {
-      let p = this.planets[ i ];
-      p.draw( ctx, this.getDrawScale(canvas), this.pizza_time );
-    }
+    const planetStats = this.drawBodies(
+      canvas,
+      ctx,
+      this.planets,
+      scale,
+      false,
+      useOutlineLod,
+    );
+    const planetsEnd = nowMilliseconds();
 
-    for ( let i = 0; i < this.balls.length; i++ ) {
-      let b = this.balls[ i ];
-      b.draw( ctx, this.getDrawScale(canvas), this.pizza_time );
-    }
+    const ballStats = this.drawBodies(
+      canvas,
+      ctx,
+      this.balls,
+      scale,
+      false,
+      useOutlineLod,
+    );
+    const ballsEnd = nowMilliseconds();
 
     if ( this.showQuadtreeOverlay && this.lastQuadtree ) {
       if ( debug_on ) {
@@ -952,7 +1125,47 @@ export class World
       }
       this.drawQuadtreeOverlay( this.lastQuadtree, canvas, ctx );
     }
+    const renderEnd = nowMilliseconds();
 
+    this.lastRenderBreakdown = {
+      totalMs: renderEnd - renderStart,
+      backgroundMs: backgroundEnd - renderStart,
+      particleMs: particlesEnd - backgroundEnd,
+      planetMs: planetsEnd - particlesEnd,
+      ballMs: ballsEnd - planetsEnd,
+      overlayMs: renderEnd - ballsEnd,
+      outlineLodActive: useOutlineLod,
+      attemptedBodies,
+      drawnBodies: (
+        particleStats.drawnBodies +
+        planetStats.drawnBodies +
+        ballStats.drawnBodies
+      ),
+      culledBodies: (
+        particleStats.culledBodies +
+        planetStats.culledBodies +
+        ballStats.culledBodies
+      ),
+      pixelBodies: (
+        particleStats.pixelBodies +
+        planetStats.pixelBodies +
+        ballStats.pixelBodies
+      ),
+      circleBodies: (
+        particleStats.circleBodies +
+        planetStats.circleBodies +
+        ballStats.circleBodies
+      ),
+      outlinedBodies: (
+        particleStats.outlinedBodies +
+        planetStats.outlinedBodies +
+        ballStats.outlinedBodies
+      ),
+      particles: particleStats,
+      planets: planetStats,
+      balls: ballStats,
+    };
+    return this.lastRenderBreakdown;
   }
 
   containBalls( canvas, elasticFactor ) {

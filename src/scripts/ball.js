@@ -160,26 +160,35 @@ export class Ball
     // console.log( "this.hp: " + this.hp );
   }
 
+  getFillStyle( ctx, pizza_time ) {
+    if ( pizza_time ) {
+      return getPizzaPattern( ctx ) ?? this.color.toRGB();
+    }
+    return this.color.toRGB();
+  }
+
+  drawCircle( ctx, x, y, r, shouldStroke = true ) {
+    ctx.beginPath();
+    ctx.arc( x, y, r, 0, 2 * Math.PI, false );
+    ctx.fill();
+    if ( shouldStroke ) {
+      ctx.stroke();
+    }
+    ctx.closePath();
+  }
+
+  drawPixel( ctx, x, y ) {
+    ctx.fillRect( Math.floor( x ), Math.floor( y ), 1, 1 );
+  }
+
   draw( ctx, scale_factor, pizza_time ) {
     // The world goes from 0 to 1, across the largest dimension.
     // The smaller dimension is sized relative to the larger.
-
-    // Scale object location to canvas size.
-    ctx.beginPath();
-    let x = this.center.x * scale_factor;
-    let y = this.center.y * scale_factor;
-    let r = this.r * scale_factor;
-    ctx.arc( x, y, r, 0, 2 * Math.PI, false );
-    if ( pizza_time ) {
-      ctx.fillStyle = getPizzaPattern( ctx ) ?? (
-        "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")"
-      );
-    } else {
-      ctx.fillStyle = "rgb(" + this.color.x + "," + this.color.y + "," + this.color.z + ")";
-    }
-    ctx.fill();
-    ctx.stroke();
-    ctx.closePath();
+    const x = this.center.x * scale_factor;
+    const y = this.center.y * scale_factor;
+    const r = this.r * scale_factor;
+    ctx.fillStyle = this.getFillStyle( ctx, pizza_time );
+    this.drawCircle( ctx, x, y, r );
   }
 
   explode( n_divs, min_frag_radius, EXPLODE_V_FACTOR, EXPLODER_SIZE_FACTOR ) {

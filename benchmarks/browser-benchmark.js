@@ -62,6 +62,10 @@ function parseArguments(argumentsList) {
     busyBalls: 10000,
     busyParticles: null,
     particleGravity: false,
+    renderOutlines: true,
+    adaptiveOutlines: true,
+    highLoadOutlineRadius: 8,
+    sharedRenderColor: false,
     json: false,
   };
   let thetaExplicit = false;
@@ -157,6 +161,22 @@ function parseArguments(argumentsList) {
           options.theta = 0.7;
         }
         break;
+      case '--no-outlines':
+        options.renderOutlines = false;
+        break;
+      case '--all-outlines':
+        options.adaptiveOutlines = false;
+        break;
+      case '--high-load-outline-radius':
+        options.highLoadOutlineRadius = parseNumber(
+          optionValue(argumentsList, index, argument),
+          argument,
+        );
+        index++;
+        break;
+      case '--shared-color':
+        options.sharedRenderColor = true;
+        break;
       case '--json':
         options.json = true;
         break;
@@ -195,6 +215,11 @@ Options:
   --full-gravity      Enable mutual ball-particle gravity (defaults theta to 0.5).
   --no-particle-gravity
                       Use visual-effect particles (the default, theta 0.7).
+  --no-outlines       Benchmark filled circles without per-body strokes.
+  --all-outlines      Disable outline LOD and stroke every visible circle.
+  --high-load-outline-radius NUMBER
+                      Pixel radius outlined in dense scenes (default: 8).
+  --shared-color      Benchmark every body with one shared fill color.
   --json              Emit structured JSON only.
   --help              Show this help.
 
@@ -299,6 +324,10 @@ async function configureCase(page, testCase, theta) {
     busy,
     churn,
     particleGravity,
+    renderOutlines,
+    adaptiveOutlines,
+    highLoadOutlineRadius,
+    sharedRenderColor,
     thetaValue,
   }) => {
     const [
@@ -324,6 +353,12 @@ async function configureCase(page, testCase, theta) {
     world.showQuadtreeOverlay = overlay;
     world.setGravityMode(particleGravity ? 'full' : 'fast');
     world.barnesHutTheta = thetaValue;
+    world.renderOutlines = renderOutlines;
+    world.adaptiveOutlines = adaptiveOutlines;
+    world.highLoadOutlineRadius = highLoadOutlineRadius;
+    world.renderFillStyleOverride = (
+      sharedRenderColor ? 'rgb(128,128,128)' : null
+    );
 
     const maxX = canvas.width / world.getDrawScale(canvas);
     const maxY = canvas.height / world.getDrawScale(canvas);
@@ -421,6 +456,10 @@ async function configureCase(page, testCase, theta) {
       maxY,
       gravityMode: world.gravityMode,
       particleGravityEnabled: world.useBallParticleGravity,
+      renderOutlines: world.renderOutlines,
+      adaptiveOutlines: world.adaptiveOutlines,
+      highLoadOutlineRadius: world.highLoadOutlineRadius,
+      sharedRenderColor: world.renderFillStyleOverride !== null,
       theta: world.barnesHutTheta,
     };
   }, {
@@ -434,6 +473,10 @@ async function configureCase(page, testCase, theta) {
     busy: testCase.busy ?? false,
     churn: testCase.churn ?? false,
     particleGravity: testCase.particleGravity,
+    renderOutlines: testCase.renderOutlines,
+    adaptiveOutlines: testCase.adaptiveOutlines,
+    highLoadOutlineRadius: testCase.highLoadOutlineRadius,
+    sharedRenderColor: testCase.sharedRenderColor,
     thetaValue: theta,
   });
 }
@@ -490,6 +533,7 @@ async function collectFrames(page, warmup, sampleCount, churn = false) {
               measuredFrameMs: stats.measuredFrameMs,
               physicsMs: stats.physicsMs,
               renderMs: stats.renderMs,
+              renderBreakdown: stats.renderBreakdown,
               physicsBreakdown: stats.physicsBreakdown,
             });
           }
@@ -532,6 +576,7 @@ async function inspectCase(page) {
       gravity: world.lastGravityStats,
       collisions: world.lastCollisionStats,
       physicsBreakdown: world.lastPhysicsBreakdown,
+      renderBreakdown: world.lastRenderBreakdown,
       ballCount: world.balls.length,
       particleCount: world.particles.length,
     };
@@ -621,6 +666,10 @@ async function main() {
         count,
         scenario: options.scenario,
         particleGravity: options.particleGravity,
+        renderOutlines: options.renderOutlines,
+        adaptiveOutlines: options.adaptiveOutlines,
+        highLoadOutlineRadius: options.highLoadOutlineRadius,
+        sharedRenderColor: options.sharedRenderColor,
       })),
       ...options.exactSizes.map(count => ({
         name: 'exact',
@@ -630,6 +679,10 @@ async function main() {
         count,
         scenario: options.scenario,
         particleGravity: options.particleGravity,
+        renderOutlines: options.renderOutlines,
+        adaptiveOutlines: options.adaptiveOutlines,
+        highLoadOutlineRadius: options.highLoadOutlineRadius,
+        sharedRenderColor: options.sharedRenderColor,
       })),
       {
         name: 'spatial+overlay',
@@ -639,6 +692,10 @@ async function main() {
         count: 1000,
         scenario: options.scenario,
         particleGravity: options.particleGravity,
+        renderOutlines: options.renderOutlines,
+        adaptiveOutlines: options.adaptiveOutlines,
+        highLoadOutlineRadius: options.highLoadOutlineRadius,
+        sharedRenderColor: options.sharedRenderColor,
       },
       {
         name: 'spatial+particles',
@@ -648,6 +705,10 @@ async function main() {
         count: 1000,
         scenario: options.scenario,
         particleGravity: options.particleGravity,
+        renderOutlines: options.renderOutlines,
+        adaptiveOutlines: options.adaptiveOutlines,
+        highLoadOutlineRadius: options.highLoadOutlineRadius,
+        sharedRenderColor: options.sharedRenderColor,
       },
     ];
     const cases = options.churn
@@ -666,6 +727,10 @@ async function main() {
         busy: true,
         churn: true,
         particleGravity: options.particleGravity,
+        renderOutlines: options.renderOutlines,
+        adaptiveOutlines: options.adaptiveOutlines,
+        highLoadOutlineRadius: options.highLoadOutlineRadius,
+        sharedRenderColor: options.sharedRenderColor,
       }]
       : options.busy
       ? [{
@@ -682,6 +747,10 @@ async function main() {
         active: true,
         busy: true,
         particleGravity: options.particleGravity,
+        renderOutlines: options.renderOutlines,
+        adaptiveOutlines: options.adaptiveOutlines,
+        highLoadOutlineRadius: options.highLoadOutlineRadius,
+        sharedRenderColor: options.sharedRenderColor,
       }]
       : options.stress
         ? [{
@@ -697,6 +766,10 @@ async function main() {
         scenario: 'clustered',
         edgeStraddlers: true,
         particleGravity: options.particleGravity,
+        renderOutlines: options.renderOutlines,
+        adaptiveOutlines: options.adaptiveOutlines,
+        highLoadOutlineRadius: options.highLoadOutlineRadius,
+        sharedRenderColor: options.sharedRenderColor,
         }]
         : standardCases;
     const results = [];
@@ -714,6 +787,9 @@ async function main() {
       const measured = summarize(frames.map(frame => frame.measuredFrameMs));
       const physics = summarize(frames.map(frame => frame.physicsMs));
       const render = summarize(frames.map(frame => frame.renderMs));
+      const renderStageSummary = stageName => summarize(frames.map(frame => (
+        frame.renderBreakdown?.[stageName] ?? 0
+      )));
       const stageSummary = stageName => summarize(frames.map(frame => (
         frame.physicsBreakdown?.[stageName] ?? 0
       )));
@@ -741,6 +817,8 @@ async function main() {
         measured,
         physics,
         render,
+        particleRenderTiming: renderStageSummary('particleMs'),
+        ballRenderTiming: renderStageSummary('ballMs'),
         treeBuild,
         gravityTiming: stageSummary('gravityMs'),
         collisionTiming,
@@ -786,6 +864,12 @@ async function main() {
         mode: result.name,
         gravityMode: result.worldBounds.gravityMode,
         theta: result.worldBounds.theta,
+        outlines: !result.worldBounds.renderOutlines
+          ? 'off'
+          : result.worldBounds.adaptiveOutlines
+            ? `adaptive≥${result.worldBounds.highLoadOutlineRadius}px`
+            : 'all',
+        color: result.worldBounds.sharedRenderColor ? 'shared' : 'normal',
         bodies: (
           result.count.toLocaleString('en-US') +
           (result.particleCount
@@ -796,6 +880,8 @@ async function main() {
         measured: formatTiming(result.measured),
         physics: formatTiming(result.physics),
         render: formatTiming(result.render),
+        renderParticles: formatTiming(result.particleRenderTiming),
+        renderBalls: formatTiming(result.ballRenderTiming),
         trees: formatTiming(result.treeBuild),
         gravity: formatTiming(result.gravityTiming),
         collisions: formatTiming(result.collisionTiming),
@@ -818,6 +904,15 @@ async function main() {
         gravitySources: result.gravity?.appliedSources?.toLocaleString('en-US') ?? '—',
         over33ms: `${result.framesOver33_3}/${options.samples}`,
         rejected: result.rejected + result.rejectedParticles,
+        culled: (
+          result.renderBreakdown?.culledBodies?.toLocaleString('en-US') ?? '—'
+        ),
+        pixels: (
+          result.renderBreakdown?.pixelBodies?.toLocaleString('en-US') ?? '—'
+        ),
+        outlined: (
+          result.renderBreakdown?.outlinedBodies?.toLocaleString('en-US') ?? '—'
+        ),
         removed: (
           Math.round(result.removedTiming.medianMs).toLocaleString('en-US')
         ),

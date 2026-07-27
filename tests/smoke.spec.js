@@ -58,6 +58,39 @@ test.describe('Canvas Physics App', () => {
     // Change slider value
     await slider.fill('5');
     await expect(sliderValue).toHaveText('5');
+
+    const numBalls = page.locator('#num_balls_slider');
+    const spawnRate = page.locator('#ball_spawn_rate_slider');
+    await expect(numBalls).toHaveAttribute('min', '0');
+    await expect(numBalls).toHaveAttribute('max', '500');
+    await expect(spawnRate).toHaveAttribute('min', '0.01');
+    await expect(spawnRate).toHaveAttribute('max', '0.99');
+  });
+
+  test('should spawn toward the requested ball count', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#pause_button').click();
+    await page.evaluate(() => {
+      globalThis.__pizzaRuntime.world.g = 0;
+    });
+
+    const numBalls = page.locator('#num_balls_slider');
+    const numBallsValue = page.locator('#num_balls_slider_value');
+    const spawnRate = page.locator('#ball_spawn_rate_slider');
+    const spawnRateValue = page.locator('#ball_spawn_rate_slider_value');
+
+    await spawnRate.fill('0.99');
+    await expect(spawnRateValue).toHaveText('0.99');
+    await numBalls.fill('8');
+    await expect(numBallsValue).toHaveText('8');
+    await expect.poll(async () => page.evaluate(() => (
+      globalThis.__pizzaRuntime.world.balls.length
+    ))).toBe(8);
+
+    await numBalls.fill('3');
+    await expect.poll(async () => page.evaluate(() => (
+      globalThis.__pizzaRuntime.world.balls.length
+    ))).toBe(3);
   });
 
   test('should have working buttons', async ({ page }) => {

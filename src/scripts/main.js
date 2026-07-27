@@ -1,4 +1,10 @@
-import { GravityMode, World } from './world.js';
+import {
+  GravityMode,
+  MAX_BALL_SPAWN_RATE,
+  MAX_DESIRED_BALLS,
+  MIN_BALL_SPAWN_RATE,
+  World,
+} from './world.js';
 import { Controller } from './controller.js';
 
 let ctx;
@@ -95,6 +101,24 @@ export function init() {
     console.log( "TIMESCALE_SCALAR: " + timescale_scalar );
   }, false );
   timescale_slider.value = timescale_scalar;
+
+  let num_balls_slider = document.getElementById( 'num_balls_slider' );
+  num_balls_slider.addEventListener( 'input', (e) => {
+    world.setDesiredBallCount( e.currentTarget.value );
+  }, false );
+  num_balls_slider.min = '0';
+  num_balls_slider.max = String( MAX_DESIRED_BALLS );
+  num_balls_slider.value = String( world.desiredBallCount );
+
+  let ball_spawn_rate_slider = document.getElementById(
+    'ball_spawn_rate_slider',
+  );
+  ball_spawn_rate_slider.addEventListener( 'input', (e) => {
+    world.setBallSpawnRate( e.currentTarget.value );
+  }, false );
+  ball_spawn_rate_slider.min = String( MIN_BALL_SPAWN_RATE );
+  ball_spawn_rate_slider.max = String( MAX_BALL_SPAWN_RATE );
+  ball_spawn_rate_slider.value = String( world.ballSpawnRate );
 
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
@@ -206,6 +230,7 @@ export function init() {
 
     let BASE_TIMESTEP_SCALAR = 0.003;
     controller.advance( simulationFrameMs * BASE_TIMESTEP_SCALAR );
+    const spawnedBallCount = world.advanceBallSpawner( canvas );
 
     const physicsStart = window.performance.now();
     world.advance(
@@ -231,6 +256,8 @@ export function init() {
       measuredFrameMs: drawEnd - frameStart,
       ballCount: world.balls.length,
       particleCount: world.particles.length,
+      spawnedBallCount,
+      renderBreakdown: world.lastRenderBreakdown,
       gravity: world.lastGravityStats,
       physicsBreakdown: world.lastPhysicsBreakdown,
       collisions: world.lastCollisionStats,
