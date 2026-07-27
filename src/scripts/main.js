@@ -1,10 +1,41 @@
-import { World } from './world.js';
+import {
+  GravityMode,
+  MAX_BALL_SPAWN_RATE,
+  MAX_DESIRED_BALLS,
+  MIN_BALL_SPAWN_RATE,
+  World,
+} from './world.js';
 import { Controller } from './controller.js';
 
 let ctx;
 let world;
 let controller;
 let canvas;
+
+export const MAX_SIMULATION_FRAME_MS = 1000 / 30;
+
+export function clampSimulationFrameMilliseconds( frameMilliseconds ) {
+  return Math.min(
+    MAX_SIMULATION_FRAME_MS,
+    Math.max( 0, frameMilliseconds ),
+  );
+}
+
+export function getRuntime() {
+  const runtime = {
+    canvas,
+    controller,
+    ctx,
+    world,
+  };
+  if (
+    !runtime.world &&
+    globalThis.__pizzaRuntime?.world
+  ) {
+    return globalThis.__pizzaRuntime;
+  }
+  return runtime;
+}
 
 function mouseDown( e ) {
   controller.mouseDown( e );
@@ -71,6 +102,24 @@ export function init() {
   }, false );
   timescale_slider.value = timescale_scalar;
 
+  let num_balls_slider = document.getElementById( 'num_balls_slider' );
+  num_balls_slider.addEventListener( 'input', (e) => {
+    world.setDesiredBallCount( e.currentTarget.value );
+  }, false );
+  num_balls_slider.min = '0';
+  num_balls_slider.max = String( MAX_DESIRED_BALLS );
+  num_balls_slider.value = String( world.desiredBallCount );
+
+  let ball_spawn_rate_slider = document.getElementById(
+    'ball_spawn_rate_slider',
+  );
+  ball_spawn_rate_slider.addEventListener( 'input', (e) => {
+    world.setBallSpawnRate( e.currentTarget.value );
+  }, false );
+  ball_spawn_rate_slider.min = String( MIN_BALL_SPAWN_RATE );
+  ball_spawn_rate_slider.max = String( MAX_BALL_SPAWN_RATE );
+  ball_spawn_rate_slider.value = String( world.ballSpawnRate );
+
   canvas = document.getElementById( 'pizza' );
   canvas.addEventListener( 'mousedown', mouseDown, false );
   canvas.addEventListener( 'mousemove', mouseMove, false );
@@ -103,6 +152,12 @@ export function init() {
   );
 
   ctx = canvas.getContext( '2d' );
+  globalThis.__pizzaRuntime = {
+    canvas,
+    controller,
+    ctx,
+    world,
+  };
 
   document.getElementById( 'background_button' ).addEventListener( 'click', function() {
     world.setDrawBackground( !world.getDrawBackground() );
@@ -128,8 +183,27 @@ export function init() {
     controller.pause();
   });
 
-  document.getElementById( 'quadtree_button' ).addEventListener( 'click', function() {
+  document.getElementById( 'quadtree_button' ).addEventListener( 'click', function( event ) {
     controller.quadtree();
+    const enabled = world.useQuadtreeCollisions;
+    event.currentTarget.setAttribute( 'aria-pressed', String( enabled ) );
+    event.currentTarget.textContent = 'Spatial Physics: ' + ( enabled ? 'On' : 'Off' );
+  });
+
+  document.getElementById( 'gravity_mode_button' ).addEventListener( 'click', function( event ) {
+    controller.toggleGravityMode();
+    const fullGravity = world.gravityMode === GravityMode.FULL;
+    event.currentTarget.setAttribute( 'aria-pressed', String( fullGravity ) );
+    event.currentTarget.textContent = (
+      'Gravity: ' + ( fullGravity ? 'Full' : 'Fast' )
+    );
+  });
+
+  document.getElementById( 'quadtree_overlay_button' ).addEventListener( 'click', function( event ) {
+    controller.quadtreeOverlay();
+    const enabled = world.showQuadtreeOverlay;
+    event.currentTarget.setAttribute( 'aria-pressed', String( enabled ) );
+    event.currentTarget.textContent = 'Quadtree Overlay: ' + ( enabled ? 'On' : 'Off' );
   });
 
   document.getElementById( 'purple_button' ).addEventListener( 'click', function() {
@@ -142,42 +216,52 @@ export function init() {
 
   let previous = null;
   let smoothed_fps = 0;
+  let frameId = 0;
 
   function advance() {
+    const frameStart = window.performance.now();
     canvas.height = window.innerHeight - document.getElementById('controls').offsetHeight - 30;
     canvas.width = document.body.clientWidth;
 
     let now = window.performance.now();
-    let dt = now - previous;
+    let dt = previous === null ? 0 : now - previous;
     previous = now;
+    const simulationFrameMs = clampSimulationFrameMilliseconds( dt );
 
     let BASE_TIMESTEP_SCALAR = 0.003;
-    controller.advance( dt * BASE_TIMESTEP_SCALAR );
+    controller.advance( simulationFrameMs * BASE_TIMESTEP_SCALAR );
+    const spawnedBallCount = world.advanceBallSpawner( canvas );
 
-    world.advance( dt * BASE_TIMESTEP_SCALAR * timescale_scalar, canvas );
+    const physicsStart = window.performance.now();
+    world.advance(
+      simulationFrameMs * BASE_TIMESTEP_SCALAR * timescale_scalar,
+      canvas,
+    );
+    const physicsEnd = window.performance.now();
 
     world.draw( canvas, ctx );
+    const drawEnd = window.performance.now();
 
-    let fps = 1000.0 / dt;
+    let fps = dt > 0 ? 1000.0 / dt : 60;
     let fps_alpha = 0.1;
     smoothed_fps = smoothed_fps * ( 1 - fps_alpha ) + fps * fps_alpha;
     updateInfoLabel( smoothed_fps );
 
-    if ( smoothed_fps < 45 ) {
-      if ( world.max_balls > 75 ) {
-        world.max_balls -= 10;
-      }
-      if ( world.max_particles > 50 ) {
-        world.max_particles -= 5;
-      }
-    } else {
-      if ( world.max_balls < 300 ) {
-        world.max_balls += 0.1;
-      }
-      if ( world.max_particles < 300 ) {
-        world.max_particles += 1;
-      }
-    }
+    world.lastFrameStats = {
+      frameId: frameId++,
+      frameIntervalMs: dt,
+      simulationFrameMs,
+      physicsMs: physicsEnd - physicsStart,
+      renderMs: drawEnd - physicsEnd,
+      measuredFrameMs: drawEnd - frameStart,
+      ballCount: world.balls.length,
+      particleCount: world.particles.length,
+      spawnedBallCount,
+      renderBreakdown: world.lastRenderBreakdown,
+      gravity: world.lastGravityStats,
+      physicsBreakdown: world.lastPhysicsBreakdown,
+      collisions: world.lastCollisionStats,
+    };
 
     requestAnimationFrame( advance );
   }

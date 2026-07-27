@@ -58,6 +58,39 @@ test.describe('Canvas Physics App', () => {
     // Change slider value
     await slider.fill('5');
     await expect(sliderValue).toHaveText('5');
+
+    const numBalls = page.locator('#num_balls_slider');
+    const spawnRate = page.locator('#ball_spawn_rate_slider');
+    await expect(numBalls).toHaveAttribute('min', '0');
+    await expect(numBalls).toHaveAttribute('max', '500');
+    await expect(spawnRate).toHaveAttribute('min', '0.01');
+    await expect(spawnRate).toHaveAttribute('max', '0.99');
+  });
+
+  test('should spawn toward the requested ball count', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#pause_button').click();
+    await page.evaluate(() => {
+      globalThis.__pizzaRuntime.world.g = 0;
+    });
+
+    const numBalls = page.locator('#num_balls_slider');
+    const numBallsValue = page.locator('#num_balls_slider_value');
+    const spawnRate = page.locator('#ball_spawn_rate_slider');
+    const spawnRateValue = page.locator('#ball_spawn_rate_slider_value');
+
+    await spawnRate.fill('0.99');
+    await expect(spawnRateValue).toHaveText('0.99');
+    await numBalls.fill('8');
+    await expect(numBallsValue).toHaveText('8');
+    await expect.poll(async () => page.evaluate(() => (
+      globalThis.__pizzaRuntime.world.balls.length
+    ))).toBe(8);
+
+    await numBalls.fill('3');
+    await expect.poll(async () => page.evaluate(() => (
+      globalThis.__pizzaRuntime.world.balls.length
+    ))).toBe(3);
   });
 
   test('should have working buttons', async ({ page }) => {
@@ -72,6 +105,8 @@ test.describe('Canvas Physics App', () => {
       '#background_button',
       '#pause_button',
       '#quadtree_button',
+      '#gravity_mode_button',
+      '#quadtree_overlay_button',
       '#purple_button',
       '#debug_button'
     ];
@@ -80,5 +115,98 @@ test.describe('Canvas Physics App', () => {
       await expect(page.locator(buttonId)).toBeVisible();
       await expect(page.locator(buttonId)).toBeEnabled();
     }
+  });
+
+  test('should switch between fast and full gravity modes', async ({ page }) => {
+    await page.goto('/');
+
+    const gravityMode = page.locator('#gravity_mode_button');
+    await expect(gravityMode).toHaveText('Gravity: Fast');
+    await expect(gravityMode).toHaveAttribute('aria-pressed', 'false');
+    await page.waitForFunction(async () => {
+      const { getRuntime } = await import('/src/scripts/main.js');
+      return Boolean(getRuntime().world);
+    });
+
+    const initialState = await page.evaluate(async () => {
+      const { getRuntime } = await import('/src/scripts/main.js');
+      const { world } = getRuntime();
+      return {
+        mode: world.gravityMode,
+        particleGravity: world.useBallParticleGravity,
+        theta: world.barnesHutTheta,
+      };
+    });
+    expect(initialState).toEqual({
+      mode: 'fast',
+      particleGravity: false,
+      theta: 0.7,
+    });
+
+    await gravityMode.click();
+    await expect(gravityMode).toHaveText('Gravity: Full');
+    await expect(gravityMode).toHaveAttribute('aria-pressed', 'true');
+
+    const fullState = await page.evaluate(async () => {
+      const { getRuntime } = await import('/src/scripts/main.js');
+      const { world } = getRuntime();
+      return {
+        mode: world.gravityMode,
+        particleGravity: world.useBallParticleGravity,
+        theta: world.barnesHutTheta,
+      };
+    });
+    expect(fullState).toEqual({
+      mode: 'full',
+      particleGravity: true,
+      theta: 0.5,
+    });
+
+    await gravityMode.click();
+    await expect(gravityMode).toHaveText('Gravity: Fast');
+  });
+
+  test('should create balls and run the quadtree overlay across viewport shapes', async ({ page }) => {
+    const errors = [];
+    page.on('console', message => {
+      if (message.type() === 'error') {
+        errors.push(message.text());
+      }
+    });
+    page.on('pageerror', error => {
+      errors.push(error.message);
+    });
+
+    await page.setViewportSize({ width: 1200, height: 700 });
+    await page.goto('/');
+
+    const canvas = page.locator('#pizza');
+    await expect(canvas).toBeVisible();
+    await page.locator('#pause_button').click();
+    await canvas.click({ position: { x: 240, y: 120 } });
+    await expect(page.locator('#num_balls_label')).toContainText('num balls: 1 /');
+
+    const spatialPhysics = page.locator('#quadtree_button');
+    await expect(spatialPhysics).toHaveAttribute('aria-pressed', 'true');
+    await spatialPhysics.click();
+    await expect(spatialPhysics).toHaveAttribute('aria-pressed', 'false');
+    await spatialPhysics.click();
+    await expect(spatialPhysics).toHaveAttribute('aria-pressed', 'true');
+
+    await page.locator('#quadtree_overlay_button').click();
+    await expect(page.locator('#quadtree_overlay_button')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.waitForTimeout(100);
+    await expect(page.locator('#num_balls_label')).toContainText('num balls: 1 /');
+
+    await page.setViewportSize({ width: 800, height: 1100 });
+    await expect(canvas).toBeVisible();
+    await canvas.click({ position: { x: 400, y: 180 } });
+    await expect(page.locator('#num_balls_label')).toContainText('num balls: 2 /');
+    await page.waitForTimeout(100);
+
+    expect(errors, `Found browser errors: ${errors.join('; ')}`).toEqual([]);
   });
 });

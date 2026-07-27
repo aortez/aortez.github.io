@@ -4,6 +4,10 @@ export class vec3
     this.x = x;
     this.y = y;
     this.z = z;
+    this.cachedRgb = null;
+    this.cachedRgbX = null;
+    this.cachedRgbY = null;
+    this.cachedRgbZ = null;
   }
 
   copyFrom( that ) {
@@ -41,8 +45,20 @@ export class vec3
   }
 
   toRGB() {
-    let rgb = "rgb(" + this.x + "," + this.y + "," + this.z + ")";
-    return rgb;
+    if (
+      this.cachedRgb === null ||
+      this.cachedRgbX !== this.x ||
+      this.cachedRgbY !== this.y ||
+      this.cachedRgbZ !== this.z
+    ) {
+      this.cachedRgb = (
+        "rgb(" + this.x + "," + this.y + "," + this.z + ")"
+      );
+      this.cachedRgbX = this.x;
+      this.cachedRgbY = this.y;
+      this.cachedRgbZ = this.z;
+    }
+    return this.cachedRgb;
   }
 
 }
