@@ -6,11 +6,21 @@ import {
   World,
 } from './world.js';
 import { Controller } from './controller.js';
+import {
+  createRenderer,
+  RendererBackend,
+  rendererBackendFromSearch,
+  urlForRenderer,
+} from './renderers/renderer-factory.js';
 
 let ctx;
 let world;
 let controller;
 let canvas;
+let renderer;
+let rendererFallbackReason;
+let requestedRendererBackend;
+let simulationFrameOverrideMilliseconds = null;
 
 export const MAX_SIMULATION_FRAME_MS = 1000 / 30;
 
@@ -21,11 +31,32 @@ export function clampSimulationFrameMilliseconds( frameMilliseconds ) {
   );
 }
 
+export function setSimulationFrameOverrideMilliseconds( frameMilliseconds ) {
+  if ( frameMilliseconds === null ) {
+    simulationFrameOverrideMilliseconds = null;
+    return;
+  }
+  if (
+    !Number.isFinite( frameMilliseconds ) ||
+    frameMilliseconds < 0
+  ) {
+    throw new TypeError(
+      'Simulation frame override must be a non-negative finite number or null',
+    );
+  }
+  simulationFrameOverrideMilliseconds = clampSimulationFrameMilliseconds(
+    frameMilliseconds,
+  );
+}
+
 export function getRuntime() {
   const runtime = {
     canvas,
     controller,
     ctx,
+    renderer,
+    rendererFallbackReason,
+    requestedRendererBackend,
     world,
   };
   if (
@@ -151,13 +182,72 @@ export function init() {
     }, false
   );
 
-  ctx = canvas.getContext( '2d' );
+  requestedRendererBackend = rendererBackendFromSearch(
+    globalThis.location?.search ?? '',
+  );
+  const rendererSelection = createRenderer(
+    canvas,
+    requestedRendererBackend,
+  );
+  renderer = rendererSelection.renderer;
+  rendererFallbackReason = rendererSelection.fallbackReason;
+  ctx = renderer.context;
   globalThis.__pizzaRuntime = {
     canvas,
     controller,
     ctx,
+    renderer,
+    rendererFallbackReason,
+    requestedRendererBackend,
     world,
   };
+
+  const rendererButton = document.getElementById( 'renderer_button' );
+  const usingWebGl = renderer.backend === RendererBackend.WEBGL_2;
+  rendererButton.textContent = (
+    'Renderer: ' + ( usingWebGl ? 'WebGL2' : 'Canvas2D' )
+  );
+  rendererButton.setAttribute( 'aria-pressed', String( usingWebGl ) );
+  if ( rendererFallbackReason ) {
+    rendererButton.textContent += ' (fallback)';
+    rendererButton.title = (
+      'WebGL2 could not start: ' + rendererFallbackReason
+    );
+  }
+  rendererButton.addEventListener( 'click', function() {
+    const nextBackend = (
+      renderer.backend === RendererBackend.CANVAS_2D &&
+      requestedRendererBackend === RendererBackend.CANVAS_2D
+    )
+      ? RendererBackend.WEBGL_2
+      : RendererBackend.CANVAS_2D;
+    globalThis.location.href = urlForRenderer(
+      globalThis.location,
+      nextBackend,
+    );
+  });
+
+  const requireCapability = ( buttonId, capability, description ) => {
+    if ( renderer.capabilities[ capability ] ) {
+      return;
+    }
+    const button = document.getElementById( buttonId );
+    button.disabled = true;
+    button.title = `${description} is not implemented by WebGL2 yet`;
+  };
+  requireCapability(
+    'background_button',
+    'animatedBackground',
+    'Animated backgrounds',
+  );
+  requireCapability( 'pizza_button', 'pizzaTexture', 'Pizza textures' );
+  requireCapability(
+    'quadtree_overlay_button',
+    'quadtreeOverlay',
+    'Quadtree overlays',
+  );
+  requireCapability( 'purple_button', 'purpleMode', 'Purple mode' );
+  requireCapability( 'debug_button', 'debugOverlay', 'Debug drawing' );
 
   document.getElementById( 'background_button' ).addEventListener( 'click', function() {
     world.setDrawBackground( !world.getDrawBackground() );
@@ -220,13 +310,21 @@ export function init() {
 
   function advance() {
     const frameStart = window.performance.now();
-    canvas.height = window.innerHeight - document.getElementById('controls').offsetHeight - 30;
-    canvas.width = document.body.clientWidth;
+    const canvasHeight = Math.max(
+      1,
+      window.innerHeight -
+      document.getElementById('controls').offsetHeight -
+      30,
+    );
+    const canvasWidth = Math.max( 1, document.body.clientWidth );
+    renderer.resize( canvasWidth, canvasHeight );
 
     let now = window.performance.now();
     let dt = previous === null ? 0 : now - previous;
     previous = now;
-    const simulationFrameMs = clampSimulationFrameMilliseconds( dt );
+    const simulationFrameMs = simulationFrameOverrideMilliseconds ?? (
+      clampSimulationFrameMilliseconds( dt )
+    );
 
     let BASE_TIMESTEP_SCALAR = 0.003;
     controller.advance( simulationFrameMs * BASE_TIMESTEP_SCALAR );
@@ -239,7 +337,7 @@ export function init() {
     );
     const physicsEnd = window.performance.now();
 
-    world.draw( canvas, ctx );
+    const renderBreakdown = renderer.render( world );
     const drawEnd = window.performance.now();
 
     let fps = dt > 0 ? 1000.0 / dt : 60;
@@ -257,7 +355,10 @@ export function init() {
       ballCount: world.balls.length,
       particleCount: world.particles.length,
       spawnedBallCount,
-      renderBreakdown: world.lastRenderBreakdown,
+      rendererBackend: renderer.backend,
+      requestedRendererBackend,
+      rendererFallbackReason,
+      renderBreakdown,
       gravity: world.lastGravityStats,
       physicsBreakdown: world.lastPhysicsBreakdown,
       collisions: world.lastCollisionStats,

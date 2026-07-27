@@ -146,6 +146,7 @@ export class Quadtree
       this.massTraversalMarker = 0;
       this.massTraversalStack = [];
       this.massAccessor = null;
+      this.bodyGravityTotals = new Float64Array(3);
     }
   }
 
@@ -586,8 +587,10 @@ export class Quadtree
 
     let approximationCount = 0;
     let exactSourceCount = 0;
+    let visitedNodeCount = 0;
 
     const visit = node => {
+      visitedNodeCount++;
       if (node.aggregateMass === 0) {
         return;
       }
@@ -645,6 +648,7 @@ export class Quadtree
     return {
       approximations: approximationCount,
       exactSources: exactSourceCount,
+      visitedNodes: visitedNodeCount,
     };
   }
 
@@ -761,6 +765,113 @@ export class Quadtree
       exactSources: exactSourceCount,
       appliedSources: appliedSourceCount,
     };
+  }
+
+  resetBodyGravityTotals() {
+    this.bodyGravityTotals.fill(0);
+  }
+
+  applyBodyMassAcceleration(
+    target,
+    thetaSquared,
+    softeningSquared,
+    gravityScale,
+  ) {
+    const marker = ++this.massTraversalMarker;
+    let targetNode = this.elementLeaves.get(target);
+    while (targetNode) {
+      targetNode.massPathMarker = marker;
+      targetNode = targetNode.parent;
+    }
+
+    const targetX = target.center.x;
+    const targetY = target.center.y;
+    const stack = this.massTraversalStack;
+    let stackLength = 1;
+    stack[0] = this;
+
+    let accelerationX = 0;
+    let accelerationY = 0;
+    let approximationCount = 0;
+    let exactSourceCount = 0;
+    let appliedSourceCount = 0;
+
+    while (stackLength > 0) {
+      const node = stack[--stackLength];
+      if (node.aggregateMass === 0) {
+        continue;
+      }
+
+      const children = node.children;
+      if (children.length === 0) {
+        const objects = node.objects;
+        for (let index = 0; index < objects.length; index++) {
+          const source = objects[index];
+          if (source === target || !source.is_affected_by_gravity) {
+            continue;
+          }
+          const sourceMass = source.m;
+          if (sourceMass === 0) {
+            continue;
+          }
+          exactSourceCount++;
+
+          const dx = source.center.x - targetX;
+          const dy = source.center.y - targetY;
+          if (dx === 0 && dy === 0) {
+            continue;
+          }
+          const distanceSquared = (
+            dx * dx +
+            dy * dy +
+            softeningSquared
+          );
+          const inverseDistance = 1 / Math.sqrt(distanceSquared);
+          const scale = sourceMass * inverseDistance / distanceSquared;
+          accelerationX += dx * scale;
+          accelerationY += dy * scale;
+          appliedSourceCount++;
+        }
+        continue;
+      }
+
+      const dx = node.aggregateCenterX - targetX;
+      const dy = node.aggregateCenterY - targetY;
+      const distanceSquaredWithoutSoftening = dx * dx + dy * dy;
+      if (
+        node.massPathMarker !== marker &&
+        distanceSquaredWithoutSoftening > 0 &&
+        node.sizeSquared < thetaSquared * distanceSquaredWithoutSoftening
+      ) {
+        const distanceSquared = (
+          distanceSquaredWithoutSoftening +
+          softeningSquared
+        );
+        const inverseDistance = 1 / Math.sqrt(distanceSquared);
+        const scale = (
+          node.aggregateMass *
+          inverseDistance /
+          distanceSquared
+        );
+        accelerationX += dx * scale;
+        accelerationY += dy * scale;
+        approximationCount++;
+        appliedSourceCount++;
+        continue;
+      }
+
+      stack[stackLength++] = children[3];
+      stack[stackLength++] = children[2];
+      stack[stackLength++] = children[1];
+      stack[stackLength++] = children[0];
+    }
+
+    target.v.x += accelerationX * gravityScale;
+    target.v.y += accelerationY * gravityScale;
+    const totals = this.bodyGravityTotals;
+    totals[0] += exactSourceCount;
+    totals[1] += approximationCount;
+    totals[2] += appliedSourceCount;
   }
 
   getStats() {

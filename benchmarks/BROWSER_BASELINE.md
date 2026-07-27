@@ -237,3 +237,125 @@ This fixture generated about 12,000 fragments and removed about 12,000 bodies
 per measured cycle with no rejected bodies or fallback pairs. At this point,
 Canvas rendering and ball gravity set the steady high-population floor; dense
 real collision count still determines the worst evolved scenes.
+
+## Renderer Prototype Follow-up
+
+Captured on 2026-07-26 from the dirty `optimize-more` worktree at commit
+`1055432ae5c9dc86632a99482a4f6785a9695811`. The prototype adds an
+instanced-circle WebGL2 renderer while keeping Canvas2D as the reference and
+default backend.
+
+The render-only benchmark used 10 recorded frames after three warmup frames in
+headless Chromium. WebGL2 ran through ANGLE's SwiftShader software device, so
+these are architecture and main-thread submission measurements—not
+hardware-GPU throughput:
+
+| Backend | Visible bodies | Static submission | Mutating submission |
+|---|---:|---:|---:|
+| Canvas2D | 10,000 | 4.4 / 4.8 ms | 7.0 / 8.3 ms |
+| Canvas2D | 25,000 | 18.0 / 23.9 ms | 27.1 / 33.7 ms |
+| Canvas2D | 50,000 | 42.7 / 50.3 ms | 58.7 / 74.3 ms |
+| Canvas2D | 100,000 | 418.1 / 892.8 ms | 446.0 / 924.9 ms |
+| WebGL2 (SwiftShader) | 10,000 | 0.6 / 0.8 ms | 0.4 / 0.7 ms |
+| WebGL2 (SwiftShader) | 25,000 | 0.6 / 0.7 ms | 0.6 / 0.9 ms |
+| WebGL2 (SwiftShader) | 50,000 | 0.8 / 1.1 ms | 0.8 / 1.3 ms |
+| WebGL2 (SwiftShader) | 100,000 | 1.8 / 2.0 ms | 1.6 / 3.2 ms |
+
+The WebGL2 path packs circle position/radius, color, and outline flags into
+reused typed arrays and submits all visible particles, planets, and balls in
+one instanced draw. At 100,000 bodies, packing accounted for about 1.6 ms of
+the 1.8 ms static median. The next power-of-two capacity is 131,072 instances;
+the position/radius, color, and outline arrays occupy about 2.13 MiB on the CPU
+and another 2.13 MiB in explicitly allocated GPU buffers, excluding driver
+overhead. A separate `gl.finish()` measurement did not expose material
+additional wait on SwiftShader; real GPU timing still needs a hardware-browser
+capture.
+
+The active browser benchmark now pins both random generation and the simulation
+step. This makes backend comparisons evolve the same body state instead of
+letting renderer speed alter subsequent physics. Thirty recorded frames after
+ten warmups produced:
+
+| Fixture/backend | Physics | Render | Measured frame |
+|---|---:|---:|---:|
+| Busy Canvas2D | 65.4 / 77.0 ms | 3.8 / 4.0 ms | 69.3 / 80.9 ms |
+| Busy WebGL2 (SwiftShader) | 63.4 / 77.9 ms | 0.3 / 0.5 ms | 63.8 / 78.3 ms |
+| Churn Canvas2D | 66.2 / 100.8 ms | 14.4 / 25.8 ms | 83.4 / 119.2 ms |
+| Churn WebGL2 (SwiftShader) | 67.7 / 95.8 ms | 0.5 / 1.0 ms | 68.3 / 96.2 ms |
+
+The paired runs had identical candidates, cross-pairs, collision hits, gravity
+sources, lifecycle counts, culling, and final populations. This confirms the
+largest gain in the explosion-heavy workload: the render wave is almost
+removed, reducing its median measured frame by about 15 ms. It also confirms
+the next limit. Even with WebGL2 submission below 1 ms, Barnes-Hut traversal,
+tree construction, and dense collision work leave the busy and churn fixtures
+well above a 33.3 ms frame budget.
+
+The WebGL2 prototype currently covers the core ordered circles and adaptive
+outlines. Canvas2D remains the feature-complete fallback; animated backgrounds,
+pizza textures, debug drawing, purple mode, and the quadtree overlay are
+explicitly disabled when WebGL2 is selected. Run the prototype locally with
+`?renderer=webgl2`, then repeat `--busy` and `--churn` without
+`--software-webgl` to capture the actual GPU backend.
+
+## Gravity Traversal Follow-up
+
+Captured on 2026-07-26 from the dirty `optimize-more` worktree at commit
+`1055432ae5c9dc86632a99482a4f6785a9695811`. The dedicated gravity benchmark
+measures production quadtree construction, mass aggregation, and all-body
+Barnes-Hut traversal independently. It resets velocity outside the timed
+region, uses 30 samples after ten warmups, and keeps exact-force and structural
+diagnostics outside the timed region.
+
+At 10,000 bodies and theta 0.7, the optimized traversal retained the exact same
+source counts and velocity checksums as the reference:
+
+| Fixture | Applied sources | Reference traversal | Optimized traversal | Reduction |
+|---|---:|---:|---:|---:|
+| Jittered | 1,058,709 | 11.0 ms | 10.2 ms | 7% |
+| Clustered | 1,328,134 | 23.4 ms | 21.0 ms | 10% |
+| Busy mixed-radius | 1,321,701 | 23.8 ms | 20.8 ms | 13% |
+
+Mass aggregation was only 0.2–0.4 ms at this size. The dominant gravity cost is
+therefore walking roughly 110 nodes per target in the jittered fixture and 158
+nodes per target in the clustered and busy fixtures—not aggregating the tree or
+cleaning up removed bodies.
+
+The busy fixture also scales beyond the app's current cap:
+
+| Bodies | Applied sources | Reference traversal | Optimized traversal | Optimized build + gravity |
+|---:|---:|---:|---:|---:|
+| 25,000 | 3,713,767 | 72.3 ms | 62.5 ms | 74.9 ms |
+| 50,000 | 8,104,797 | 163.5 ms | 141.5 ms | 165.4 ms |
+
+Production-loop A/B runs used 30 recorded frames after ten warmups. Every
+recorded workload trace—body counts, gravity interactions, collision candidates,
+collision hits, and lifecycle counts—matched, as did the final weighted
+position/velocity checksums:
+
+| Fixture | Stage | Reference | Optimized | Reduction |
+|---|---|---:|---:|---:|
+| Busy, 10k balls + 10k particles | Gravity | 30.6 ms | 26.5 ms | 13% |
+|  | Physics | 48.5 ms | 42.7 ms | 12% |
+|  | Measured frame | 51.2 ms | 45.3 ms | 12% |
+| Churn, 10k balls + 16k particles initially | Gravity | 21.8 ms | 18.7 ms | 14% |
+|  | Physics | 47.1 ms | 43.4 ms | 8% |
+|  | Measured frame | 56.3 ms | 53.5 ms | 5% |
+
+Full gravity, which adds both directions of ball-particle traversal, benefited
+more: at 1,000 balls plus 1,000 particles, median gravity fell from 6.9 to
+4.7 ms while its workload trace and state checksum remained identical.
+
+The optimized path specializes the hot loop for simulation bodies, reuses its
+traversal stack, avoids per-target result objects and callback dispatch, caches
+target coordinates, and updates velocity directly. A separate V8 sampling run
+at 1,000 busy bodies attributed about 8.8 MiB of sampled allocations to three
+reference iterations versus 6.5 MiB to the optimized path. Allocation profiling
+perturbs timings, so these values diagnose allocation sources rather than
+measure throughput.
+
+The retained object-node quadtree is now the larger remaining gravity target.
+Flattening node bounds, aggregate mass, centers, child indices, and traversal
+markers into reusable typed arrays would improve locality and remove much of
+the residual tree and traversal allocation. That change should be evaluated
+against this reference implementation and the same deterministic fixtures.

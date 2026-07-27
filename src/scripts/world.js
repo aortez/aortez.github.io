@@ -14,6 +14,11 @@ export const GravityMode = Object.freeze({
   FULL: 'full',
 });
 
+export const GravityImplementation = Object.freeze({
+  REFERENCE: 'reference',
+  OPTIMIZED: 'optimized',
+});
+
 export const MAX_DESIRED_BALLS = 500;
 export const MIN_BALL_SPAWN_RATE = 0.01;
 export const MAX_BALL_SPAWN_RATE = 0.99;
@@ -43,6 +48,8 @@ function disabledCrossGravityStats() {
     particleTargetSources: 0,
     ballTargetMs: 0,
     particleTargetMs: 0,
+    massAggregationMs: 0,
+    traversalMs: 0,
   };
 }
 
@@ -69,6 +76,7 @@ export class World
     this.useBarnesHutGravity = true;
     this.showQuadtreeOverlay = false;
     this.setGravityMode( GravityMode.FAST );
+    this.gravityImplementation = GravityImplementation.OPTIMIZED;
     this.gravitySoftening = 0.000001;
     this.lastGravityStats = null;
     this.purple = false;
@@ -169,6 +177,16 @@ export class World
         ? GravityMode.FULL
         : GravityMode.FAST
     );
+  }
+
+  setGravityImplementation( implementation ) {
+    if ( !Object.values( GravityImplementation ).includes( implementation ) ) {
+      throw new Error(
+        `Unknown gravity implementation "${implementation}"`,
+      );
+    }
+    this.gravityImplementation = implementation;
+    return this.gravityImplementation;
   }
 
   init() {
@@ -314,6 +332,20 @@ export class World
       this.lastGravityStats.crossParticleTargetMs = (
         crossGravity.particleTargetMs
       );
+      this.lastGravityStats.ballMassAggregationMs = (
+        this.lastGravityStats.massAggregationMs
+      );
+      this.lastGravityStats.ballTraversalMs = (
+        this.lastGravityStats.traversalMs
+      );
+      this.lastGravityStats.crossMassAggregationMs = (
+        crossGravity.massAggregationMs
+      );
+      this.lastGravityStats.crossTraversalMs = crossGravity.traversalMs;
+      this.lastGravityStats.massAggregationMs += (
+        crossGravity.massAggregationMs
+      );
+      this.lastGravityStats.traversalMs += crossGravity.traversalMs;
       this.lastGravityStats.gravityMode = this.gravityMode;
       this.lastGravityStats.particleGravityEnabled = (
         this.useBallParticleGravity
@@ -480,6 +512,13 @@ export class World
       gravityMs: gravityMilliseconds,
       ballGravityMs: ballGravityMilliseconds,
       crossGravityMs: crossGravityMilliseconds,
+      gravityMassAggregationMs: (
+        this.lastGravityStats?.massAggregationMs ?? 0
+      ),
+      gravityTraversalMs: this.lastGravityStats?.traversalMs ?? 0,
+      gravityImplementation: (
+        this.lastGravityStats?.implementation ?? 'exact'
+      ),
       ballCollisionMs: ballCollisionEnd - ballCollisionStart,
       ballParticleCollisionMs: (
         ballParticleCollisionEnd - ballParticleCollisionStart
@@ -772,14 +811,31 @@ export class World
     };
   }
 
-  applyBallGravityBarnesHut( tree ) {
+  applyBallGravityBarnesHut(
+    tree,
+    implementation = this.gravityImplementation,
+  ) {
+    if ( implementation === GravityImplementation.OPTIMIZED ) {
+      return this.applyBallGravityBarnesHutOptimized( tree );
+    }
+    if ( implementation !== GravityImplementation.REFERENCE ) {
+      throw new Error(
+        `Unknown gravity implementation "${implementation}"`,
+      );
+    }
+    return this.applyBallGravityBarnesHutReference( tree );
+  }
+
+  applyBallGravityBarnesHutReference( tree ) {
     if ( !tree ) {
       throw new Error('Barnes-Hut gravity requires a current quadtree');
     }
 
+    const massAggregationStart = nowMilliseconds();
     tree.calculateMassProperties( ball => (
       ball.is_affected_by_gravity ? ball.m : 0
     ));
+    const traversalStart = nowMilliseconds();
 
     let exactInteractions = 0;
     let approximations = 0;
@@ -818,12 +874,73 @@ export class World
       }
     }
 
+    const traversalEnd = nowMilliseconds();
     return {
       mode: 'barnes-hut',
       exactInteractions,
       approximations,
       appliedSources,
       theta: this.barnesHutTheta,
+      massAggregationMs: traversalStart - massAggregationStart,
+      traversalMs: traversalEnd - traversalStart,
+      implementation: GravityImplementation.REFERENCE,
+    };
+  }
+
+  applyBallGravityBarnesHutOptimized( tree ) {
+    if ( !tree ) {
+      throw new Error('Barnes-Hut gravity requires a current quadtree');
+    }
+
+    const massAggregationStart = nowMilliseconds();
+    tree.calculateMassProperties( ball => (
+      ball.is_affected_by_gravity ? ball.m : 0
+    ));
+    const traversalStart = nowMilliseconds();
+
+    const thetaSquared = this.barnesHutTheta * this.barnesHutTheta;
+    const softeningSquared = this.gravitySoftening * this.gravitySoftening;
+    tree.resetBodyGravityTotals();
+
+    for ( const target of this.balls ) {
+      if ( !target.is_affected_by_gravity ) {
+        continue;
+      }
+
+      tree.applyBodyMassAcceleration(
+        target,
+        thetaSquared,
+        softeningSquared,
+        this.g,
+      );
+
+      for ( const source of this.quadtreeRejected ) {
+        if (
+          source !== target &&
+          source.is_affected_by_gravity &&
+          this.applyGravityFromSource(
+            target,
+            source.m,
+            source.center.x,
+            source.center.y,
+          )
+        ) {
+          tree.bodyGravityTotals[0]++;
+          tree.bodyGravityTotals[2]++;
+        }
+      }
+    }
+
+    const traversalEnd = nowMilliseconds();
+    return {
+      mode: 'barnes-hut',
+      exactInteractions: tree.bodyGravityTotals[0],
+      approximations: tree.bodyGravityTotals[1],
+      appliedSources: tree.bodyGravityTotals[2],
+      theta: this.barnesHutTheta,
+      massAggregationMs: traversalStart - massAggregationStart,
+      traversalMs: traversalEnd - traversalStart,
+      implementation: GravityImplementation.OPTIMIZED,
     };
   }
 
@@ -838,12 +955,16 @@ export class World
         particleTargetSources: 0,
         ballTargetMs: 0,
         particleTargetMs: 0,
+        massAggregationMs: 0,
+        traversalMs: 0,
+        implementation: this.gravityImplementation,
       };
     }
     if ( !ballTree ) {
       throw new Error('Ball-particle Barnes-Hut gravity requires a ball tree');
     }
 
+    const massAggregationStart = nowMilliseconds();
     particleTree.calculateMassProperties( particle => (
       particle.is_affected_by_gravity ? particle.m : 0
     ));
@@ -852,30 +973,48 @@ export class World
         ball.is_affected_by_gravity ? ball.m : 0
       ));
     }
+    const traversalStart = nowMilliseconds();
 
     let exactInteractions = 0;
     let approximations = 0;
     let appliedSources = 0;
+    const optimized = (
+      this.gravityImplementation === GravityImplementation.OPTIMIZED
+    );
+    const thetaSquared = this.barnesHutTheta * this.barnesHutTheta;
+    const softeningSquared = this.gravitySoftening * this.gravitySoftening;
 
     const applyTreeSources = (
       targets,
       sourceTree,
       rejectedSources,
     ) => {
+      if ( optimized ) {
+        sourceTree.resetBodyGravityTotals();
+      }
       for ( const target of targets ) {
         if ( !target.is_affected_by_gravity ) {
           continue;
         }
-        const acceleration = sourceTree.calculateMassAcceleration(
-          target,
-          this.barnesHutTheta,
-          this.gravitySoftening,
-        );
-        target.v.x += acceleration.x * this.g;
-        target.v.y += acceleration.y * this.g;
-        exactInteractions += acceleration.exactSources;
-        approximations += acceleration.approximations;
-        appliedSources += acceleration.appliedSources;
+        if ( optimized ) {
+          sourceTree.applyBodyMassAcceleration(
+            target,
+            thetaSquared,
+            softeningSquared,
+            this.g,
+          );
+        } else {
+          const acceleration = sourceTree.calculateMassAcceleration(
+            target,
+            this.barnesHutTheta,
+            this.gravitySoftening,
+          );
+          target.v.x += acceleration.x * this.g;
+          target.v.y += acceleration.y * this.g;
+          exactInteractions += acceleration.exactSources;
+          approximations += acceleration.approximations;
+          appliedSources += acceleration.appliedSources;
+        }
 
         for ( const source of rejectedSources ) {
           if (
@@ -887,10 +1026,20 @@ export class World
               source.center.y,
             )
           ) {
-            exactInteractions++;
-            appliedSources++;
+            if ( optimized ) {
+              sourceTree.bodyGravityTotals[0]++;
+              sourceTree.bodyGravityTotals[2]++;
+            } else {
+              exactInteractions++;
+              appliedSources++;
+            }
           }
         }
+      }
+      if ( optimized ) {
+        exactInteractions += sourceTree.bodyGravityTotals[0];
+        approximations += sourceTree.bodyGravityTotals[1];
+        appliedSources += sourceTree.bodyGravityTotals[2];
       }
     };
 
@@ -918,6 +1067,9 @@ export class World
       particleTargetSources: appliedSources - ballTargetSources,
       ballTargetMs: particleTargetStart - ballTargetStart,
       particleTargetMs: particleTargetEnd - particleTargetStart,
+      massAggregationMs: traversalStart - massAggregationStart,
+      traversalMs: particleTargetEnd - traversalStart,
+      implementation: this.gravityImplementation,
     };
   }
 

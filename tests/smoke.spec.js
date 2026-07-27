@@ -106,6 +106,7 @@ test.describe('Canvas Physics App', () => {
       '#pause_button',
       '#quadtree_button',
       '#gravity_mode_button',
+      '#renderer_button',
       '#quadtree_overlay_button',
       '#purple_button',
       '#debug_button'
@@ -164,6 +165,75 @@ test.describe('Canvas Physics App', () => {
 
     await gravityMode.click();
     await expect(gravityMode).toHaveText('Gravity: Fast');
+  });
+
+  test('should render ordered circles with the WebGL2 backend', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => {
+      if (message.type() === 'error') {
+        errors.push(message.text());
+      }
+    });
+
+    await page.goto('/?renderer=webgl2');
+    await expect(page.locator('#renderer_button')).toHaveText(
+      'Renderer: WebGL2',
+    );
+    await expect(page.locator('#renderer_button')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('#background_button')).toBeDisabled();
+    await expect(page.locator('#pizza_button')).toBeDisabled();
+    await expect(page.locator('#quadtree_overlay_button')).toBeDisabled();
+
+    const result = await page.evaluate(async () => {
+      const { Ball } = await import('/src/scripts/ball.js');
+      const { vec3 } = await import('/src/scripts/vec3.js');
+      const { renderer, rendererFallbackReason, world } = (
+        globalThis.__pizzaRuntime
+      );
+
+      world.init();
+      world.advance = () => {};
+      const scale = world.getDrawScale(renderer.canvas);
+      const centerX = renderer.canvas.width / scale / 2;
+      const centerY = renderer.canvas.height / scale / 2;
+      world.particles = [
+        new Ball(centerX, centerY, 0.1, new vec3(0, 0, 255)),
+      ];
+      world.balls = [
+        new Ball(centerX, centerY, 0.05, new vec3(255, 0, 0)),
+      ];
+      const stats = renderer.render(world);
+      renderer.synchronize();
+
+      const pixel = new Uint8Array(4);
+      renderer.context.readPixels(
+        Math.floor(renderer.canvas.width / 2),
+        Math.floor(renderer.canvas.height / 2),
+        1,
+        1,
+        renderer.context.RGBA,
+        renderer.context.UNSIGNED_BYTE,
+        pixel,
+      );
+      return {
+        backend: renderer.backend,
+        drawnBodies: stats.drawnBodies,
+        fallbackReason: rendererFallbackReason,
+        pixel: Array.from(pixel),
+      };
+    });
+
+    expect(result.backend).toBe('webgl2');
+    expect(result.fallbackReason).toBeNull();
+    expect(result.drawnBodies).toBe(2);
+    expect(result.pixel[0]).toBeGreaterThan(240);
+    expect(result.pixel[1]).toBeLessThan(15);
+    expect(result.pixel[2]).toBeLessThan(15);
+    expect(errors, `Found browser errors: ${errors.join('; ')}`).toEqual([]);
   });
 
   test('should create balls and run the quadtree overlay across viewport shapes', async ({ page }) => {

@@ -8,7 +8,11 @@ import {
 import { Ball } from '../src/scripts/ball.js';
 import { quadtree } from '../src/scripts/quadtree.js';
 import { vec3 } from '../src/scripts/vec3.js';
-import { GravityMode, World } from '../src/scripts/world.js';
+import {
+  GravityImplementation,
+  GravityMode,
+  World,
+} from '../src/scripts/world.js';
 
 const SQUARE_CANVAS = {
   width: 1000,
@@ -205,6 +209,10 @@ function gravityErrorProfile(theta) {
 test('gravity modes explicitly configure accuracy and particle coupling', () => {
   const world = new World();
   assert.equal(world.gravityMode, GravityMode.FAST);
+  assert.equal(
+    world.gravityImplementation,
+    GravityImplementation.OPTIMIZED,
+  );
   assert.equal(world.barnesHutTheta, 0.7);
   assert.equal(world.useBallParticleGravity, false);
 
@@ -215,6 +223,14 @@ test('gravity modes explicitly configure accuracy and particle coupling', () => 
 
   assert.equal(world.toggleGravityMode(), GravityMode.FAST);
   assert.throws(() => world.setGravityMode('unknown'), /gravity mode/i);
+  assert.equal(
+    world.setGravityImplementation(GravityImplementation.OPTIMIZED),
+    GravityImplementation.OPTIMIZED,
+  );
+  assert.throws(
+    () => world.setGravityImplementation('unknown'),
+    /gravity implementation/i,
+  );
 });
 
 test('fast mode skips cross gravity but retains indexed particle collisions', () => {
@@ -448,6 +464,54 @@ test('Barnes-Hut theta zero matches exact gravity', () => {
   assert.equal(approximateStats.approximations, 0);
 });
 
+test('optimized Barnes-Hut matches the reference traversal', () => {
+  for (const scenario of ['uniform', 'clustered', 'mixed']) {
+    const source = createScenario(scenario, 250, 0xC0FFEE);
+    const referenceBalls = simulationBalls(source);
+    const optimizedBalls = simulationBalls(source);
+    for (let index = 0; index < source.length; index += 11) {
+      referenceBalls[index].is_affected_by_gravity = false;
+      optimizedBalls[index].is_affected_by_gravity = false;
+    }
+
+    const referenceWorld = new World();
+    referenceWorld.balls = referenceBalls;
+    referenceWorld.barnesHutTheta = 0.7;
+    referenceWorld.setGravityImplementation(
+      GravityImplementation.REFERENCE,
+    );
+    const referenceTree = referenceWorld.buildQuadtree(SQUARE_CANVAS);
+    const referenceStats = referenceWorld.applyBallGravityBarnesHut(
+      referenceTree,
+    );
+
+    const optimizedWorld = new World();
+    optimizedWorld.balls = optimizedBalls;
+    optimizedWorld.barnesHutTheta = 0.7;
+    optimizedWorld.setGravityImplementation(
+      GravityImplementation.OPTIMIZED,
+    );
+    const optimizedTree = optimizedWorld.buildQuadtree(SQUARE_CANVAS);
+    const optimizedStats = optimizedWorld.applyBallGravityBarnesHut(
+      optimizedTree,
+    );
+
+    assertGravityClose(optimizedBalls, referenceBalls);
+    assert.equal(
+      optimizedStats.exactInteractions,
+      referenceStats.exactInteractions,
+    );
+    assert.equal(
+      optimizedStats.approximations,
+      referenceStats.approximations,
+    );
+    assert.equal(
+      optimizedStats.appliedSources,
+      referenceStats.appliedSources,
+    );
+  }
+});
+
 test('full-mode Barnes-Hut gravity keeps the accuracy-oriented error bound', () => {
   const profile = gravityErrorProfile(0.5);
   assert.ok(
@@ -538,6 +602,75 @@ test('cross-tree Barnes-Hut theta zero matches exact ball-particle gravity', () 
     ballSource.length * particleSource.length * 2,
   );
   assert.equal(approximateStats.approximations, 0);
+});
+
+test('optimized cross-tree Barnes-Hut matches the reference traversal', () => {
+  const ballSource = createScenario('clustered', 100, 123);
+  const particleSource = createScenario('mixed', 90, 456);
+  const referenceBalls = simulationBalls(ballSource);
+  const referenceParticles = simulationBalls(particleSource);
+  const optimizedBalls = simulationBalls(ballSource);
+  const optimizedParticles = simulationBalls(particleSource);
+
+  for (let index = 0; index < ballSource.length; index += 13) {
+    referenceBalls[index].is_affected_by_gravity = false;
+    optimizedBalls[index].is_affected_by_gravity = false;
+  }
+  for (let index = 0; index < particleSource.length; index += 17) {
+    referenceParticles[index].is_affected_by_gravity = false;
+    optimizedParticles[index].is_affected_by_gravity = false;
+  }
+
+  const referenceWorld = new World();
+  referenceWorld.balls = referenceBalls;
+  referenceWorld.particles = referenceParticles;
+  referenceWorld.barnesHutTheta = 0.7;
+  referenceWorld.setGravityImplementation(GravityImplementation.REFERENCE);
+  const referenceBallTree = referenceWorld.buildQuadtree(SQUARE_CANVAS);
+  const referenceParticleTree = referenceWorld.buildParticleQuadtree(
+    SQUARE_CANVAS,
+  );
+  const referenceStats = referenceWorld.applyBallParticleGravityBarnesHut(
+    referenceBallTree,
+    referenceParticleTree,
+  );
+
+  const optimizedWorld = new World();
+  optimizedWorld.balls = optimizedBalls;
+  optimizedWorld.particles = optimizedParticles;
+  optimizedWorld.barnesHutTheta = 0.7;
+  optimizedWorld.setGravityImplementation(GravityImplementation.OPTIMIZED);
+  const optimizedBallTree = optimizedWorld.buildQuadtree(SQUARE_CANVAS);
+  const optimizedParticleTree = optimizedWorld.buildParticleQuadtree(
+    SQUARE_CANVAS,
+  );
+  const optimizedStats = optimizedWorld.applyBallParticleGravityBarnesHut(
+    optimizedBallTree,
+    optimizedParticleTree,
+  );
+
+  assertGravityClose(optimizedBalls, referenceBalls);
+  assertGravityClose(optimizedParticles, referenceParticles);
+  assert.equal(
+    optimizedStats.exactInteractions,
+    referenceStats.exactInteractions,
+  );
+  assert.equal(
+    optimizedStats.approximations,
+    referenceStats.approximations,
+  );
+  assert.equal(
+    optimizedStats.appliedSources,
+    referenceStats.appliedSources,
+  );
+  assert.equal(
+    optimizedStats.ballTargetSources,
+    referenceStats.ballTargetSources,
+  );
+  assert.equal(
+    optimizedStats.particleTargetSources,
+    referenceStats.particleTargetSources,
+  );
 });
 
 test('coincident centers do not create non-finite exact gravity state', () => {
