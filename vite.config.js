@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: '.',
   base: '/',
   build: {
@@ -15,6 +15,6 @@ export default defineConfig({
   },
   server: {
     port: 8080,
-    open: true
+    open: mode !== 'headless'
   }
-});
+}));

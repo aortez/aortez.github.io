@@ -82,7 +82,17 @@ export class Controller
   }
 
   quadtree() {
-    this.world.use_quadtree = !this.world.use_quadtree;
+    const enabled = !this.world.useQuadtreeCollisions;
+    this.world.useQuadtreeCollisions = enabled;
+    this.world.useBarnesHutGravity = enabled;
+  }
+
+  toggleGravityMode() {
+    return this.world.toggleGravityMode();
+  }
+
+  quadtreeOverlay() {
+    this.world.showQuadtreeOverlay = !this.world.showQuadtreeOverlay;
   }
 
   mouseMove( canvas, e ) {
