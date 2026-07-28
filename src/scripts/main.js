@@ -216,11 +216,11 @@ export function init() {
   }
   rendererButton.addEventListener( 'click', function() {
     const nextBackend = (
-      renderer.backend === RendererBackend.CANVAS_2D &&
-      requestedRendererBackend === RendererBackend.CANVAS_2D
+      rendererFallbackReason ||
+      renderer.backend === RendererBackend.WEBGL_2
     )
-      ? RendererBackend.WEBGL_2
-      : RendererBackend.CANVAS_2D;
+      ? RendererBackend.CANVAS_2D
+      : RendererBackend.WEBGL_2;
     globalThis.location.href = urlForRenderer(
       globalThis.location,
       nextBackend,
@@ -297,11 +297,11 @@ export function init() {
   });
 
   document.getElementById( 'purple_button' ).addEventListener( 'click', function() {
-    controller.purple(canvas, ctx);
+    controller.purple();
   });
 
   document.getElementById( 'debug_button' ).addEventListener( 'click', function() {
-    controller.debug(canvas, ctx);
+    controller.debug(renderer);
   });
 
   let previous = null;

@@ -7,18 +7,22 @@ import {
   urlForRenderer,
 } from '../src/scripts/renderers/renderer-factory.js';
 
-test('renderer query selection defaults to Canvas2D', () => {
+test('renderer query selection defaults to WebGL2', () => {
   assert.equal(
     rendererBackendFromSearch( '' ),
-    RendererBackend.CANVAS_2D,
+    RendererBackend.WEBGL_2,
   );
   assert.equal(
     rendererBackendFromSearch( '?renderer=unknown' ),
-    RendererBackend.CANVAS_2D,
+    RendererBackend.WEBGL_2,
   );
   assert.equal(
     rendererBackendFromSearch( '?renderer=webgl2' ),
     RendererBackend.WEBGL_2,
+  );
+  assert.equal(
+    rendererBackendFromSearch( '?renderer=canvas2d' ),
+    RendererBackend.CANVAS_2D,
   );
 });
 

@@ -7,9 +7,9 @@ export const RendererBackend = Object.freeze({
 });
 
 export function normalizeRendererBackend( value ) {
-  return value === RendererBackend.WEBGL_2
-    ? RendererBackend.WEBGL_2
-    : RendererBackend.CANVAS_2D;
+  return value === RendererBackend.CANVAS_2D
+    ? RendererBackend.CANVAS_2D
+    : RendererBackend.WEBGL_2;
 }
 
 export function rendererBackendFromSearch( search = '' ) {

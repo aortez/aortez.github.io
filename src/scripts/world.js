@@ -88,7 +88,7 @@ export class World
     this.purple = false;
     this.debug = false;
     this.EXPLODE_V_FACTOR = 0.1;
-    this.EXPLODER_SIZE_FACTOR = 1.5;
+    this.EXPLODER_SIZE_FACTOR = 1.4;
     this.N_DIVS = 2;
     this.renderOutlines = true;
     this.adaptiveOutlines = true;

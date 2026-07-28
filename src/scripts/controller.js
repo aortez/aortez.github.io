@@ -68,12 +68,15 @@ export class Controller
     }
   }
 
-  debug(canvas, ctx) {
+  debug(renderer) {
     // this.world.debug = true;
     setDebugOn(true);
-    console.log('debug it all');
-    this.world.draw( canvas, ctx );
-    setDebugOn(false);
+    try {
+      console.log('debug it all');
+      renderer.render( this.world );
+    } finally {
+      setDebugOn(false);
+    }
     // this.world.debug = false;
   }
 
@@ -186,7 +189,7 @@ export class Controller
     this.next_object_type = ObjectType.BALL;
   }
 
-  purple(canvas, ctx) {
+  purple() {
     console.log( "purple" );
 
     // flip the purple flag
@@ -200,14 +203,14 @@ export class Controller
         let b = this.world.balls[ i ];
         b.color.copyFrom( bg.rgb );
         bg.advance( this.dt );
-        bg.draw(canvas, ctx);
+        bg.updateRgb();
       }
       // planets also
       for ( let i = 0; i < this.world.planets.length; i++ ) {
         let p = this.world.planets[ i ];
         p.color.copyFrom( bg.rgb );
         bg.advance( this.dt );
-        bg.draw(canvas, ctx);
+        bg.updateRgb();
       }
     }
     // and when the world turns back from purple...

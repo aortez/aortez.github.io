@@ -8,12 +8,18 @@ export class Background
     this.dir = 1;
     this.counterMax = 70;
     this.rgb = new vec3();
+    this.updateRgb();
   }
 
   advance( dt ) {
     this.counter += ( this.dir * dt );
     if ( this.counter > this.counterMax ) this.dir = -1;
     if ( this.counter <= -100 ) this.dir = 1;
+  }
+
+  updateRgb() {
+    this.rgb.set( 0, Number( this.counter.toFixed( 0 ) ), 128 );
+    return this.rgb;
   }
 
   draw(canvas, ctx) {
@@ -41,12 +47,7 @@ export class Background
       }
     }
 
-    blue = 128;
-    // red = (Math.random() * 256).toFixed(0);
-
-    this.rgb.x = red;
-    this.rgb.y = green;
-    this.rgb.z = blue;
+    this.updateRgb();
   }
 
 }

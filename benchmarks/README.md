@@ -30,7 +30,7 @@ Measure the production animation loop in isolated headless Chromium:
 npm run bench:browser
 ```
 
-Select the Canvas2D reference renderer or the WebGL2 prototype explicitly:
+Select the Canvas2D reference renderer or the WebGL2 renderer explicitly:
 
 ```bash
 npm run bench:browser -- --busy --renderer canvas2d
