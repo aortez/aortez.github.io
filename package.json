@@ -16,7 +16,9 @@
     "bench:quadtree": "node benchmarks/quadtree-benchmark.js",
     "bench:quadtree:full": "node benchmarks/quadtree-benchmark.js --full",
     "bench:quadtree:scale": "node benchmarks/quadtree-benchmark.js --scale",
-    "bench:browser": "node benchmarks/browser-benchmark.js"
+    "bench:browser": "node benchmarks/browser-benchmark.js",
+    "bench:render": "node benchmarks/render-benchmark.js",
+    "bench:gravity": "node benchmarks/gravity-benchmark.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

@@ -52,6 +52,7 @@ test('lowering desired ball count immediately removes excess balls', () => {
 test('ball slider settings stay within their supported ranges', () => {
   const world = new World();
 
+  assert.equal( world.EXPLODER_SIZE_FACTOR, 1.4 );
   assert.equal(
     world.setDesiredBallCount( MAX_DESIRED_BALLS + 100 ),
     MAX_DESIRED_BALLS,

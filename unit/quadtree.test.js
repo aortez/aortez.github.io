@@ -388,7 +388,9 @@ test('theta zero emits every other positive-mass body as an exact source', () =>
   );
 
   assert.deepEqual(sourceIds.sort((left, right) => left - right), [1, 2]);
-  assert.deepEqual(stats, { approximations: 0, exactSources: 2 });
+  assert.equal(stats.approximations, 0);
+  assert.equal(stats.exactSources, 2);
+  assert.ok(stats.visitedNodes > 0);
 });
 
 test('construction and pair traversal do not mutate indexed bodies', () => {

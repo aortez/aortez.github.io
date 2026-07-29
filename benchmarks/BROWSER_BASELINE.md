@@ -237,3 +237,223 @@ This fixture generated about 12,000 fragments and removed about 12,000 bodies
 per measured cycle with no rejected bodies or fallback pairs. At this point,
 Canvas rendering and ball gravity set the steady high-population floor; dense
 real collision count still determines the worst evolved scenes.
+
+## Renderer Prototype Follow-up
+
+Captured on 2026-07-26 from the dirty `optimize-more` worktree at commit
+`1055432ae5c9dc86632a99482a4f6785a9695811`. The prototype adds an
+instanced-circle WebGL2 renderer while keeping Canvas2D as the reference and
+default backend.
+
+The render-only benchmark used 10 recorded frames after three warmup frames in
+headless Chromium. WebGL2 ran through ANGLE's SwiftShader software device, so
+these are architecture and main-thread submission measurements—not
+hardware-GPU throughput:
+
+| Backend | Visible bodies | Static submission | Mutating submission |
+|---|---:|---:|---:|
+| Canvas2D | 10,000 | 4.4 / 4.8 ms | 7.0 / 8.3 ms |
+| Canvas2D | 25,000 | 18.0 / 23.9 ms | 27.1 / 33.7 ms |
+| Canvas2D | 50,000 | 42.7 / 50.3 ms | 58.7 / 74.3 ms |
+| Canvas2D | 100,000 | 418.1 / 892.8 ms | 446.0 / 924.9 ms |
+| WebGL2 (SwiftShader) | 10,000 | 0.6 / 0.8 ms | 0.4 / 0.7 ms |
+| WebGL2 (SwiftShader) | 25,000 | 0.6 / 0.7 ms | 0.6 / 0.9 ms |
+| WebGL2 (SwiftShader) | 50,000 | 0.8 / 1.1 ms | 0.8 / 1.3 ms |
+| WebGL2 (SwiftShader) | 100,000 | 1.8 / 2.0 ms | 1.6 / 3.2 ms |
+
+The WebGL2 path packs circle position/radius, color, and outline flags into
+reused typed arrays and submits all visible particles, planets, and balls in
+one instanced draw. At 100,000 bodies, packing accounted for about 1.6 ms of
+the 1.8 ms static median. The next power-of-two capacity is 131,072 instances;
+the position/radius, color, and outline arrays occupy about 2.13 MiB on the CPU
+and another 2.13 MiB in explicitly allocated GPU buffers, excluding driver
+overhead. A separate `gl.finish()` measurement did not expose material
+additional wait on SwiftShader; real GPU timing still needs a hardware-browser
+capture.
+
+The active browser benchmark now pins both random generation and the simulation
+step. This makes backend comparisons evolve the same body state instead of
+letting renderer speed alter subsequent physics. Thirty recorded frames after
+ten warmups produced:
+
+| Fixture/backend | Physics | Render | Measured frame |
+|---|---:|---:|---:|
+| Busy Canvas2D | 65.4 / 77.0 ms | 3.8 / 4.0 ms | 69.3 / 80.9 ms |
+| Busy WebGL2 (SwiftShader) | 63.4 / 77.9 ms | 0.3 / 0.5 ms | 63.8 / 78.3 ms |
+| Churn Canvas2D | 66.2 / 100.8 ms | 14.4 / 25.8 ms | 83.4 / 119.2 ms |
+| Churn WebGL2 (SwiftShader) | 67.7 / 95.8 ms | 0.5 / 1.0 ms | 68.3 / 96.2 ms |
+
+The paired runs had identical candidates, cross-pairs, collision hits, gravity
+sources, lifecycle counts, culling, and final populations. This confirms the
+largest gain in the explosion-heavy workload: the render wave is almost
+removed, reducing its median measured frame by about 15 ms. It also confirms
+the next limit. Even with WebGL2 submission below 1 ms, Barnes-Hut traversal,
+tree construction, and dense collision work leave the busy and churn fixtures
+well above a 33.3 ms frame budget.
+
+At this prototype checkpoint, WebGL2 covered core ordered circles and adaptive
+outlines only. Animated backgrounds, pizza textures, debug drawing, purple
+mode, and the quadtree overlay were still disabled. The later feature-parity
+work documented below closed those gaps before making WebGL2 the automatic
+default.
+
+## Gravity Traversal Follow-up
+
+Captured on 2026-07-26 from the dirty `optimize-more` worktree at commit
+`1055432ae5c9dc86632a99482a4f6785a9695811`. The dedicated gravity benchmark
+measures production quadtree construction, mass aggregation, and all-body
+Barnes-Hut traversal independently. It resets velocity outside the timed
+region, uses 30 samples after ten warmups, and keeps exact-force and structural
+diagnostics outside the timed region.
+
+At 10,000 bodies and theta 0.7, the optimized traversal retained the exact same
+source counts and velocity checksums as the reference:
+
+| Fixture | Applied sources | Reference traversal | Optimized traversal | Reduction |
+|---|---:|---:|---:|---:|
+| Jittered | 1,058,709 | 11.0 ms | 10.2 ms | 7% |
+| Clustered | 1,328,134 | 23.4 ms | 21.0 ms | 10% |
+| Busy mixed-radius | 1,321,701 | 23.8 ms | 20.8 ms | 13% |
+
+Mass aggregation was only 0.2–0.4 ms at this size. The dominant gravity cost is
+therefore walking roughly 110 nodes per target in the jittered fixture and 158
+nodes per target in the clustered and busy fixtures—not aggregating the tree or
+cleaning up removed bodies.
+
+The busy fixture also scales beyond the app's current cap:
+
+| Bodies | Applied sources | Reference traversal | Optimized traversal | Optimized build + gravity |
+|---:|---:|---:|---:|---:|
+| 25,000 | 3,713,767 | 72.3 ms | 62.5 ms | 74.9 ms |
+| 50,000 | 8,104,797 | 163.5 ms | 141.5 ms | 165.4 ms |
+
+Production-loop A/B runs used 30 recorded frames after ten warmups. Every
+recorded workload trace—body counts, gravity interactions, collision candidates,
+collision hits, and lifecycle counts—matched, as did the final weighted
+position/velocity checksums:
+
+| Fixture | Stage | Reference | Optimized | Reduction |
+|---|---|---:|---:|---:|
+| Busy, 10k balls + 10k particles | Gravity | 30.6 ms | 26.5 ms | 13% |
+|  | Physics | 48.5 ms | 42.7 ms | 12% |
+|  | Measured frame | 51.2 ms | 45.3 ms | 12% |
+| Churn, 10k balls + 16k particles initially | Gravity | 21.8 ms | 18.7 ms | 14% |
+|  | Physics | 47.1 ms | 43.4 ms | 8% |
+|  | Measured frame | 56.3 ms | 53.5 ms | 5% |
+
+Full gravity, which adds both directions of ball-particle traversal, benefited
+more: at 1,000 balls plus 1,000 particles, median gravity fell from 6.9 to
+4.7 ms while its workload trace and state checksum remained identical.
+
+The optimized path specializes the hot loop for simulation bodies, reuses its
+traversal stack, avoids per-target result objects and callback dispatch, caches
+target coordinates, and updates velocity directly. A separate V8 sampling run
+at 1,000 busy bodies attributed about 8.8 MiB of sampled allocations to three
+reference iterations versus 6.5 MiB to the optimized path. Allocation profiling
+perturbs timings, so these values diagnose allocation sources rather than
+measure throughput.
+
+These results motivated evaluating a contiguous view of the retained
+object-node quadtree against the same reference implementation and fixtures.
+
+## Flattened Gravity View
+
+Captured on 2026-07-26 from the dirty `optimize-more` worktree after commit
+`f1ee19b8802ca35aaad50db9c52ed2c4a3144913`. The flat implementation copies
+the current quadtree's node structure and leaf body references into reusable
+typed arrays. Barnes–Hut then walks integer node IDs instead of object
+references. Collision indexing remains on the established object tree, making
+this a deliberately isolated gravity change.
+
+The benchmark times the copy rather than hiding it. At 10,000 bodies it costs
+roughly 0.2–0.3 ms, and mass aggregation costs another 0.2–0.3 ms. Thirty
+samples after ten warmups measured:
+
+| Fixture | Optimized object build + gravity | Flat build + copy + gravity | Change |
+|---|---:|---:|---:|
+| Clustered | 24.1 ms | 21.6 ms | 10% lower |
+| Busy mixed-radius | 23.9 ms | 21.7–21.9 ms | 8–9% lower |
+| Jittered | 11.9 ms | 13.1 ms | 10% higher |
+
+The regular jittered layout is an important counterexample: contiguous storage
+is not intrinsically faster when the object traversal is shallow and
+predictable. Broader 10,000-body checks were favorable for application-shaped
+layouts: uniform, mixed-radius, moving, boundary, clustered, and busy fixtures
+improved the complete pipeline by roughly 7–18%; a perfect grid regressed about
+4%.
+
+The advantage persists above the app's current cap:
+
+| Busy bodies | Optimized traversal | Flat traversal | Optimized total | Flat total |
+|---:|---:|---:|---:|---:|
+| 25,000 | 62.3 ms | 52.8 ms | 72.9 ms | 63.0 ms |
+| 50,000 | 145.5 ms | 125.3 ms | 170.6 ms | 149.8 ms |
+
+The flat and object paths applied exactly 3,713,767 sources at 25,000 bodies and
+8,104,797 at 50,000. The harness now treats equal source counts and velocity
+checksums as a requirement and fails a comparison if they differ.
+
+In the active 10,000-ball plus 10,000-particle Fast fixture, flat storage
+reduced median gravity from 26.3 to 23.5 ms and total physics from 41.3 to
+39.4 ms. The complete measured frame fell from 43.6 to 41.8 ms. Full gravity
+uses flat views for both trees: at 5,000 balls plus 5,000 particles, gravity
+fell from 51.2 to 43.5 ms and physics from 58.0 to 49.7 ms. Paired workload
+traces and final state checksums were identical.
+
+The flat implementation is therefore the production default, while
+`optimized` and `reference` remain selectable in the benchmarks. It uses
+`Float64Array` for physical values to preserve JavaScript's existing numerical
+precision, integer arrays for topology and traversal state, geometrically grown
+capacities, and reusable body/node stacks.
+
+This view improves locality but does not yet remove construction of the
+collision tree. A five-iteration V8 sampling profile at 10,000 busy bodies
+attributed roughly 28 MiB to both flat and optimized runs; object `Quadtree`
+construction and `split` dominated both profiles. The profiler perturbs timing,
+so the absolute byte count is diagnostic rather than a throughput measurement.
+The result nevertheless makes the next architectural boundary clear: replacing
+the canonical object collision tree is required to eliminate its per-frame
+node allocation rather than merely accelerating gravity traversal.
+
+## WebGL2 Feature Parity
+
+Captured on 2026-07-26 from the dirty `optimize-more` worktree after commit
+`563775a417c4012ec79b611d9636cf8915628f2d`. WebGL2 now implements every
+rendering control exposed by Canvas2D:
+
+- The animated background is generated by a full-screen fragment shader.
+- Pizza Time lazily uploads the existing image and repeats it in canvas
+  coordinates, matching the Canvas pattern.
+- Quadtree bounds are packed into a reusable line buffer and drawn after the
+  bodies.
+- Debug drawing routes through the active renderer.
+- Purple mode advances background-derived body colors without redrawing the
+  background once per body.
+
+The app now requests WebGL2 when no renderer query is present and automatically
+falls back to Canvas2D when WebGL2 is unavailable. `?renderer=canvas2d` remains
+the explicit reference path, and the Renderer button switches between the two.
+
+Cross-backend browser tests read rendered pixels for ordinary body colors,
+Pizza Time, and the animated/background-off states. They also build and render
+a real quadtree overlay under each backend, exercise Purple and Debug, and
+simulate WebGL2 unavailability to verify startup fallback.
+
+A ten-sample render-only check after three warmups retained the accelerated
+submission profile under ANGLE SwiftShader:
+
+| Backend | Visible bodies | Submission median / p95 |
+|---|---:|---:|
+| Canvas2D | 10,000 | 4.2 / 6.7 ms |
+| Canvas2D | 50,000 | 42.8 / 49.8 ms |
+| Canvas2D | 100,000 | 80.0 / 89.8 ms |
+| WebGL2 (SwiftShader) | 10,000 | 0.3 / 1.2 ms |
+| WebGL2 (SwiftShader) | 50,000 | 1.1 / 1.8 ms |
+| WebGL2 (SwiftShader) | 100,000 | 2.5 / 4.1 ms |
+
+The 1,000-body spatial overlay case submitted a 1,000-body frame and its tree
+in a 0.2 ms median render interval. A 10,000-ball plus 10,000-particle active
+scene retained a 0.8 ms median WebGL2 render interval; its 76.4 ms median
+physics time again confirms that rendering is no longer the busy-scene limit.
+These measurements use software WebGL to make headless validation possible and
+do not estimate hardware-GPU throughput.

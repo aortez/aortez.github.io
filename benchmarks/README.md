@@ -30,6 +30,27 @@ Measure the production animation loop in isolated headless Chromium:
 npm run bench:browser
 ```
 
+Select the Canvas2D reference renderer or the WebGL2 renderer explicitly:
+
+```bash
+npm run bench:browser -- --busy --renderer canvas2d
+npm run bench:browser -- --busy --renderer webgl2
+```
+
+Headless machines without GPU access can opt into Chromium's software WebGL
+implementation:
+
+```bash
+npm run bench:browser -- \
+  --busy \
+  --renderer webgl2 \
+  --software-webgl
+```
+
+Software-WebGL results are useful for functional and architectural comparisons,
+but they are not measurements of hardware-GPU throughput. The report prints the
+actual graphics implementation so captured results retain that distinction.
+
 The benchmark starts a temporary Vite server in `headless` mode and closes it
 afterward. It does not open the benchmark URL in your system browser; fixtures
 are injected only into the Playwright-controlled Chromium page.
@@ -48,6 +69,75 @@ select Full gravity, or override theta explicitly:
 npm run bench:browser -- --full
 npm run bench:browser -- --full-gravity
 npm run bench:browser -- --theta 0.6
+```
+
+Select the production flat gravity traversal or either retained object-tree
+implementation explicitly:
+
+```bash
+npm run bench:browser -- --busy --gravity-implementation flat
+npm run bench:browser -- --busy --gravity-implementation optimized
+npm run bench:browser -- --busy --gravity-implementation reference
+```
+
+The full-frame report separates quadtree construction, mass aggregation, and
+gravity traversal. Its JSON output also contains a per-frame workload trace and
+a final position/velocity checksum. Those values should match across an A/B
+pair before treating a timing difference as a valid optimization.
+
+Measure gravity without rendering, collisions, lifecycle work, or the
+production animation loop:
+
+```bash
+npm run bench:gravity
+```
+
+The gravity benchmark uses seeded, stationary fixtures and runs the reference,
+optimized object-tree, and flat implementations as adjacent cases with balanced
+ordering. Every recorded iteration resets velocity outside the timed region,
+rebuilds the production quadtree, aggregates its mass, and applies gravity to
+every body. It reports object-tree build, flat-view construction,
+mass-aggregation, traversal, and combined times separately, along with applied
+sources and nanoseconds per source.
+
+Exercise the explosion-shaped distribution beyond the app's current 10,000
+ball cap:
+
+```bash
+npm run bench:gravity -- \
+  --scenario busy \
+  --sizes 10000,25000,50000 \
+  --samples 30 \
+  --warmup 10
+```
+
+Structural diagnostics sample tree visits outside the timed region. An exact
+force oracle also runs outside the timed region through 1,000 bodies by
+default. Select one implementation, change the oracle limit, or emit JSON with:
+
+```bash
+npm run bench:gravity -- --implementation reference
+npm run bench:gravity -- --implementation flat
+npm run bench:gravity -- --implementation both
+npm run bench:gravity -- --oracle-limit 2000
+npm run bench:gravity -- --json > /tmp/gravity-results.json
+```
+
+`--implementation both` compares the two retained object-tree paths;
+`--implementation all` includes the flat path and is the default. The harness
+exits unsuccessfully, whenever the reference is included, if an implementation
+changes the final velocity checksum or any exact/approximated source count.
+
+Allocation sampling is deliberately a separate diagnostic mode because the V8
+profiler perturbs timings:
+
+```bash
+npm run bench:gravity -- \
+  --scenario busy \
+  --sizes 10000 \
+  --samples 10 \
+  --warmup 3 \
+  --profile-allocations
 ```
 
 Reproduce an explosion-heavy frame shaped like the live 6,600-ball plus
@@ -74,7 +164,11 @@ npm run bench:browser -- --busy
 Unlike `--stress`, which is a paused and stable regression fixture, `--busy`
 keeps bodies moving and combines clustered positions, mixed ball radii, and a
 large off-canvas particle population. It defaults to 10,000 balls and 10,000
-particles in a 1536 × 1280 viewport. Match a captured live population with:
+particles in a 1536 × 1280 viewport. Active benchmark fixtures use a seeded
+random stream and a fixed 16.67 ms simulation step, so renderer comparisons
+evolve the same physics state even when their real frame rates differ. Override
+the simulation step with `--simulation-frame-ms`. Match a captured live
+population with:
 
 ```bash
 npm run bench:browser -- \
@@ -103,10 +197,35 @@ measures capacity-limited fragment generation, bulk removal, particle
 compaction, dense collision response, and the resulting rendering load.
 `--busy-balls` and `--busy-particles` also override its starting population.
 
-The benchmark reports separate tree-build, gravity, collision, lifecycle, and
-render timings. It also reports spatial candidates, fallback candidates, true
-collision hits, rejected bodies, Barnes-Hut source counts, removed bodies,
-and generated fragments.
+The benchmark reports separate tree-build, gravity mass-aggregation, gravity
+traversal, collision, lifecycle, and render timings. WebGL2 results additionally
+break rendering into body packing, buffer upload, and draw submission. It also
+reports spatial candidates, fallback candidates, true collision hits, rejected
+bodies, Barnes-Hut source counts, removed bodies, and generated fragments.
+
+Measure renderer scaling without physics or the production animation loop:
+
+```bash
+npm run bench:render
+```
+
+This frozen-scene benchmark runs both backends at 10,000, 25,000, 50,000, and
+100,000 visible bodies by default. It measures main-thread renderer submission
+and, for WebGL2, a separate synchronized result that waits for `gl.finish()`.
+Exercise per-frame position and color changes with:
+
+```bash
+npm run bench:render -- --churn
+```
+
+Select sizes, a backend, or software WebGL explicitly:
+
+```bash
+npm run bench:render -- \
+  --renderer webgl2 \
+  --sizes 10000,50000,100000 \
+  --software-webgl
+```
 
 Compare the production Fast and Full modes on the identical fixture:
 

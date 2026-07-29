@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { Ball } from '../src/scripts/ball.js';
+import { Controller } from '../src/scripts/controller.js';
 import { vec3 } from '../src/scripts/vec3.js';
 import { World } from '../src/scripts/world.js';
 
@@ -95,4 +96,45 @@ test('dense rendering only outlines visually large circles', () => {
   assert.equal( context.calls.arcs, 2 );
   assert.equal( context.calls.fills, 2 );
   assert.equal( context.calls.strokes, 1 );
+});
+
+test('purple mode advances body colors without drawing per body', () => {
+  const world = new World();
+  world.background.counter = 20;
+  world.background.updateRgb();
+  world.background.draw = () => {
+    assert.fail( 'purple mode should not redraw the background' );
+  };
+  world.balls = [
+    new Ball( 0.2, 0.2, 0.01, new vec3( 255, 0, 0 ) ),
+    new Ball( 0.4, 0.4, 0.01, new vec3( 0, 255, 0 ) ),
+  ];
+  world.planets = [
+    new Ball( 0.6, 0.6, 0.02, new vec3( 0, 0, 255 ) ),
+  ];
+  const controller = new Controller( world );
+  controller.dt = 1;
+
+  controller.purple();
+
+  assert.equal( world.purple, true );
+  assert.deepEqual(
+    world.balls.map( ball => [
+      ball.color.x,
+      ball.color.y,
+      ball.color.z,
+    ]),
+    [
+      [ 0, 20, 128 ],
+      [ 0, 21, 128 ],
+    ],
+  );
+  assert.deepEqual(
+    [
+      world.planets[ 0 ].color.x,
+      world.planets[ 0 ].color.y,
+      world.planets[ 0 ].color.z,
+    ],
+    [ 0, 22, 128 ],
+  );
 });

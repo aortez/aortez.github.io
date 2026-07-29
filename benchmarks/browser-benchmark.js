@@ -66,6 +66,10 @@ function parseArguments(argumentsList) {
     adaptiveOutlines: true,
     highLoadOutlineRadius: 8,
     sharedRenderColor: false,
+    rendererBackend: 'canvas2d',
+    gravityImplementation: 'flat',
+    softwareWebgl: false,
+    simulationFrameMs: 1000 / 60,
     json: false,
   };
   let thetaExplicit = false;
@@ -177,6 +181,50 @@ function parseArguments(argumentsList) {
       case '--shared-color':
         options.sharedRenderColor = true;
         break;
+      case '--renderer': {
+        const rendererBackend = optionValue(
+          argumentsList,
+          index,
+          argument,
+        );
+        if (!['canvas2d', 'webgl2'].includes(rendererBackend)) {
+          throw new Error(
+            `${argument} requires one of: canvas2d, webgl2`,
+          );
+        }
+        options.rendererBackend = rendererBackend;
+        index++;
+        break;
+      }
+      case '--gravity-implementation': {
+        const gravityImplementation = optionValue(
+          argumentsList,
+          index,
+          argument,
+        );
+        if (
+          !['reference', 'optimized', 'flat'].includes(
+            gravityImplementation,
+          )
+        ) {
+          throw new Error(
+            `${argument} requires one of: reference, optimized, flat`,
+          );
+        }
+        options.gravityImplementation = gravityImplementation;
+        index++;
+        break;
+      }
+      case '--software-webgl':
+        options.softwareWebgl = true;
+        break;
+      case '--simulation-frame-ms':
+        options.simulationFrameMs = parseNumber(
+          optionValue(argumentsList, index, argument),
+          argument,
+        );
+        index++;
+        break;
       case '--json':
         options.json = true;
         break;
@@ -220,6 +268,13 @@ Options:
   --high-load-outline-radius NUMBER
                       Pixel radius outlined in dense scenes (default: 8).
   --shared-color      Benchmark every body with one shared fill color.
+  --renderer NAME     Rendering backend: canvas2d or webgl2 (default: canvas2d).
+  --gravity-implementation NAME
+                      Gravity traversal: reference, optimized, or flat
+                      (default: flat).
+  --software-webgl    Force SwiftShader for headless WebGL functional runs.
+  --simulation-frame-ms NUMBER
+                      Fixed active-scene simulation step (default: 16.67).
   --json              Emit structured JSON only.
   --help              Show this help.
 
@@ -312,7 +367,13 @@ function summarize(values) {
   };
 }
 
-async function configureCase(page, testCase, theta) {
+async function configureCase(
+  page,
+  testCase,
+  theta,
+  simulationFrameMs,
+  gravityImplementation,
+) {
   return await page.evaluate(async ({
     count,
     mode,
@@ -329,9 +390,11 @@ async function configureCase(page, testCase, theta) {
     highLoadOutlineRadius,
     sharedRenderColor,
     thetaValue,
+    simulationFrameMs,
+    gravityImplementation,
   }) => {
     const [
-      { getRuntime },
+      { getRuntime, setSimulationFrameOverrideMilliseconds },
       { createScenario, createSeededRandom },
       { Ball },
       { vec3 },
@@ -342,16 +405,41 @@ async function configureCase(page, testCase, theta) {
       import('/src/scripts/vec3.js'),
     ]);
 
-    const { canvas, world } = getRuntime();
+    Math.random = createSeededRandom(0x51A7E);
+    setSimulationFrameOverrideMilliseconds(
+      active ? simulationFrameMs : null,
+    );
+
+    const { canvas, renderer, rendererFallbackReason, world } = getRuntime();
+    globalThis.__browserBenchmarkWorldAdvance ??= world.advance.bind( world );
+    world.advance = () => {};
+    if (rendererFallbackReason) {
+      throw new Error(
+        `Renderer fallback prevented this benchmark: ${rendererFallbackReason}`,
+      );
+    }
+    if (
+      renderer.backend === 'webgl2' &&
+      renderer.context.isContextLost()
+    ) {
+      throw new Error(
+        'The WebGL2 context was lost; use --software-webgl in a ' +
+        'headless environment without GPU access',
+      );
+    }
     world.init();
     world.shouldDrawBackground = false;
-    world.is_paused = !active;
+    // Keep the production loop from evolving the fixture between this setup
+    // call and collectFrames. The collector starts active cases on a frame
+    // boundary after its observer and churn state are ready.
+    world.is_paused = true;
     world.max_balls = Math.max(count, 10000);
     world.max_particles = Math.max(particleCount, 25000);
     world.useQuadtreeCollisions = mode === 'spatial';
     world.useBarnesHutGravity = mode === 'spatial';
     world.showQuadtreeOverlay = overlay;
     world.setGravityMode(particleGravity ? 'full' : 'fast');
+    world.setGravityImplementation(gravityImplementation);
     world.barnesHutTheta = thetaValue;
     world.renderOutlines = renderOutlines;
     world.adaptiveOutlines = adaptiveOutlines;
@@ -455,11 +543,15 @@ async function configureCase(page, testCase, theta) {
       maxX,
       maxY,
       gravityMode: world.gravityMode,
+      gravityImplementation: world.gravityImplementation,
       particleGravityEnabled: world.useBallParticleGravity,
+      rendererBackend: renderer.backend,
+      graphicsInfo: renderer.graphicsInfo,
       renderOutlines: world.renderOutlines,
       adaptiveOutlines: world.adaptiveOutlines,
       highLoadOutlineRadius: world.highLoadOutlineRadius,
       sharedRenderColor: world.renderFillStyleOverride !== null,
+      simulationFrameMs: active ? simulationFrameMs : null,
       theta: world.barnesHutTheta,
     };
   }, {
@@ -478,13 +570,22 @@ async function configureCase(page, testCase, theta) {
     highLoadOutlineRadius: testCase.highLoadOutlineRadius,
     sharedRenderColor: testCase.sharedRenderColor,
     thetaValue: theta,
+    simulationFrameMs,
+    gravityImplementation,
   });
 }
 
-async function collectFrames(page, warmup, sampleCount, churn = false) {
+async function collectFrames(
+  page,
+  warmup,
+  sampleCount,
+  active = false,
+  churn = false,
+) {
   return await page.evaluate(async ({
     warmupFrames,
     recordedFrames,
+    activeScene,
     churnEnabled,
   }) => {
     const { getRuntime } = await import('/src/scripts/main.js');
@@ -523,6 +624,8 @@ async function collectFrames(page, warmup, sampleCount, churn = false) {
       };
 
       armChurnFrame();
+      world.advance = globalThis.__browserBenchmarkWorldAdvance;
+      world.is_paused = !activeScene;
       const observe = () => {
         const stats = world.lastFrameStats;
         if (stats && stats.frameId !== lastFrameId) {
@@ -533,8 +636,12 @@ async function collectFrames(page, warmup, sampleCount, churn = false) {
               measuredFrameMs: stats.measuredFrameMs,
               physicsMs: stats.physicsMs,
               renderMs: stats.renderMs,
+              ballCount: stats.ballCount,
+              particleCount: stats.particleCount,
               renderBreakdown: stats.renderBreakdown,
               physicsBreakdown: stats.physicsBreakdown,
+              gravity: stats.gravity,
+              collisions: stats.collisions,
             });
           }
           observedFrames++;
@@ -542,6 +649,8 @@ async function collectFrames(page, warmup, sampleCount, churn = false) {
         }
 
         if (samples.length >= recordedFrames) {
+          world.is_paused = true;
+          world.advance = () => {};
           resolve(samples);
         } else {
           requestAnimationFrame(observe);
@@ -553,6 +662,7 @@ async function collectFrames(page, warmup, sampleCount, churn = false) {
   }, {
     warmupFrames: warmup,
     recordedFrames: sampleCount,
+    activeScene: active,
     churnEnabled: churn,
   });
 }
@@ -561,6 +671,21 @@ async function inspectCase(page) {
   return await page.evaluate(async () => {
     const { getRuntime } = await import('/src/scripts/main.js');
     const { world } = getRuntime();
+    const checksumBodies = bodies => {
+      let centerX = 0;
+      let centerY = 0;
+      let velocityX = 0;
+      let velocityY = 0;
+      for (let index = 0; index < bodies.length; index++) {
+        const weight = index + 1;
+        const body = bodies[index];
+        centerX += body.center.x * weight;
+        centerY += body.center.y * weight;
+        velocityX += body.v.x * weight;
+        velocityY += body.v.y * weight;
+      }
+      return { centerX, centerY, velocityX, velocityY };
+    };
     return {
       candidates: world.lastQuadtree?.countPotentialPairs() ?? null,
       crossCandidates: (
@@ -579,6 +704,10 @@ async function inspectCase(page) {
       renderBreakdown: world.lastRenderBreakdown,
       ballCount: world.balls.length,
       particleCount: world.particles.length,
+      stateChecksum: {
+        balls: checksumBodies(world.balls),
+        particles: checksumBodies(world.particles),
+      },
     };
   });
 }
@@ -623,7 +752,16 @@ async function main() {
   let browser;
   try {
     await waitForServer(baseUrl, server);
-    browser = await chromium.launch({ headless: true });
+    const launchArguments = options.softwareWebgl
+      ? [
+        '--enable-unsafe-swiftshader',
+        '--use-angle=swiftshader',
+      ]
+      : [];
+    browser = await chromium.launch({
+      args: launchArguments,
+      headless: true,
+    });
     const viewport = options.busy || options.churn
       ? { width: 1536, height: 1280 }
       : { width: 1280, height: 900 };
@@ -650,7 +788,9 @@ async function main() {
         browserErrors.push(message.text());
       }
     });
-    await page.goto(baseUrl);
+    const pageUrl = new URL(baseUrl);
+    pageUrl.searchParams.set( 'renderer', options.rendererBackend );
+    await page.goto(pageUrl.toString());
     await page.locator('#pizza').waitFor({ state: 'visible' });
     await page.waitForFunction(() => (
       document.querySelector('#pizza').width > 100 &&
@@ -775,11 +915,18 @@ async function main() {
     const results = [];
 
     for (const testCase of cases) {
-      const worldBounds = await configureCase(page, testCase, options.theta);
+      const worldBounds = await configureCase(
+        page,
+        testCase,
+        options.theta,
+        options.simulationFrameMs,
+        options.gravityImplementation,
+      );
       const frames = await collectFrames(
         page,
         options.warmup,
         options.samples,
+        testCase.active ?? false,
         testCase.churn ?? false,
       );
       const inspection = await inspectCase(page);
@@ -801,6 +948,15 @@ async function main() {
         (frame.physicsBreakdown?.ballCollisionMs ?? 0) +
         (frame.physicsBreakdown?.ballParticleCollisionMs ?? 0)
       )));
+      const gravityMassAggregationTiming = summarize(frames.map(frame => (
+        frame.gravity?.massAggregationMs ?? 0
+      )));
+      const gravityFlattenTiming = summarize(frames.map(frame => (
+        frame.gravity?.flattenMs ?? 0
+      )));
+      const gravityTraversalTiming = summarize(frames.map(frame => (
+        frame.gravity?.traversalMs ?? 0
+      )));
       const particleAdvanceTiming = stageSummary('particleAdvanceMs');
       const removedTiming = summarize(frames.map(frame => (
         (frame.physicsBreakdown?.lifecycle?.removedBalls ?? 0) +
@@ -809,6 +965,31 @@ async function main() {
       const fragmentTiming = summarize(frames.map(frame => (
         frame.physicsBreakdown?.lifecycle?.generatedFragments ?? 0
       )));
+      const workloadTrace = frames.map(frame => ({
+        ballCount: frame.ballCount,
+        particleCount: frame.particleCount,
+        exactInteractions: frame.gravity?.exactInteractions ?? 0,
+        approximations: frame.gravity?.approximations ?? 0,
+        appliedSources: frame.gravity?.appliedSources ?? 0,
+        ballCandidates: frame.collisions?.ballCandidates ?? 0,
+        ballParticleCandidates: (
+          frame.collisions?.ballParticleCandidates ?? 0
+        ),
+        ballCollisions: frame.collisions?.ballCollisions ?? 0,
+        ballParticleCollisions: (
+          frame.collisions?.ballParticleCollisions ?? 0
+        ),
+        removedBalls: (
+          frame.physicsBreakdown?.lifecycle?.removedBalls ?? 0
+        ),
+        addedBalls: frame.physicsBreakdown?.lifecycle?.addedBalls ?? 0,
+        addedParticles: (
+          frame.physicsBreakdown?.lifecycle?.addedParticles ?? 0
+        ),
+        removedParticles: (
+          frame.physicsBreakdown?.lifecycle?.removedParticles ?? 0
+        ),
+      }));
 
       results.push({
         ...testCase,
@@ -817,15 +998,22 @@ async function main() {
         measured,
         physics,
         render,
+        renderPackTiming: renderStageSummary('packMs'),
+        renderUploadTiming: renderStageSummary('uploadMs'),
+        renderSubmitTiming: renderStageSummary('submitMs'),
         particleRenderTiming: renderStageSummary('particleMs'),
         ballRenderTiming: renderStageSummary('ballMs'),
         treeBuild,
         gravityTiming: stageSummary('gravityMs'),
+        gravityFlattenTiming,
+        gravityMassAggregationTiming,
+        gravityTraversalTiming,
         collisionTiming,
         lifecycleTiming: stageSummary('lifecycleMs'),
         particleAdvanceTiming,
         removedTiming,
         fragmentTiming,
+        workloadTrace,
         framesOver16_7: frames.filter(frame => frame.frameIntervalMs > 16.7).length,
         framesOver33_3: frames.filter(frame => frame.frameIntervalMs > 33.3).length,
         ...inspection,
@@ -859,10 +1047,23 @@ async function main() {
       console.log(`Commit: ${report.metadata.commit}${report.metadata.dirty ? ' (dirty)' : ''}`);
       console.log(`Browser: ${report.metadata.browser}`);
       console.log(`CPU: ${report.metadata.cpu}`);
+      if (results[0]?.worldBounds.graphicsInfo?.renderer) {
+        console.log(
+          `Graphics: ${results[0].worldBounds.graphicsInfo.renderer}`,
+        );
+      }
+      if (results[0]?.worldBounds.simulationFrameMs !== null) {
+        console.log(
+          'Simulation step: ' +
+          `${results[0].worldBounds.simulationFrameMs.toFixed(2)} ms (fixed)`,
+        );
+      }
       console.log('Times are median/p95 milliseconds.\n');
       console.table(results.map(result => ({
         mode: result.name,
+        renderer: result.worldBounds.rendererBackend,
         gravityMode: result.worldBounds.gravityMode,
+        gravityImpl: result.worldBounds.gravityImplementation,
         theta: result.worldBounds.theta,
         outlines: !result.worldBounds.renderOutlines
           ? 'off'
@@ -880,10 +1081,16 @@ async function main() {
         measured: formatTiming(result.measured),
         physics: formatTiming(result.physics),
         render: formatTiming(result.render),
+        pack: formatTiming(result.renderPackTiming),
+        upload: formatTiming(result.renderUploadTiming),
+        submit: formatTiming(result.renderSubmitTiming),
         renderParticles: formatTiming(result.particleRenderTiming),
         renderBalls: formatTiming(result.ballRenderTiming),
         trees: formatTiming(result.treeBuild),
         gravity: formatTiming(result.gravityTiming),
+        gravityFlatten: formatTiming(result.gravityFlattenTiming),
+        gravityMass: formatTiming(result.gravityMassAggregationTiming),
+        gravityWalk: formatTiming(result.gravityTraversalTiming),
         collisions: formatTiming(result.collisionTiming),
         lifecycle: formatTiming(result.lifecycleTiming),
         particles: formatTiming(result.particleAdvanceTiming),

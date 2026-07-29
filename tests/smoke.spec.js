@@ -1,6 +1,36 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Canvas Physics App', () => {
+async function renderAndReadPixel( page, position = {} ) {
+  return page.evaluate(({ x, y }) => {
+    const { canvas, renderer, world } = globalThis.__pizzaRuntime;
+    renderer.render(world);
+    renderer.synchronize();
+    const sampleX = Math.floor(x ?? canvas.width / 2);
+    const sampleY = Math.floor(y ?? canvas.height / 2);
+    const pixel = new Uint8Array(4);
+    if (renderer.backend === 'webgl2') {
+      renderer.context.readPixels(
+        sampleX,
+        canvas.height - sampleY - 1,
+        1,
+        1,
+        renderer.context.RGBA,
+        renderer.context.UNSIGNED_BYTE,
+        pixel,
+      );
+    } else {
+      pixel.set(renderer.context.getImageData(
+        sampleX,
+        sampleY,
+        1,
+        1,
+      ).data);
+    }
+    return Array.from(pixel);
+  }, position);
+}
+
+test.describe('Physics App', () => {
   test('should load the main page without errors', async ({ page }) => {
     const errors = [];
     const warnings = [];
@@ -61,6 +91,8 @@ test.describe('Canvas Physics App', () => {
 
     const numBalls = page.locator('#num_balls_slider');
     const spawnRate = page.locator('#ball_spawn_rate_slider');
+    await expect(page.locator('#exploder_size_slider')).toHaveValue('1.4');
+    await expect(page.locator('#exploder_size_slider_value')).toHaveText('1.4');
     await expect(numBalls).toHaveAttribute('min', '0');
     await expect(numBalls).toHaveAttribute('max', '500');
     await expect(spawnRate).toHaveAttribute('min', '0.01');
@@ -106,6 +138,7 @@ test.describe('Canvas Physics App', () => {
       '#pause_button',
       '#quadtree_button',
       '#gravity_mode_button',
+      '#renderer_button',
       '#quadtree_overlay_button',
       '#purple_button',
       '#debug_button'
@@ -115,6 +148,64 @@ test.describe('Canvas Physics App', () => {
       await expect(page.locator(buttonId)).toBeVisible();
       await expect(page.locator(buttonId)).toBeEnabled();
     }
+  });
+
+  test('should default to WebGL2 and retain an explicit Canvas2D fallback', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#renderer_button')).toHaveText(
+      'Renderer: WebGL2',
+    );
+    await expect(page.locator('#renderer_button')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await page.locator('#renderer_button').click();
+    await page.waitForURL(url => (
+      new URL(url).searchParams.get('renderer') === 'canvas2d'
+    ));
+    await expect(page.locator('#renderer_button')).toHaveText(
+      'Renderer: Canvas2D',
+    );
+    await expect(page.locator('#renderer_button')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    await page.locator('#renderer_button').click();
+    await page.waitForURL(url => (
+      new URL(url).searchParams.get('renderer') === 'webgl2'
+    ));
+    await expect(page.locator('#renderer_button')).toHaveText(
+      'Renderer: WebGL2',
+    );
+  });
+
+  test('should automatically fall back when WebGL2 is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      const getContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function(type, ...options) {
+        if (type === 'webgl2') {
+          return null;
+        }
+        return getContext.call(this, type, ...options);
+      };
+    });
+    await page.goto('/');
+    await expect(page.locator('#renderer_button')).toHaveText(
+      'Renderer: Canvas2D (fallback)',
+    );
+    await expect(page.locator('#renderer_button')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await page.locator('#renderer_button').click();
+    await page.waitForURL(url => (
+      new URL(url).searchParams.get('renderer') === 'canvas2d'
+    ));
+    await expect(page.locator('#renderer_button')).toHaveText(
+      'Renderer: Canvas2D',
+    );
   });
 
   test('should switch between fast and full gravity modes', async ({ page }) => {
@@ -165,6 +256,251 @@ test.describe('Canvas Physics App', () => {
     await gravityMode.click();
     await expect(gravityMode).toHaveText('Gravity: Fast');
   });
+
+  test('should render ordered circles with the WebGL2 backend', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => {
+      if (message.type() === 'error') {
+        errors.push(message.text());
+      }
+    });
+
+    await page.goto('/?renderer=webgl2');
+    await expect(page.locator('#renderer_button')).toHaveText(
+      'Renderer: WebGL2',
+    );
+    await expect(page.locator('#renderer_button')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('#background_button')).toBeEnabled();
+    await expect(page.locator('#pizza_button')).toBeEnabled();
+    await expect(page.locator('#quadtree_overlay_button')).toBeEnabled();
+
+    const result = await page.evaluate(async () => {
+      const { Ball } = await import('/src/scripts/ball.js');
+      const { vec3 } = await import('/src/scripts/vec3.js');
+      const { renderer, rendererFallbackReason, world } = (
+        globalThis.__pizzaRuntime
+      );
+
+      world.init();
+      world.advance = () => {};
+      const scale = world.getDrawScale(renderer.canvas);
+      const centerX = renderer.canvas.width / scale / 2;
+      const centerY = renderer.canvas.height / scale / 2;
+      world.particles = [
+        new Ball(centerX, centerY, 0.1, new vec3(0, 0, 255)),
+      ];
+      world.balls = [
+        new Ball(centerX, centerY, 0.05, new vec3(255, 0, 0)),
+      ];
+      const stats = renderer.render(world);
+      renderer.synchronize();
+
+      const pixel = new Uint8Array(4);
+      renderer.context.readPixels(
+        Math.floor(renderer.canvas.width / 2),
+        Math.floor(renderer.canvas.height / 2),
+        1,
+        1,
+        renderer.context.RGBA,
+        renderer.context.UNSIGNED_BYTE,
+        pixel,
+      );
+      return {
+        backend: renderer.backend,
+        drawnBodies: stats.drawnBodies,
+        fallbackReason: rendererFallbackReason,
+        pixel: Array.from(pixel),
+      };
+    });
+
+    expect(result.backend).toBe('webgl2');
+    expect(result.fallbackReason).toBeNull();
+    expect(result.drawnBodies).toBe(2);
+    expect(result.pixel[0]).toBeGreaterThan(240);
+    expect(result.pixel[1]).toBeLessThan(15);
+    expect(result.pixel[2]).toBeLessThan(15);
+    expect(errors, `Found browser errors: ${errors.join('; ')}`).toEqual([]);
+  });
+
+  for (const backend of ['canvas2d', 'webgl2']) {
+    test(`should support rendering features with ${backend}`, async ({ page }) => {
+      const errors = [];
+      page.on('pageerror', error => errors.push(error.message));
+      page.on('console', message => {
+        if (message.type() === 'error') {
+          errors.push(message.text());
+        }
+      });
+
+      await page.goto(`/?renderer=${backend}`);
+      await page.waitForFunction(() => (
+        globalThis.__pizzaRuntime?.canvas.width > 100 &&
+        globalThis.__pizzaRuntime?.canvas.height > 100
+      ));
+      for (const buttonId of [
+        '#background_button',
+        '#pizza_button',
+        '#quadtree_overlay_button',
+        '#purple_button',
+        '#debug_button',
+      ]) {
+        await expect(page.locator(buttonId)).toBeEnabled();
+      }
+
+      await page.evaluate(async () => {
+        const { Ball } = await import('/src/scripts/ball.js');
+        const { vec3 } = await import('/src/scripts/vec3.js');
+        const { canvas, world } = globalThis.__pizzaRuntime;
+        world.init();
+        world.advance = () => {};
+        world.shouldDrawBackground = false;
+        world.renderOutlines = false;
+        const scale = world.getDrawScale(canvas);
+        const centerX = canvas.width / scale / 2;
+        const centerY = canvas.height / scale / 2;
+        world.balls = [
+          new Ball(centerX, centerY, 0.12, new vec3(255, 0, 0)),
+        ];
+      });
+      const basePixel = await renderAndReadPixel(page);
+      expect(basePixel[0]).toBeGreaterThan(240);
+      expect(basePixel[1]).toBeLessThan(15);
+      expect(basePixel[2]).toBeLessThan(15);
+
+      await page.locator('#pizza_button').click();
+      await expect.poll(async () => {
+        const pixel = await renderAndReadPixel(page);
+        return (
+          Math.abs(pixel[0] - 255) +
+          pixel[1] +
+          pixel[2]
+        ) > 40;
+      }, {
+        timeout: 10000,
+      }).toBe(true);
+
+      const backgroundRgb = await page.evaluate(() => {
+        const { world } = globalThis.__pizzaRuntime;
+        world.balls = [];
+        world.pizza_time = false;
+        world.shouldDrawBackground = true;
+        world.background.counter = 0;
+        world.background.updateRgb();
+        return [
+          world.background.rgb.x,
+          world.background.rgb.y,
+          world.background.rgb.z,
+        ];
+      });
+      const backgroundPixel = await renderAndReadPixel(
+        page,
+        { x: 5, y: 5 },
+      );
+      expect(backgroundPixel[1]).toBeGreaterThan(0);
+      expect(backgroundRgb).toEqual([0, 0, 128]);
+
+      await page.locator('#background_button').click();
+      const blackPixel = await renderAndReadPixel(
+        page,
+        { x: 5, y: 5 },
+      );
+      expect(blackPixel.slice(0, 3)).toEqual([0, 0, 0]);
+
+      const purpleResult = await page.evaluate(async () => {
+        const { Ball } = await import('/src/scripts/ball.js');
+        const { vec3 } = await import('/src/scripts/vec3.js');
+        const { canvas, world } = globalThis.__pizzaRuntime;
+        const scale = world.getDrawScale(canvas);
+        world.background.counter = 40;
+        world.background.updateRgb();
+        world.balls = [
+          new Ball(
+            canvas.width / scale / 2,
+            canvas.height / scale / 2,
+            0.05,
+            new vec3(255, 0, 0),
+          ),
+        ];
+        return true;
+      });
+      expect(purpleResult).toBe(true);
+      await page.locator('#purple_button').click();
+      expect(await page.evaluate(() => {
+        const { world } = globalThis.__pizzaRuntime;
+        const color = world.balls[0].color;
+        return {
+          color: [color.x, color.y, color.z],
+          purple: world.purple,
+        };
+      })).toEqual({
+        color: [0, 40, 128],
+        purple: true,
+      });
+
+      const overlayState = await page.evaluate(async () => {
+        const { Ball } = await import('/src/scripts/ball.js');
+        const { vec3 } = await import('/src/scripts/vec3.js');
+        const { canvas, world } = globalThis.__pizzaRuntime;
+        const scale = world.getDrawScale(canvas);
+        const maxX = canvas.width / scale;
+        const maxY = canvas.height / scale;
+        world.balls = [];
+        for (let index = 0; index < 400; index++) {
+          world.balls.push(new Ball(
+            maxX * ((index % 20) + 0.5) / 20,
+            maxY * (Math.floor(index / 20) + 0.5) / 20,
+            0.0001,
+            new vec3(128, 128, 128),
+          ));
+        }
+        world.lastQuadtree = world.buildQuadtree(canvas);
+        return Boolean(world.lastQuadtree);
+      });
+      expect(overlayState).toBe(true);
+      await page.locator('#quadtree_overlay_button').click();
+      const overlayStats = await page.evaluate(() => {
+        const { renderer, world } = globalThis.__pizzaRuntime;
+        const stats = renderer.render(world);
+        if (renderer.backend !== 'webgl2') {
+          return stats;
+        }
+        const root = world.lastQuadtree;
+        return {
+          ...stats,
+          expectedRootVertices: [
+            root.min_x, root.min_y, root.max_x, root.min_y,
+            root.max_x, root.min_y, root.max_x, root.max_y,
+            root.max_x, root.max_y, root.min_x, root.max_y,
+            root.min_x, root.max_y, root.min_x, root.min_y,
+          ].map(Math.fround),
+          rootVertices: Array.from(
+            renderer.overlayPositions.subarray(0, 16),
+          ),
+        };
+      });
+      if (backend === 'webgl2') {
+        expect(overlayStats.overlayNodeCount).toBeGreaterThan(0);
+        expect(overlayStats.overlayVertexCount).toBeGreaterThan(1024);
+        expect(overlayStats.overlayVertexCount).toBe(
+          overlayStats.overlayNodeCount * 8,
+        );
+        expect(overlayStats.rootVertices).toEqual(
+          overlayStats.expectedRootVertices,
+        );
+      }
+
+      await page.locator('#debug_button').click();
+      expect(await page.evaluate(async () => {
+        const { debug_on } = await import('/src/scripts/quadtree.js');
+        return debug_on;
+      })).toBe(false);
+      expect(errors, `Found browser errors: ${errors.join('; ')}`).toEqual([]);
+    });
+  }
 
   test('should create balls and run the quadtree overlay across viewport shapes', async ({ page }) => {
     const errors = [];
