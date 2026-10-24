@@ -104,3 +104,13 @@ Setup tests in `tests/setup.spec.js` use a mock Bluetooth device to cover succes
 wrong credentials, missing notifications on older firmware, timeout, cancellation,
 unsafe links, unsupported browsers, and the legacy QR URL. No test uses real WiFi
 credentials. The page stores no credentials and sends them only over Bluetooth.
+
+A physical Pixel 9 Pro XL (Android 17, Chrome 156) also passed discovery, BLE
+connection, an absent-network error, retry to the saved network, password
+clearing, and opening the Pi's app over WiFi. The unmerged production build was
+served through `adb reverse tcp:8080 tcp:8080` at `http://localhost:8080/setup/`,
+which is a secure context. Android initially blocked Chrome's local-network
+access despite showing Nearby devices as allowed; selecting Allow again cleared
+the denial. The setup help includes that recovery path. Evidence is in
+`docs/validation/setup-pixel9-real-ble.json` and
+`docs/screenshots/setup-pixel9-real-ble.png`.

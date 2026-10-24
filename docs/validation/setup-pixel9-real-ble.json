@@ -1,0 +1,25 @@
+{
+  "phone": "Pixel 9 Pro XL",
+  "android": "17",
+  "chrome": "156.0.8078.47",
+  "realBluetooth": true,
+  "absentNetworkErrorShown": true,
+  "retrySucceeded": true,
+  "url": "http://inky-soup.local:8000/",
+  "passwordCleared": true,
+  "status": "WiFi is connected. Keep your phone on the same network to open the frame.",
+  "devicePage": {
+    "url": "http://inky-soup.local:8000/",
+    "status": 200,
+    "title": "inky-soup"
+  },
+  "androidPermissionRecovery": "Chrome Nearby devices Allow cleared Android local-network denial",
+  "date": "2026-10-24",
+  "board": "Raspberry Pi Zero W",
+  "websiteCommit": "48511bc4",
+  "provisionerSource": "7003732be4183127f9f558d9916ddcd9ac628efe",
+  "pageTransport": "Production build served through ADB reverse at http://localhost:8080/setup/",
+  "bleTransport": "Real Android Chrome Web Bluetooth; no mocks",
+  "setupClosedAfterSuccess": true,
+  "activeAdvertisementsAfterSuccess": 0
+}
