@@ -78,8 +78,8 @@ The `/go` route serves a pre-compiled WebAssembly binary (`main.wasm`) with `was
 ### Sparkle Duck Setup
 
 The `/setup` route provides a Bluetooth Low Energy (BLE) WiFi provisioning interface:
-- Uses the Improv WiFi SDK (https://www.improv-wifi.com/sdk-ble-js/launch-button.js).
-- Custom duck-themed UI with orbiting connectivity icons.
+- Uses the repo-owned Improv BLE client in `setup/improv-client.js`; no remote runtime SDK.
+- Mobile setup form with connection status, retry/cancel, and an explicit device link.
 - Only works in browsers with Web Bluetooth support (Chrome, Edge) over HTTPS.
 
 ## Key Files
@@ -89,7 +89,7 @@ The `/setup` route provides a Bluetooth Low Energy (BLE) WiFi provisioning inter
 - `src/scripts/*.js`: ES6 module source files with proper imports/exports.
 - `index.html`: Main application entry point using `<script type="module">`.
 - `go.html`: Go/WASM demo entry point.
-- `setup/index.html`: Self-contained Bluetooth provisioning UI.
+- `setup/`: Bluetooth provisioning UI and transport; `wifi/` redirects older QR links.
 - `main.wasm`: Pre-built Go binary (built from external repo).
 
 ## Development Notes
@@ -99,3 +99,8 @@ The `/setup` route provides a Bluetooth Low Energy (BLE) WiFi provisioning inter
 - Google Analytics is configured for the allan.pizza domain.
 - The site is deployed via GitHub Pages from the master branch.
 - For GitHub Pages deployment, build output should be committed (Vite builds to `dist/` by default).
+
+Setup tests in `tests/setup.spec.js` use a mock Bluetooth device to cover success,
+wrong credentials, missing notifications on older firmware, timeout, cancellation,
+unsafe links, unsupported browsers, and the legacy QR URL. No test uses real WiFi
+credentials. The page stores no credentials and sends them only over Bluetooth.
