@@ -40,3 +40,15 @@ npm run build
 ```bash
 npm run preview
 ```
+
+## Frame app and publishing
+
+The [frame app](frame/README.md) lives at `/frame/`; `/setup/` provisions WiFi over
+Bluetooth and hands the local address to it. The old `/wifi/` QR URL still redirects
+to setup. The original device interface remains available as a fallback.
+
+GitHub Pages publishes the tested Vite `dist/` artifact through `.github/workflows/ci.yml`
+after a successful push to `master`. Repository Pages settings must use GitHub
+Actions (`build_type: workflow`), not direct branch publishing: the frame’s service
+worker and bundled assets are generated at build time. Go/WASM assets and the
+custom-domain file live in `public/` so they are included in the deployed artifact.

@@ -6,7 +6,10 @@ import {saveDraft, readDraft} from './services/drafts.js';
 import {activity, controls, showView, renderGallery} from './ui/render.js';
 
 async function refreshGallery() {
-  const images = await request(state.frame.base, '/api/images');
+  const base = state.frame?.base;
+  if (!base) return;
+  const images = await request(base, '/api/images');
+  if (state.frame?.base !== base) return;
   if (!Array.isArray(images)) throw new Error('The frame returned an invalid gallery.');
   state.images = images;
   renderGallery(selectPhoto);
@@ -177,12 +180,23 @@ async function start() {
     history.replaceState(null, '', location.pathname);
   } else if (remembered?.base) {
     try {
-      el.address.value = normalizeAddress(remembered.base);
+      const base = normalizeAddress(remembered.base);
+      el.address.value = base;
       if (remembered.config) state.config = validateConfig(remembered.config);
+      state.frame = {...remembered, base};
+      el['frame-name'].textContent = remembered.name || new URL(base).hostname;
+      el.forget.hidden = false;
+      if (!navigator.onLine) {
+        el['frame-detail'].textContent = 'Offline · Draft saved on this phone';
+        el['connection-status'].textContent = 'You’re offline. Keep editing your draft; reconnect to send it.';
+      }
     } catch { /* Ignore malformed old settings. */ }
   }
   try {const draft = await readDraft(); if (draft?.blob) await useDraft(draft);} catch { /* Storage is optional. */ }
   controls();
-  if (!handoff && remembered?.base) connectFrame();
+  if (!handoff && remembered?.base && navigator.onLine) connectFrame();
 }
+window.addEventListener('online', () => {
+  if (!state.connected && !state.busy && !state.job && state.frame?.base === el.address.value) connectFrame();
+});
 start();

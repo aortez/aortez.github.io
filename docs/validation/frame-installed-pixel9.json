@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-24",
+  "phone": "Pixel 9 Pro XL",
+  "android": "17",
+  "chrome": "156.0.8078.47",
+  "bluetoothSetup": {
+    "status": "WiFi is connected. Keep your phone on the same network to open the frame.",
+    "done": true,
+    "passwordCleared": true,
+    "href": "/frame/#device=http%3A%2F%2Finky-soup.local%3A8000%2F"
+  },
+  "installedUpload": {
+    "dimensions": [
+      1600,
+      1200
+    ],
+    "standalone": true,
+    "width": 448,
+    "contentWidth": 448,
+    "job": {
+      "id": 1,
+      "filename": "01b0ea7a-5bf9-4ae5-a201-5a659f5fc6ab.png",
+      "base": "http://inky-soup.local:8000",
+      "createdAt": 1792896443742
+    },
+    "status": "Your new view is ready.",
+    "errors": [],
+    "networkOrigins": [
+      "http://localhost:4173",
+      "http://inky-soup.local:8000"
+    ],
+    "transport": "Actual localhost WebAPK installed from an ADB-forwarded production build; all device API/photo traffic directly over WiFi; no interception or mocks."
+  },
+  "offline": {
+    "origin": "http://localhost:4173",
+    "coldLaunch": true,
+    "initial": {
+      "url": "http://localhost:4173/frame/",
+      "title": "Sparkle Duck \u00b7 Your frame",
+      "standalone": true,
+      "ready": true,
+      "viewportWidth": 448,
+      "contentWidth": 448,
+      "draft": "installed-app-chart.png",
+      "preview": [
+        1600,
+        1200
+      ],
+      "sendDisabled": false,
+      "fitDisabled": false,
+      "connection": "Connected \u00b7 1600 \u00d7 1200",
+      "serviceWorker": "http://localhost:4173/frame/sw.js"
+    },
+    "offlineReload": {
+      "url": "http://localhost:4173/frame/",
+      "title": "Sparkle Duck \u00b7 Your frame",
+      "standalone": true,
+      "ready": true,
+      "viewportWidth": 448,
+      "contentWidth": 448,
+      "draft": "installed-app-chart.png",
+      "preview": [
+        1600,
+        1200
+      ],
+      "sendDisabled": true,
+      "fitDisabled": false,
+      "connection": "Not connected",
+      "serviceWorker": "http://localhost:4173/frame/sw.js"
+    },
+    "offlineMethod": {
+      "wifiDisabled": true,
+      "mobileDataDisabled": true,
+      "localhostForwardRemoved": true,
+      "coldLaunch": true
+    }
+  },
+  "cliJob": {
+    "error": "Device returned non-JSON HTTP 404 Not Found: expected value at line 1 column 1"
+  },
+  "startupInvestigation": "The preview had a stale service worker stuck in starting state. Clearing only preview service workers/cache and restarting Chrome cleared the test state. Fresh WebAPK launch and physical offline relaunch then passed. The app also now serves one cached release consistently until the next worker activates."
+}

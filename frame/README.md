@@ -71,9 +71,49 @@ page errors. See [results](../docs/validation/frame-pixel9.json) and the screens
 
 ![Pixel editor after a successful refresh](../docs/screenshots/frame-pixel9-editor.png)
 
-After publication, verify installation from the real HTTPS URL, launching from
-Android’s home screen, and an offline launch of the saved draft. Automated Chromium
-installability/offline checks do not replace that release check. Android installed
-the localhost preview as a WebAPK, but launching it produced a blank page in this
-ADB/CDP test setup. Standalone launch is therefore not yet validated; do not treat
-the install prompt or package creation as a passing launch test.
+Follow-up review resolved the preview launch blocker: the old preview worker was
+stuck in the browser’s `starting` state. Clearing only preview worker/cache state
+and restarting Chrome restored loading. A fresh installed WebAPK then passed
+standalone launch, real Bluetooth setup and handoff, direct WiFi upload, successful
+refresh, and offline reopening of the saved 1600 × 1200 draft. The offline test
+actually disabled WiFi while mobile data was already off, and removed the localhost
+ADB reverse. Editing remained enabled; sending was disabled. Networking was restored.
+See [installed-app results](../docs/validation/frame-installed-pixel9.json).
+
+The review also changed navigation to use the active worker’s cached HTML. This
+keeps HTML and worker code on one release until a new worker takes over, and avoids
+waiting for a network response when launching. Offline startup restores the frame
+configuration and permits editing while disconnected.
+
+The old `/wifi/` QR address still reaches setup. Successful setup now opens the
+frame app by default, with a separate link to the original device interface.
+Publishing requires the tested Vite artifact; the site CI deploys `dist/` to Pages
+from `master`, including the existing Go/WASM demo’s assets. Direct branch publishing
+would omit the generated service worker and use unbundled app source.
+
+## Repeatable Android check
+
+Install the app, choose a photo, wait for its preview, then run:
+
+```bash
+node tools/android-frame-check.mjs --origin https://allan.pizza --offline --screenshot /tmp/frame-offline.png
+```
+
+Pass `--serial` when multiple Android devices are connected. Pass the installed
+`org.chromium.webapk.*` ID with `--package` to force-stop/relaunch the app and repeat
+the launch offline. The tool checks standalone mode, viewport width, draft pixels,
+and enabled editing/disabled sending offline. Offline mode temporarily disables
+WiFi and mobile data and removes a matching localhost ADB reverse, restoring prior
+settings afterward. It does not install an app or submit a display refresh.
+
+Device-side diagnostics live in the Inky Soup Rust CLI:
+
+```bash
+./inky-cli browser-check --origin https://allan.pizza --json
+./inky-cli wifi-setup start
+./inky-cli wifi-setup status --json
+```
+
+The first command validates the device’s CORS read/preflight responses. Setup
+controls use key-authenticated SSH and never accept WiFi credentials. After initial
+publication, verify the real HTTPS installation as well as the local preview.

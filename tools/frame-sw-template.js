@@ -14,14 +14,16 @@ self.addEventListener('fetch', event => {
   // Photo and API requests go directly to the local frame and are never cached here.
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (event.request.mode === 'navigate' && url.pathname.startsWith('/frame/')) {
+    // Keep the shell and processing code on the active worker's version. A new
+    // worker takes over after all app windows close; launching never waits on WiFi.
     event.respondWith((async () => {
-      try {
-        const response = await fetch(event.request, {signal: AbortSignal.timeout(5000)});
-        if (response.ok) return response;
-      } catch { /* Use the installed shell when the website is unavailable. */ }
-      return caches.match('/frame/index.html', {ignoreVary: true});
+      const cache = await caches.open(CACHE);
+      return (await cache.match('/frame/index.html', {ignoreVary: true})) || fetch(event.request);
     })());
   } else if (FILES.includes(url.pathname)) {
-    event.respondWith((async () => (await caches.match(event.request, {ignoreVary: true})) || fetch(event.request))());
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      return (await cache.match(event.request, {ignoreVary: true})) || fetch(event.request);
+    })());
   }
 });

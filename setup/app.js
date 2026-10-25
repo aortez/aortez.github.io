@@ -7,6 +7,7 @@ const form = document.querySelector('#wifi-form');
 const password = document.querySelector('#password');
 const submit = document.querySelector('#submit');
 const link = document.querySelector('#device-link');
+const deviceInterface = document.querySelector('#device-interface-link');
 const deviceName = document.querySelector('#device-name');
 const supported = window.isSecureContext && 'bluetooth' in navigator;
 const client = new ImprovClient({ onStatus: showStatus });
@@ -27,12 +28,11 @@ function showStatus(event) {
   if (event.name) deviceName.textContent = event.name;
   link.hidden = event.state !== 'success' || !event.url;
   if (!link.hidden) {
-    const frameApp = new URLSearchParams(location.search).get('return') === 'frame';
-    link.href = frameApp ? `/frame/#device=${encodeURIComponent(event.url)}` : event.url;
+    link.href = `/frame/#device=${encodeURIComponent(event.url)}`;
     link.textContent = `Open ${event.name}`;
-    document.querySelector('#frame-app-link').href = `/frame/#device=${encodeURIComponent(event.url)}`;
+    deviceInterface.href = event.url;
   }
-  document.querySelector('#frame-app-link').hidden = link.hidden || new URLSearchParams(location.search).get('return') === 'frame';
+  deviceInterface.hidden = link.hidden;
   if (event.state === 'success') password.value = '';
   if (event.state === 'ready') document.querySelector('#ssid').focus();
 }

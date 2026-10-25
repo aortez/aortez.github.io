@@ -61,12 +61,14 @@ async function credentials(page) {
 }
 
 for (const mode of ['success', 'legacy-success']) {
-  test(`${mode}: direct device link and cleared credentials`, async ({ page }) => {
+  test(`${mode}: app handoff, device fallback, and cleared credentials`, async ({ page }) => {
     await mockBluetooth(page, mode);
     await page.goto('/setup/');
     await credentials(page);
     await page.getByRole('button', { name: 'Connect to WiFi' }).click();
-    await expect(page.getByRole('link', { name: 'Open inky-soup' })).toHaveAttribute('href', 'http://inky-soup.local:8000/');
+    await expect(page.getByRole('link', { name: 'Open inky-soup' })).toHaveAttribute('href', '/frame/#device=http%3A%2F%2Finky-soup.local%3A8000%2F');
+    await expect(page.locator('#device-interface-link')).toHaveAttribute('href', 'http://inky-soup.local:8000/');
+    await expect(page.locator('#device-interface-link')).toHaveText('Open the original device interface');
     await expect(page.locator('#password')).toHaveValue('');
   });
 }
@@ -208,6 +210,6 @@ test('Bluetooth setup returns the device address to the frame app', async ({page
   await credentials(page);
   await page.getByRole('button', {name: 'Connect to WiFi'}).click();
   await expect(page.locator('#device-link')).toHaveAttribute('href', '/frame/#device=http%3A%2F%2Finky-soup.local%3A8000%2F');
-  await expect(page.locator('#frame-app-link')).toBeHidden();
+  await expect(page.locator('#device-interface-link')).toHaveAttribute('href', 'http://inky-soup.local:8000/');
   await expect(page.locator('#password')).toHaveValue('');
 });
