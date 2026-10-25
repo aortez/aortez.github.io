@@ -1,6 +1,6 @@
 import './style.css';
 import {elements as el} from './core/dom.js';
-import {state, rememberFrame, savedFrame, rememberJob, savedJob} from './core/state.js';
+import {state, sessionReady, rememberFrame, savedFrame, rememberJob, savedJob} from './core/state.js';
 import {normalizeAddress, request, validateConfig, savePhoto, deletePhoto, jsonPost, getPhoto} from './services/frame-client.js';
 import {imageSettings, settingIds, validatePhoto} from './core/settings.js';
 import {processPhoto} from './services/processor.js';
@@ -19,7 +19,7 @@ async function refreshGallery() {
 }
 
 async function connectFrame() {
-  if (state.busy || state.job || state.connecting) return;
+  if (!state.session || state.busy || state.job || state.connecting) return;
   state.connecting = true; state.connected = false; controls();
   el['frame-detail'].textContent = 'Connecting…';
   el['connection-status'].textContent = 'Finding your frame… Allow local-network access if prompted.';
@@ -61,13 +61,15 @@ async function useDraft(draft) {
   catch { activity('Draft is open', 'This browser could not save the draft. Keep the app open until you send it.'); }
 }
 
-async function selectPhoto(image) {
-  if (state.busy || state.job) return;
+async function selectPhoto(image, base) {
+  if (state.busy || state.job || state.connecting || !state.connected || state.frame?.base !== base) return;
   state.busy = true; controls();
   try {
-    const blob = await getPhoto(state.frame.base, image.filename);
+    const blob = await getPhoto(base, image.filename);
+    if (state.frame?.base !== base) return;
     await releaseEditLock();
-    await useDraft({blob, sourceFrame: state.frame.base, sourceFilename: image.filename, name: image.filename, ...imageSettings(image)});
+    if (state.frame?.base !== base) return;
+    await useDraft({blob, sourceFrame: base, sourceFilename: image.filename, name: image.filename, ...imageSettings(image)});
     await acquireEditLock();
   } catch (error) { el['gallery-status'].textContent = `Could not open photo: ${error.message}`; }
   finally { state.busy = false; controls(); }
@@ -324,6 +326,7 @@ el.install.addEventListener('click', async () => {
 window.addEventListener('appinstalled', () => {el.install.hidden = true;});
 
 async function start() {
+  await sessionReady;
   if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker.register('/frame/sw.js', {scope: '/frame/'}).catch(() => {});
   }

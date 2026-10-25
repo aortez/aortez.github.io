@@ -1,13 +1,4 @@
-function editSession() {
-  // Keep ownership across reloads without sharing a lock identity between tabs.
-  try {
-    const existing = sessionStorage.getItem('sparkle-edit-session');
-    if (existing) return existing;
-    const session = crypto.randomUUID();
-    sessionStorage.setItem('sparkle-edit-session', session);
-    return session;
-  } catch {return crypto.randomUUID();}
-}
+import {editSession} from './edit-session.js';
 
 export const state = {
   frame: null, config: null, images: [], draft: null, prepared: null,
@@ -15,8 +6,10 @@ export const state = {
   busy: false, processing: false, processor: null, generation: 0,
   previewUrl: null, beforeUrl: null, galleryUrls: [], job: null, pollTimer: null,
   view: 'editor', previewMode: 'display', lock: null, imports: [], importing: false,
-  session: editSession(), installPrompt: null,
+  session: null, installPrompt: null,
 };
+
+export const sessionReady = editSession().then(session => {state.session = session;});
 
 export function rememberFrame(frame) {
   state.frame = frame;

@@ -216,9 +216,98 @@ test('a stalled reconnect never blocks editing a restored draft', async ({page})
 
 test('edit ownership survives reload but is not shared with a second app tab', async ({page,context}) => {
   await mockFrame(page); await page.goto('/frame/');
-  const session = await page.evaluate(async () => (await import('/frame/core/state.js')).state.session);
-  await page.reload(); expect(await page.evaluate(async () => (await import('/frame/core/state.js')).state.session)).toBe(session);
+  const session = await editSessionId(page);
+  await page.reload(); expect(await editSessionId(page)).toBe(session);
   const other = await context.newPage(); await mockFrame(other); await other.goto('/frame/');
-  expect(await other.evaluate(async () => (await import('/frame/core/state.js')).state.session)).not.toBe(session);
+  expect(await editSessionId(other)).not.toBe(session);
   await other.close();
+});
+
+async function editSessionId(page) {
+  return page.evaluate(async () => {
+    const {state, sessionReady} = await import('/frame/core/state.js');
+    await sessionReady;
+    return state.session;
+  });
+}
+
+test('an opener window cannot inherit edit access or release the original window’s lock', async ({page, context}) => {
+  let source; let owner;
+  await context.route(`${base}/**`, async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.startsWith('/images/')) return route.fulfill({contentType:'image/png', body:source});
+    let result = {success:true};
+    if (path === '/api/display-config') result = config;
+    if (path === '/api/images') result = [{filename:'saved.png', thumb_ready:false}];
+    if (path === '/api/lock-image') {
+      const {session_id, refresh_only} = route.request().postDataJSON();
+      if (!owner && !refresh_only) owner = session_id;
+      result = {locked:owner === session_id};
+    }
+    if (path === '/api/unlock-image' && route.request().postDataJSON().session_id === owner) owner = null;
+    await route.fulfill({json:result});
+  });
+  await page.goto('/frame/'); source = (await fixturePhoto(page)).buffer;
+  await page.locator('#connect').click(); await expect(page.locator('#frame-detail')).toContainText('Connected');
+  await openSaved(page); await expect(page.locator('#save')).toBeEnabled();
+  const firstSession = await editSessionId(page);
+  const popupPromise = page.waitForEvent('popup');
+  await page.evaluate(() => window.open('/frame/'));
+  const popup = await popupPromise;
+  await expect(popup.locator('#lock-status')).toContainText('Read only');
+  expect(await editSessionId(popup)).not.toBe(firstSession);
+  await expect(popup.locator('#save')).toBeDisabled();
+  await expect(popup.locator('#delete')).toBeDisabled();
+  // Retrying drops the read-only claim without releasing the owner's lock.
+  await popup.locator('#retry-edit').click();
+  await expect(popup.locator('#retry-edit')).toBeEnabled();
+  expect(owner).toBe(firstSession);
+  await page.reload(); await expect(page.locator('#save')).toBeEnabled();
+  expect(await editSessionId(page)).toBe(firstSession);
+  await page.locator('#save').click(); await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+  await popup.close();
+});
+
+for (const unavailable of ['missing', 'denied']) {
+  test(`session identity stays separate when browser locks are ${unavailable}`, async ({page}) => {
+    await page.addInitScript(mode => {
+      Object.defineProperty(navigator, 'locks', {value:mode === 'missing' ? undefined : {request:() => Promise.reject(new Error('Denied'))}});
+    }, unavailable);
+    await page.goto('/frame/'); const firstSession = await editSessionId(page);
+    const popupPromise = page.waitForEvent('popup');
+    await page.evaluate(() => window.open('/frame/'));
+    const popup = await popupPromise;
+    expect(await editSessionId(popup)).not.toBe(firstSession);
+    await popup.close();
+    await page.reload(); expect(await editSessionId(page)).not.toBe(firstSession);
+  });
+}
+
+test('switching frames blocks old gallery selection and saves only the newly selected frame’s photo', async ({page}) => {
+  const nextBase = 'http://second-frame.local:8000';
+  const frame = await libraryFrame(page); const source = (await fixturePhoto(page)).buffer;
+  const writes = []; let releaseConfig;
+  const configPending = new Promise(resolve => {releaseConfig = resolve;});
+  await page.route(`${nextBase}/**`, async route => {
+    const request = route.request(); const path = new URL(request.url()).pathname;
+    if (request.method() === 'POST') writes.push(path);
+    if (path === '/api/display-config') await configPending;
+    if (path.startsWith('/images/')) return route.fulfill({contentType:'image/png', body:source});
+    await route.fulfill({json:path === '/api/display-config' ? config : path === '/api/images'
+      ? [{filename:'saved.png', thumb_ready:false, brightness:60}] : path === '/api/lock-image' ? {locked:true} : {success:true}});
+  });
+  await page.locator('#gallery-tab').click(); await page.locator('#connection > summary').click();
+  await page.locator('#address').fill(nextBase); await page.locator('#connect').click();
+  await expect(page.locator('#frame-detail')).toHaveText('Connecting…');
+  const oldPhoto = page.getByRole('button', {name:'saved.png', exact:true});
+  await expect(oldPhoto).toBeDisabled();
+  // The handler also guards a click queued just before the control was disabled.
+  await oldPhoto.dispatchEvent('click');
+  releaseConfig(); await expect(page.locator('#frame-name')).toHaveText('second-frame');
+  expect(frame.requests.some(request => request.path === '/images/saved.png')).toBe(false);
+  expect(await page.locator('#draft-name').textContent()).not.toBe('saved.png');
+  await openSaved(page); await expect(page.locator('#brightness')).toHaveValue('60');
+  await page.locator('#save').click(); await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+  expect(writes).toContain('/api/upload-dithered');
+  expect(frame.requests.some(request => request.path.startsWith('/api/upload-'))).toBe(false);
 });

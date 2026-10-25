@@ -16,11 +16,14 @@ export function activity(title, detail = '', error = false, progress = 'none') {
 
 export function controls() {
   const working = state.busy || Boolean(state.job);
-  el.connect.disabled = working || state.connecting;
+  el.connect.disabled = !state.session || working || state.connecting;
   el.address.disabled = working || state.connecting;
   el.forget.disabled = working || state.connecting;
   el['pick-photo'].disabled = working || !state.config;
   el['refresh-gallery'].disabled = working || !state.connected;
+  for (const button of el.gallery.querySelectorAll('button')) {
+    button.disabled = working || state.connecting || !state.connected;
+  }
   const existing = state.draft?.sourceFrame === state.frame?.base && state.draft?.sourceFilename;
   const readOnly = Boolean(existing && state.connected && !state.lock?.owned);
   for (const id of settingIds) el[id].disabled = working || readOnly;
@@ -64,7 +67,8 @@ export async function renderGallery(select) {
       const picture = document.createElement('img');
       picture.alt = ''; picture.loading = 'lazy';
       const label = document.createElement('span'); label.textContent = image.filename;
-      button.append(picture, label); button.addEventListener('click', () => select(image));
+      button.disabled = state.busy || Boolean(state.job) || state.connecting || !state.connected;
+      button.append(picture, label); button.addEventListener('click', () => select(image, base));
       el.gallery.append(button);
       try {
         if (!image.thumb_ready) return;

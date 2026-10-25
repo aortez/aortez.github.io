@@ -162,3 +162,33 @@ published-site test. Evidence: [Pixel results](../docs/validation/frame-parity-p
 Reconnect requests run independently of editing. This matters on Android, where
 `navigator.onLine` can remain true even with WiFi and mobile data disabled. A slow
 or failed reconnect must never disable local adjustments.
+
+Gallery selection is disabled during a frame switch, and each gallery action is
+bound to the frame that supplied it. Editing identities are reserved per document
+with Web Locks: a reload can reuse its session, while duplicated/opener windows
+receive separate identities. If browser locking is unavailable, each new document
+uses a fresh identity; the old device lock may need up to 30 seconds to expire.
+
+### Try an unpublished PR on Android
+
+Build this checkout and serve it locally, then forward the preview port over USB:
+
+```bash
+npm run build
+npm run preview -- --host 127.0.0.1 --port 4175 --strictPort
+# In another terminal, with one authorized Android device connected:
+adb reverse tcp:4175 tcp:4175
+adb shell am start -a android.intent.action.VIEW -d http://localhost:4175/frame/ -p com.android.chrome
+```
+
+Use Inky Soup's `inky-cli preview start --origin http://localhost:4175` to allow
+this origin; pass `--server-binary /tmp/inky-preview-server` when testing a copied
+device PR binary too. Check with `inky-cli browser-check --origin http://localhost:4175`.
+Connect the phone to the Pi's WiFi address, and allow Chrome's local-network
+permission. Keep the USB cable connected and the local preview process running.
+The localhost preview has its own draft/storage, separate from the public app.
+It uses the real frame library, so saves and deletions affect real photos.
+
+After testing, run `inky-cli preview stop`, `adb reverse --remove tcp:4175`, and
+stop the preview process. Close preview windows before testing another build so
+its service worker can activate the update. Neither PR has to be merged to test.
