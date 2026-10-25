@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => ({
       input: {
         main: './index.html',
         go: './go.html',
-        setup: './setup/index.html'
+        setup: './setup/index.html',
+        wifi: './wifi/index.html'
       }
     }
   },
