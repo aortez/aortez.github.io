@@ -1,0 +1,127 @@
+{
+  "saved": {
+    "brightness": 20,
+    "cache_version": 2,
+    "contrast": 10,
+    "dither_algorithm": "atkinson",
+    "filename": "f77a2594-274e-4d63-9b28-4feae3d6c113.jpg",
+    "filter": "lanczos",
+    "fit_mode": "cover",
+    "path": "images/f77a2594-274e-4d63-9b28-4feae3d6c113.jpg",
+    "saturation": 0.6,
+    "thumb_ready": true
+  },
+  "restored": {
+    "brightness": "20",
+    "contrast": "10",
+    "filter": "lanczos",
+    "dither": "atkinson",
+    "fit": "cover",
+    "saturation": "0.6"
+  },
+  "job": {
+    "id": 1,
+    "filename": "f77a2594-274e-4d63-9b28-4feae3d6c113.jpg",
+    "base": "http://192.168.1.109:8001",
+    "createdAt": 1792916006396
+  },
+  "errors": [],
+  "viewport": {
+    "width": 448,
+    "contentWidth": 448
+  },
+  "transport": "Unpublished production assets via localhost ADB reverse. Phone processing and actual direct WiFi device requests to isolated Pi test server; no API interception or mocks.",
+  "checks": [
+    "save without refresh",
+    "batch save without refresh",
+    "delete with confirmation",
+    "gallery metadata recovery",
+    "physical refresh completion",
+    "refresh status below action"
+  ],
+  "controllerResult": {
+    "created_at": 1792916006396,
+    "dithered_path": "/tmp/inky-parity-images/dithered/f77a2594-274e-4d63-9b28-4feae3d6c113.jpg.png",
+    "error_message": null,
+    "filename": "f77a2594-274e-4d63-9b28-4feae3d6c113.jpg",
+    "finished_at": 1792916048348,
+    "flash_twice": false,
+    "job_id": 1,
+    "started_at": 1792916006496,
+    "status": "Completed"
+  },
+  "finalSaveAndLayout": {
+    "status": "Photo saved.",
+    "progress": "1",
+    "brightness": "20",
+    "filter": "lanczos",
+    "dither": "atkinson",
+    "width": 448,
+    "contentWidth": 448
+  },
+  "target": "Original Pi Zero W, Inky 13.3-inch 2025; Pixel 9 Pro XL, Android 17 / Chrome 156",
+  "physicalPanelVisualInspection": false,
+  "offline": {
+    "origin": "http://localhost:4173",
+    "coldLaunch": true,
+    "initial": {
+      "url": "http://localhost:4173/frame/",
+      "title": "Sparkle Duck \u00b7 Your frame",
+      "standalone": true,
+      "ready": true,
+      "visible": true,
+      "viewportWidth": 448,
+      "contentWidth": 448,
+      "draft": "f77a2594-274e-4d63-9b28-4feae3d6c113.jpg",
+      "preview": [
+        1600,
+        1200
+      ],
+      "settings": {
+        "fit": "cover",
+        "saturation": "0.6",
+        "brightness": "20",
+        "contrast": "10",
+        "filter": "lanczos",
+        "dither": "atkinson"
+      },
+      "sendDisabled": true,
+      "fitDisabled": true,
+      "connection": "Connected \u00b7 1600 \u00d7 1200",
+      "serviceWorker": "http://localhost:4173/frame/sw.js"
+    },
+    "offlineReload": {
+      "url": "http://localhost:4173/frame/",
+      "title": "Sparkle Duck \u00b7 Your frame",
+      "standalone": true,
+      "ready": true,
+      "visible": true,
+      "viewportWidth": 448,
+      "contentWidth": 448,
+      "draft": "f77a2594-274e-4d63-9b28-4feae3d6c113.jpg",
+      "preview": [
+        1600,
+        1200
+      ],
+      "settings": {
+        "fit": "cover",
+        "saturation": "0.6",
+        "brightness": "20",
+        "contrast": "10",
+        "filter": "lanczos",
+        "dither": "atkinson"
+      },
+      "sendDisabled": true,
+      "fitDisabled": false,
+      "connection": "Connecting\u2026",
+      "serviceWorker": "http://localhost:4173/frame/sw.js"
+    },
+    "offlineMethod": {
+      "wifiDisabled": true,
+      "mobileDataDisabled": true,
+      "localhostForwardRemoved": true,
+      "coldLaunch": true
+    },
+    "screenshot": "/tmp/frame-parity-offline.png"
+  }
+}

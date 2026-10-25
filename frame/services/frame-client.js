@@ -1,3 +1,5 @@
+import {imageSettings} from '../core/settings.js';
+
 export function normalizeAddress(input) {
   const raw = String(input || '').trim();
   const url = new URL(raw.includes('://') ? raw : `http://${raw}`);
@@ -27,9 +29,11 @@ export async function request(base, path, options = {}) {
     throw new Error('Cannot reach the frame. Use the same WiFi, allow local-network access, then reconnect.');
   }
   if (!response.ok) {
-    const error = new Error(response.status === 404
+    let detail;
+    try { detail = (await response.json()).message; } catch { /* Older routes return an HTML error. */ }
+    const error = new Error(detail || (response.status === 404
       ? 'This frame needs the app API update, or the previous job is no longer available.'
-      : `The frame rejected the request (${response.status}).`);
+      : `The frame rejected the request (${response.status}).`));
     error.status = response.status;
     throw error;
   }
@@ -57,13 +61,15 @@ function form(values) {
   return data;
 }
 
-export async function sendPhoto({base, draft, prepared, session, onProgress}) {
+export async function savePhoto({base, draft, prepared, session, onProgress = () => {}, onStored = () => {}, display = false, keepLock = false}) {
   // A unique name prevents replacement of an existing original if an upload is retried.
-  const extension = draft.blob.type === 'image/png' ? 'png' : draft.blob.type === 'image/webp' ? 'webp' : 'jpg';
+  const extension = {'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif'}[draft.blob.type] || 'jpg';
   const existing = draft.sourceFrame === base && draft.sourceFilename;
   const filename = existing || `${crypto.randomUUID()}.${extension}`;
-  const metadata = {filename, session_id: session, filter: 'bicubic', fit_mode: draft.fit,
-    saturation: draft.saturation, brightness: 0, contrast: 0, dither_algorithm: 'floyd-steinberg'};
+  const settings = imageSettings(draft);
+  const metadata = {filename, session_id: session, filter: settings.filter, fit_mode: settings.fit,
+    saturation: settings.saturation, brightness: settings.brightness, contrast: settings.contrast, dither_algorithm: settings.dither};
+  let owned = false;
   let lockTimer;
   let lockError;
   let refreshing = false;
@@ -75,9 +81,11 @@ export async function sendPhoto({base, draft, prepared, session, onProgress}) {
       original.append('submission.file', draft.blob, filename);
       const uploaded = await request(base, '/upload', {method: 'POST', body: original});
       if (uploaded.filename !== filename) throw new Error('The frame returned an unexpected image name.');
+      await onStored({base, filename});
     }
-    const lock = await jsonPost(base, '/api/lock-image', {filename, session_id: session});
+    const lock = await jsonPost(base, '/api/lock-image', {filename, session_id: session, refresh_only: Boolean(keepLock && existing)});
     if (!lock.locked) throw new Error('This photo is being edited elsewhere.');
+    owned = true;
     lockTimer = setInterval(async () => {
       if (refreshing) return;
       refreshing = true;
@@ -98,6 +106,7 @@ export async function sendPhoto({base, draft, prepared, session, onProgress}) {
       await request(base, path, {method: 'POST', body});
     }
     if (lockError) throw lockError;
+    if (!display) return {filename, base};
     onProgress('Starting the display refresh…');
     const body = form({'submission.filename': filename, 'submission.image_file_path': `images/dithered/${filename}.png`,
       'submission.session_id': session, 'submission.flash_twice': false});
@@ -105,8 +114,16 @@ export async function sendPhoto({base, draft, prepared, session, onProgress}) {
     return {id: job.job_id, filename, base};
   } finally {
     clearInterval(lockTimer);
-    await unlock().catch(() => {});
+    if (owned && !keepLock) await unlock().catch(() => {});
   }
+}
+
+export async function sendPhoto(options) {
+  return savePhoto({...options, display: true});
+}
+
+export async function deletePhoto(base, filename, session) {
+  return jsonPost(base, '/api/delete-image', {filename, session_id: session});
 }
 
 export async function getPhoto(base, filename, thumbnail = false) {

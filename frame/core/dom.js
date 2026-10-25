@@ -3,5 +3,11 @@ export const elements = Object.fromEntries([
   'frame-detail', 'gallery', 'gallery-empty', 'refresh-gallery', 'pick-photo', 'photo',
   'editor', 'preview', 'preview-empty', 'preview-status', 'dimensions', 'fit', 'saturation',
   'send', 'activity', 'activity-title', 'activity-detail', 'retry-status', 'install', 'draft-name',
+  'filter', 'dither', 'brightness', 'contrast', 'saturation-value', 'brightness-value', 'contrast-value',
+  'preview-tabs', 'preview-before', 'preview-display', 'photo-stage', 'photo-actions', 'library-actions',
+  'save', 'delete', 'delete-dialog', 'delete-name', 'confirm-delete', 'cancel-delete',
+  'send-panel', 'send-label', 'send-progress', 'job-details', 'job-info',
+  'lock-notice', 'lock-status', 'retry-edit', 'add-photos', 'import-photos', 'imports',
+  'import-summary', 'import-list', 'import-progress', 'retry-imports', 'gallery-status',
   'forget', 'setup-link', 'choose-tab', 'gallery-tab', 'gallery-panel', 'editor-panel',
 ].map(id => [id, document.getElementById(id)]));

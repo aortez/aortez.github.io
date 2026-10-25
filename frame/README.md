@@ -2,7 +2,7 @@
 
 The `/frame/` entry is a phone-oriented PWA built with the existing Vite and vanilla
 JavaScript stack. Install it from Android Chrome, connect to the frame’s local
-address, choose a photo, adjust fit and saturation, and send it to the display.
+address, choose a photo, adjust fit, brightness, contrast, color matching, resize filter, and dithering, then save or send it to the display.
 It requires the app API update from the Inky Soup project.
 
 ## Data flow
@@ -117,3 +117,48 @@ Device-side diagnostics live in the Inky Soup Rust CLI:
 The first command validates the device’s CORS read/preflight responses. Setup
 controls use key-authenticated SSH and never accept WiFi credentials. After initial
 publication, verify the real HTTPS installation as well as the local preview.
+
+## Photo controls and library management
+
+The editor preserves all saved settings when reopening a photo. The preview toggle
+switches between the adjusted photo before dithering and the exact display-color
+output. Brightness and contrast are applied after resizing; the stored cache stays
+unadjusted, matching the device interface’s pipeline. Filter and dithering choices
+are under **More image controls**. Draft recovery includes every setting.
+
+**Save to frame** stores the original and derived PNGs without scheduling a refresh.
+**Display this photo** saves the same data and submits one refresh. Status and an
+indeterminate progress bar sit directly below that button; the bar completes only
+when the device reports completion. Refresh details expose the job, filename,
+state, and elapsed time. There is no “flash twice” control.
+
+Select multiple photos, drop multiple files onto the preview, or use **Add photos**
+in the gallery to save a batch without changing the display. Photos are processed
+and saved sequentially; individual failures can be retried. A confirmed original
+upload is reused on retry. Batch queues stay in memory, while the editor draft is
+persisted. GIF input uses its decoded still frame.
+
+Opening a saved photo acquires an editing lock and renews it while the page is
+active. A denied or lost lock exposes read-only status and an explicit retry. The
+server checks edit ownership for saved settings, display submissions, and deletion. Locks expire if the app is closed/suspended.
+Deletion asks for confirmation and uses `/api/delete-image`, which requires the
+photo-management server update. It refuses photos queued or refreshing and removes
+the original, derived files, and metadata. The current physical display does not
+change; the phone retains its draft. The corresponding device diagnostic is
+`inky-cli delete FILENAME`.
+
+
+Validated on 2026-10-25 (Pacific) with the original Pi Zero W, 13.3-inch 2025
+panel, and Pixel 9 Pro XL (Android 17 / Chrome 156). The unpublished production
+build was served through localhost ADB reverse; device API and photo traffic went
+directly over WiFi to a temporary Pi server using disposable images. Save-only,
+batch uploads, deletion, metadata recovery, and one completed physical display
+job passed, with independent CLI checks. The installed preview also reopened a
+fresh document with WiFi/mobile data off and the ADB site forward removed: all
+six adjustments and the draft survived, editing stayed enabled, and sending was
+disabled. Network settings were restored. This is preview validation, not a
+published-site test. Evidence: [Pixel results](../docs/validation/frame-parity-pixel9.json).
+
+Reconnect requests run independently of editing. This matters on Android, where
+`navigator.onLine` can remain true even with WiFi and mobile data disabled. A slow
+or failed reconnect must never disable local adjustments.
