@@ -26,6 +26,45 @@ The frame API permits the exact hosted origin and has no local-client authentica
 The current browser baseline is Android Chrome; other browser/platform combinations
 are not validated for the hosted HTTPS-to-local-HTTP connection.
 
+## Mounting orientation
+
+Settings → Mounting orientation selects how far the frame has been turned
+clockwise, viewed from the front: 0°, 90°, 180°, or 270°. Requires the matching
+[Inky Soup orientation update](https://github.com/aortez/inky-soup/pull/5) and its
+display script; older servers keep working but cannot change orientation here.
+The preview stays upright and uses the frame's logical dimensions (1200 × 1600
+for a portrait 13.3-inch frame). The server counter-rotates pixels for the panel.
+
+Changing orientation saves it on the Pi and rebuilds saved photos sequentially
+on the client with their existing adjustments. Rebuilding takes edit ownership
+before reading each photo's latest settings. A photo busy elsewhere can be retried.
+Progress appears in On frame; failed work is retryable and reconnecting resumes
+missing assets. Keep the app open while rebuilding. Unsaved draft adjustments
+remain local, and no display job is submitted automatically.
+
+If a remembered display job delays rebuilding on reconnect, rebuilding resumes
+when that job finishes, fails, expires, or is identified as belonging to an old
+server lifetime. A running job or a temporary status-request failure still blocks
+rebuilding; recovery never submits another display refresh.
+
+Prepared pixels carry the revision of the configuration that produced them, so
+an old tab cannot upload or flash against a new orientation. Queued display jobs
+keep their original pixels and orientation. The Rust CLI can read/set the same
+setting with `inky-cli orientation [0|90|180|270]`; reconnect this app after a CLI
+change to update dimensions and rebuild the gallery. Offline drafts retain their
+last known logical dimensions until reconnecting.
+
+![Orientation settings](../docs/screenshots/frame-orientation-settings.png)
+
+Validated on 2026-10-25 with the original Pi Zero W and 13.3-inch 2025 panel:
+desktop Chromium at a phone viewport used the real USB API to save orientation,
+rebuild at all four angles, and complete a 90° portrait refresh. The user confirmed
+the physical chart's direction. CLI changes were picked up on reconnect; settings
+survived server restart, and a prepared portrait CLI upload passed. This used an
+isolated temporary library, which was stopped afterward; the normal service and
+its 15 photos were preserved. This orientation build has not yet been tested on
+Android hardware. [Validation results](../docs/validation/frame-orientation-pi-zero-w.json).
+
 ## Offline and updates
 
 `tools/frame-pwa.js` generates a content-versioned service worker from the built

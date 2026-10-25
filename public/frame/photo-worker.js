@@ -24,7 +24,7 @@ self.onmessage = async ({data: {blob, config, fit, saturation, filter = 'bicubic
     const adjusted = await canvas.convertToBlob({type: 'image/png'});
     const dithered = ditherForEInk(resized, saturation, dither, config.model);
     context.putImageData(dithered, 0, 0);
-    self.postMessage({cache, thumb, adjusted, dithered: await canvas.convertToBlob({type: 'image/png'}), width: config.width, height: config.height});
+    self.postMessage({cache, thumb, adjusted, dithered: await canvas.convertToBlob({type: 'image/png'}), width: config.width, height: config.height, rotation_revision: config.rotation_revision ?? 0});
   } catch (error) { self.postMessage({error: error.message}); }
   finally { bitmap?.close(); }
 };

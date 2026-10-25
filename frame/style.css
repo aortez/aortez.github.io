@@ -399,7 +399,7 @@ h1 {
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--line);
   padding: 8px 20px calc(8px + env(safe-area-inset-bottom));
-  gap: 24px;
+  gap: 8px;
   z-index: 2;
 }
 
@@ -410,7 +410,9 @@ h1 {
   color: #7d8778;
   font-size: 12px;
   display: flex;
-  gap: 10px;
+  gap: 7px;
+  padding-inline: 8px;
+  white-space: nowrap;
   align-items: center;
   justify-content: center;
 }
@@ -569,3 +571,13 @@ dialog p { font-size: 14px; overflow-wrap: anywhere; }
 #send-panel[aria-busy=true] #send { opacity: 1; background: #456a56; }
 @keyframes refresh-busy { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
 @media(prefers-reduced-motion:reduce) { .refresh-progress span { animation: none; } }
+
+.orientation-card { padding:24px; background:var(--paper, #fffdf8); border:1px solid #dce1d4; border-radius:24px; }
+.orientation-card h2 { margin-top:0; }
+.orientation-card p { line-height:1.5; }
+.orientation-card select, .orientation-card .primary { width:100%; }
+.orientation-card select { margin-top:8px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--paper); color:inherit; }
+.orientation-illustration { height:150px; display:grid; place-items:center; }
+#orientation-diagram { width:112px; height:84px; border:6px solid #254f3e; border-radius:6px; display:grid; place-items:center; transform:rotate(var(--mount-rotation, 0deg)); transition:transform .2s; }
+#orientation-diagram span { font-size:13px; font-weight:700; }
+@media (prefers-reduced-motion: reduce) { #orientation-diagram { transition:none; } }

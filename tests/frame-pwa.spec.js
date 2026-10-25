@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 test('installed shell and photo draft open offline without caching frame requests',async({page,context})=>{
- await page.route('http://inky-soup.local:8000/**',route=>route.fulfill({json:route.request().url().endsWith('/api/images')?[]:{width:1600,height:1200,thumb_width:150,thumb_height:112,model:'impression-13.3-2025'}}));
+ await page.route('http://inky-soup.local:8000/**',route=>route.fulfill({json:route.request().url().endsWith('/api/images')?[]:{width:1200,height:1600,physical_width:1600,physical_height:1200,rotation_degrees:270,rotation_revision:8,thumb_width:112,thumb_height:150,model:'impression-13.3-2025'}}));
  await page.goto('/frame/');await page.evaluate(()=>navigator.serviceWorker.ready);
  await page.locator('#connect').click();await expect(page.locator('#pick-photo')).toBeEnabled();
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=20;c.height=15;c.getContext('2d').fillRect(0,0,20,15);return c.toDataURL().split(',')[1];});
@@ -14,6 +14,8 @@ test('installed shell and photo draft open offline without caching frame request
  await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});
  await expect(page.locator('#draft-name')).toHaveText('offline.png');
  await expect(page.locator('#preview')).toBeVisible();
+ await expect(page.locator('#preview-status')).toContainText('Ready.');
+ expect(await page.locator('#preview').evaluate(img => [img.naturalWidth,img.naturalHeight])).toEqual([1200,1600]);
  await expect(page.locator('#connection-status')).toContainText('offline');
  await expect(page.locator('#send')).toBeDisabled();
  await expect(page.locator('#fit')).toBeEnabled();
