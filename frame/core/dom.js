@@ -12,4 +12,5 @@ export const elements = Object.fromEntries([
   'forget', 'setup-link', 'choose-tab', 'gallery-tab', 'gallery-panel', 'editor-panel',
   'settings-tab', 'settings-panel', 'orientation', 'save-orientation', 'orientation-status',
   'orientation-size', 'orientation-diagram', 'import-heading',
+  'app-update', 'app-update-detail', 'reload-app',
 ].map(id => [id, document.getElementById(id)]));

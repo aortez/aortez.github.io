@@ -3,6 +3,20 @@ const FILES = __FILES__;
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)));
 });
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'APPLY_APP_UPDATE' || !event.source || !event.ports[0]) return;
+  event.waitUntil((async () => {
+    const windows = (await self.clients.matchAll({type: 'window', includeUncontrolled: true}))
+      .filter(client => client.url.startsWith(self.registration.scope));
+    // Switching versions affects the whole scope. Another window may be saving
+    // a photo or using an older app without the update UI, so never interrupt it.
+    if (windows.length !== 1 || windows[0].id !== event.source.id) {
+      event.ports[0].postMessage({error: 'Close other frame app tabs or windows, then try Reload again.'});
+      return;
+    }
+    await self.skipWaiting();
+  })());
+});
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     for (const name of await caches.keys()) if (name.startsWith('frame-app-') && name !== CACHE) await caches.delete(name);

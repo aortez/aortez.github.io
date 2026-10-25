@@ -2,6 +2,7 @@ import {elements as el} from '../core/dom.js';
 import {state} from '../core/state.js';
 import {settingIds} from '../core/settings.js';
 import {getPhoto} from '../services/frame-client.js';
+import {updateBlockReason} from '../core/app-update.js';
 
 export function activity(title, detail = '', error = false, progress = 'none') {
   el.activity.hidden = false;
@@ -15,6 +16,12 @@ export function activity(title, detail = '', error = false, progress = 'none') {
 }
 
 export function controls() {
+  el['app-update'].hidden = !state.updateWorker;
+  const updateBlocked = updateBlockReason(state);
+  el['reload-app'].disabled = state.updating || Boolean(updateBlocked);
+  el['reload-app'].textContent = state.updating ? 'Reloading…' : 'Reload';
+  el['app-update-detail'].textContent = state.updating ? 'Saving your draft and opening the new version…'
+    : state.updateError || updateBlocked || 'A new version is ready. Reload when you’re ready; your draft will be kept.';
   const working = state.busy || Boolean(state.job);
   el.connect.disabled = !state.session || working || state.connecting;
   el.address.disabled = working || state.connecting;

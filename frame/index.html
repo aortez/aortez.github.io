@@ -16,6 +16,10 @@
       <a class="brand" href="/frame/" aria-label="Sparkle Duck home"><img src="/frame/icon.svg" alt="" width="38" height="38"><span>Sparkle Duck<small>A little room for your photos.</small></span></a>
       <button id="install" class="quiet" hidden>Install app</button>
     </header>
+    <section id="app-update" class="app-update" hidden aria-label="App update">
+      <div role="status"><strong>Update available</strong><p id="app-update-detail"></p></div>
+      <button id="reload-app" type="button">Reload</button>
+    </section>
     <main>
       <details id="connection" class="connection" open>
         <summary><span class="connection-light" aria-hidden="true"></span><span><strong id="frame-name">Your frame</strong><small id="frame-detail">Connect once. Keep it close.</small></span><span class="chevron" aria-hidden="true">⌄</span></summary>
