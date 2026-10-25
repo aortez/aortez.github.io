@@ -42,6 +42,11 @@ Progress appears in On frame; failed work is retryable and reconnecting resumes
 missing assets. Keep the app open while rebuilding. Unsaved draft adjustments
 remain local, and no display job is submitted automatically.
 
+If a remembered display job delays rebuilding on reconnect, rebuilding resumes
+when that job finishes, fails, expires, or is identified as belonging to an old
+server lifetime. A running job or a temporary status-request failure still blocks
+rebuilding; recovery never submits another display refresh.
+
 Prepared pixels carry the revision of the configuration that produced them, so
 an old tab cannot upload or flash against a new orientation. Queued display jobs
 keep their original pixels and orientation. The Rust CLI can read/set the same

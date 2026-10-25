@@ -117,8 +117,9 @@ async function openSaved(page) {
 
 const multipartField = (body, name) => new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]*)`).exec(body)?.[1];
 
-async function orientationFrame(page, {rotation = 0, pending = false, locked = false, failThumb = false} = {}) {
+async function orientationFrame(page, {rotation = 0, pending = false, locked = false, failThumb = false, rememberedJob = null} = {}) {
   let revision = rotation ? 1 : 0;
+  let jobStatus = rememberedJob;
   let source;
   const saved = {filename:'saved.png',thumb_ready:!pending,needs_processing:pending,
     fit_mode:'cover',filter:'lanczos',brightness:25,contrast:-20,saturation:0.7,dither_algorithm:'atkinson'};
@@ -135,6 +136,12 @@ async function orientationFrame(page, {rotation = 0, pending = false, locked = f
     else if (path === '/api/images') result = [saved];
     else if (path.startsWith('/images/')) return route.fulfill({contentType:'image/png',body:source});
     else if (path === '/api/lock-image') result = {locked:!locked};
+    else if (path === '/api/flash/status/1') {
+      if (jobStatus === 'Expired') return route.fulfill({status:404,json:{message:'Job expired'}});
+      if (jobStatus === 'Unavailable') return route.fulfill({status:503,json:{message:'Temporarily unavailable'}});
+      result = {job_id:1,filename:'saved.png',created_at:jobStatus === 'Restarted' ? 200 : 100,
+        status:jobStatus === 'Restarted' ? 'Completed' : jobStatus};
+    }
     else if (path === '/api/settings/display-rotation') {
       const request = req.postDataJSON();
       if (request.expected_revision !== revision) return route.fulfill({status:409,json:{message:'Orientation changed in another app.'}});
@@ -150,8 +157,45 @@ async function orientationFrame(page, {rotation = 0, pending = false, locked = f
     return route.fulfill({json:result});
   });
   await page.goto('/frame/'); source = (await fixturePhoto(page)).buffer;
-  await page.locator('#connect').click(); await expect(page.locator('#frame-detail')).toContainText('Connected');
-  return {requests, saved, unlock:() => {locked=false;}, change:angle => {rotation=angle; revision++; saved.needs_processing=true; saved.thumb_ready=false;}};
+  if (rememberedJob) {
+    await page.evaluate(({base,config}) => {
+      localStorage.setItem('sparkle-frame',JSON.stringify({base,name:'inky-soup',config}));
+      localStorage.setItem('sparkle-job',JSON.stringify({base,id:1,filename:'saved.png',createdAt:100}));
+    }, {base,config:display()});
+    await page.reload();
+  } else await page.locator('#connect').click();
+  await expect(page.locator('#frame-detail')).toContainText('Connected');
+  return {requests, saved, unlock:() => {locked=false;}, finishJob:() => {jobStatus='Completed';},
+    change:angle => {rotation=angle; revision++; saved.needs_processing=true; saved.thumb_ready=false;}};
+}
+
+for (const rememberedJob of ['Completed','Failed','Expired','Restarted']) {
+  test(`reconnect rebuilds pending photos after a remembered job is ${rememberedJob.toLowerCase()}`, async ({page}) => {
+    const frame = await orientationFrame(page,{rotation:90,pending:true,rememberedJob});
+    await expect(page.locator('#import-summary')).toContainText('1 of 1 saved',{timeout:30000});
+    await expect(page.locator('#connect')).toBeEnabled();
+    expect(await page.evaluate(() => localStorage.getItem('sparkle-job'))).toBeNull();
+    expect(frame.requests.filter(r=>r.path.startsWith('/api/upload-')).map(r=>r.path))
+      .toEqual(['/api/upload-cache','/api/upload-thumb','/api/upload-dithered']);
+    expect(frame.requests.filter(r=>r.path === '/flash' || r.path === '/upload')).toHaveLength(0);
+    expect(frame.saved.needs_processing).toBe(false);
+  });
+}
+
+for (const rememberedJob of ['Flashing','Unavailable']) {
+  test(`rebuilding waits while a remembered job is ${rememberedJob.toLowerCase()}`, async ({page}) => {
+    const frame = await orientationFrame(page,{rotation:90,pending:true,rememberedJob});
+    await expect(page.locator('#activity-title')).toHaveText(rememberedJob === 'Flashing' ? 'Refreshing your frame…' : 'Refresh status unavailable');
+    await expect(page.locator('#imports')).toBeHidden();
+    expect(frame.requests.filter(r=>r.path.startsWith('/api/upload-'))).toHaveLength(0);
+    expect(await page.evaluate(() => localStorage.getItem('sparkle-job'))).not.toBeNull();
+    frame.finishJob();
+    if (rememberedJob === 'Unavailable') await page.locator('#retry-status').click();
+    await expect(page.locator('#import-summary')).toContainText('1 of 1 saved',{timeout:30000});
+    await expect(page.locator('#connect')).toBeEnabled();
+    expect(frame.requests.filter(r=>r.path === '/api/upload-dithered')).toHaveLength(1);
+    expect(frame.requests.filter(r=>r.path === '/flash' || r.path === '/upload')).toHaveLength(0);
+  });
 }
 
 test('four mount positions rebuild saved images with their adjustments and keep the current draft upright', async ({page}) => {

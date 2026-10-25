@@ -295,6 +295,16 @@ async function chooseFiles(files) {
   state.busy = false; controls();
 }
 
+async function finishJob(job) {
+  if (state.job !== job) return;
+  rememberJob(null); controls();
+  if (!state.connected || state.frame?.base !== job.base) return;
+  try {
+    await refreshGallery();
+    if (state.frame?.base === job.base) await regenerateGallery();
+  } catch (error) {el['gallery-status'].textContent = error.message;}
+}
+
 async function pollJob() {
   clearTimeout(state.pollTimer);
   const job = state.job;
@@ -312,12 +322,12 @@ async function pollJob() {
     el['job-info'].textContent = `Job ${job.id} · ${current.status}${elapsed === null ? '' : ` · ${elapsed}s since refresh started`} · ${current.filename}`;
     if (current.status === 'Completed') {
       activity('Your new view is ready.', 'The frame has finished refreshing.', false, 'complete');
-      rememberJob(null); controls(); refreshGallery().catch(() => {}); return;
+      await finishJob(job); return;
     }
     if (current.status === 'Failed') {
       const timeout = /Wait:.*Timed out/.test(current.error_message || '');
       activity('The display could not refresh.', timeout ? 'The panel did not respond. Check its connection before trying again.' : 'The frame reported a display error. Check the device before trying again.', true);
-      rememberJob(null); controls(); return;
+      await finishJob(job); return;
     }
     activity(current.status === 'Queued' ? 'Waiting for your frame…' : 'Refreshing your frame…', 'The screen may flash several times. Keep the frame powered on.', false, 'busy');
     state.pollTimer = setTimeout(pollJob, 2000);
@@ -325,7 +335,7 @@ async function pollJob() {
     activity('Refresh status unavailable', `${error.message} The job may still be running.`, true);
     el['retry-status'].hidden = false;
     // A lost response must never cause an automatic second flash.
-    if (error.status === 404 || error.message.includes('restarted')) rememberJob(null);
+    if (error.status === 404 || error.message.includes('restarted')) await finishJob(job);
     controls();
   }
 }
