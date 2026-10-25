@@ -124,6 +124,26 @@ keeps HTML and worker code on one release until a new worker takes over, and avo
 waiting for a network response when launching. Offline startup restores the frame
 configuration and permits editing while disconnected.
 
+When a complete new app version has downloaded, an **Update available** banner
+offers **Reload**. The app checks when launched, when brought back to the
+foreground or reconnected, and every five minutes while visible. It saves the
+latest draft before activating the update and reloading once. An already
+downloaded update also works offline. Failed downloads or draft saves leave the
+current app open, with a retryable message for a failed save.
+
+Reload waits while connecting, processing a preview, uploading/rebuilding photos,
+or tracking a display job. Unfinished batch uploads must be retried first. If
+another frame app tab or window is open on this device, the banner asks you to
+close that window before reloading, so its work is not interrupted. Updates never
+submit a display refresh. Older installed versions without this banner need one
+manual close/reopen after downloading this release; future versions use the
+button. There is no need to clear browser storage or reinstall the app.
+
+The built-PWA suite serves successive releases over real HTTP to exercise worker
+installation, activation, offline reload, draft preservation, busy states, other
+windows, and failed downloads/storage. It uses disposable browser data and mock
+frame APIs; it does not flash hardware.
+
 The old `/wifi/` QR address still reaches setup. Successful setup now opens the
 frame app by default, with a separate link to the original device interface.
 Publishing requires the tested Vite artifact; the site CI deploys `dist/` to Pages

@@ -122,6 +122,22 @@ h1,h2,p {
   padding: 16px;
 }
 
+.app-update {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid #c5d4ba;
+  border-radius: 16px;
+  background: #e5edde;
+  font-size: 14px;
+}
+
+.app-update div { flex: 1; min-width: 0; }
+.app-update p { margin: 5px 0 0; font-size: 12px; }
+.app-update button { flex-shrink: 0; }
+
 .connection>summary {
   list-style: none;
   display: flex;

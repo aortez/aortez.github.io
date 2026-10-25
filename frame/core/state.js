@@ -7,6 +7,7 @@ export const state = {
   previewUrl: null, beforeUrl: null, galleryUrls: [], job: null, pollTimer: null,
   view: 'editor', previewMode: 'display', lock: null, imports: [], importing: false,
   session: null, installPrompt: null,
+  updateWorker: null, updating: false, updateError: '',
 };
 
 export const sessionReady = editSession().then(session => {state.session = session;});

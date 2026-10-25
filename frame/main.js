@@ -5,6 +5,7 @@ import {normalizeAddress, request, validateConfig, savePhoto, deletePhoto, jsonP
 import {imageSettings, settingIds, validatePhoto} from './core/settings.js';
 import {processPhoto} from './services/processor.js';
 import {saveDraft, readDraft} from './services/drafts.js';
+import {watchAppUpdates, reloadApp} from './services/app-updates.js';
 import {activity, controls, showView, renderGallery, renderPreview, renderImports} from './ui/render.js';
 
 async function refreshGallery() {
@@ -341,6 +342,7 @@ async function pollJob() {
 }
 
 el['connect-form'].addEventListener('submit', event => {event.preventDefault(); connectFrame();});
+el['reload-app'].addEventListener('click', () => reloadApp(controls));
 el['pick-photo'].addEventListener('click', () => el.photo.click());
 el.photo.addEventListener('change', async () => {
   const files = [...el.photo.files]; el.photo.value = ''; await chooseFiles(files);
@@ -423,9 +425,6 @@ window.addEventListener('appinstalled', () => {el.install.hidden = true;});
 
 async function start() {
   await sessionReady;
-  if ('serviceWorker' in navigator && import.meta.env.PROD) {
-    navigator.serviceWorker.register('/frame/sw.js', {scope: '/frame/'}).catch(() => {});
-  }
   const handoff = new URLSearchParams(location.hash.slice(1)).get('device');
   const remembered = savedFrame();
   if (handoff) {
@@ -447,6 +446,7 @@ async function start() {
   }
   try {const draft = await readDraft(); if (draft?.blob) await useDraft(draft);} catch { /* Storage is optional. */ }
   syncOrientation(); controls();
+  if (import.meta.env.PROD) watchAppUpdates(controls).catch(() => {});
   if (!handoff && remembered?.base && navigator.onLine) connectFrame();
 }
 window.addEventListener('offline', () => {

@@ -7,7 +7,16 @@ async function database() {
   });
 }
 
-export async function saveDraft(draft) {
+let pendingSave = Promise.resolve();
+
+export function saveDraft(draft) {
+  // Keep rapid edits ordered; the final save before an update must finish last.
+  const saved = pendingSave.catch(() => {}).then(() => writeDraft(draft));
+  pendingSave = saved;
+  return saved;
+}
+
+async function writeDraft(draft) {
   const db = await database();
   try {
     await new Promise((resolve, reject) => {
