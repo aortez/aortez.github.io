@@ -1,10 +1,15 @@
+import {editSession} from './edit-session.js';
+
 export const state = {
   frame: null, config: null, images: [], draft: null, prepared: null,
-  connected: false, galleryGeneration: 0,
-  busy: false, processing: false, worker: null, generation: 0,
-  previewUrl: null, galleryUrls: [], job: null, pollTimer: null,
-  session: crypto.randomUUID(), installPrompt: null,
+  connected: false, connecting: false, galleryGeneration: 0,
+  busy: false, processing: false, processor: null, generation: 0,
+  previewUrl: null, beforeUrl: null, galleryUrls: [], job: null, pollTimer: null,
+  view: 'editor', previewMode: 'display', lock: null, imports: [], importing: false,
+  session: null, installPrompt: null,
 };
+
+export const sessionReady = editSession().then(session => {state.session = session;});
 
 export function rememberFrame(frame) {
   state.frame = frame;

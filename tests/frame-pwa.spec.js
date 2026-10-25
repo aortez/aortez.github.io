@@ -18,9 +18,12 @@ test('installed shell and photo draft open offline without caching frame request
  await expect(page.locator('#send')).toBeDisabled();
  await expect(page.locator('#fit')).toBeEnabled();
  await page.locator('#fit').selectOption('cover');
+ await page.locator('#brightness').fill('30'); await page.locator('#brightness').dispatchEvent('change');
+ await page.locator('#advanced summary').click(); await page.locator('#dither').selectOption('ordered');
  await expect(page.locator('#preview-status')).toContainText('Ready.');
  await page.reload({waitUntil:'domcontentloaded'});
  await expect(page.locator('#fit')).toHaveValue('cover');
+ await expect(page.locator('#brightness')).toHaveValue('30'); await expect(page.locator('#dither')).toHaveValue('ordered');
  const keys=await page.evaluate(async()=>{const output=[];for(const name of await caches.keys())for(const req of await(await caches.open(name)).keys())output.push(req.url);return output;});
  expect(keys.length).toBeGreaterThan(5);expect(keys.every(url=>url.startsWith('http://127.0.0.1:4173/'))).toBe(true);
 });

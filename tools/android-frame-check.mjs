@@ -30,17 +30,17 @@ class Cdp {
     return new Cdp(socket);
   }
 
-  send(method, params = {}) {
+  send(method, params = {}, timeoutMs = 15000) {
     const id = ++this.nextId;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {this.pending.delete(id); reject(new Error(`CDP timed out: ${method}`));}, 15000);
+      const timer = setTimeout(() => {this.pending.delete(id); reject(new Error(`CDP timed out: ${method}`));}, timeoutMs);
       this.pending.set(id, {resolve, reject, timer});
       this.socket.send(JSON.stringify({id, method, params}));
     });
   }
 
-  async evaluate(expression) {
-    const result = await this.send('Runtime.evaluate', {expression, awaitPromise: true, returnByValue: true});
+  async evaluate(expression, timeoutMs) {
+    const result = await this.send('Runtime.evaluate', {expression, awaitPromise: true, returnByValue: true}, timeoutMs);
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
     return result.result.value;
   }
@@ -56,11 +56,13 @@ const snapshot = `({
   url: location.href,
   title: document.title,
   standalone: matchMedia('(display-mode: standalone)').matches,
-  ready: !!document.querySelector('#connect'),
+  ready: document.readyState === 'complete' && !!document.querySelector('#connect'),
+  visible: document.visibilityState === 'visible',
   viewportWidth: innerWidth,
   contentWidth: document.documentElement.scrollWidth,
   draft: document.querySelector('#draft-name')?.textContent,
   preview: [document.querySelector('#preview')?.naturalWidth || 0, document.querySelector('#preview')?.naturalHeight || 0],
+  settings: Object.fromEntries(['fit', 'saturation', 'brightness', 'contrast', 'filter', 'dither'].filter(id => document.getElementById(id)).map(id => [id, document.getElementById(id).value])),
   sendDisabled: document.querySelector('#send')?.disabled,
   fitDisabled: document.querySelector('#fit')?.disabled,
   connection: document.querySelector('#frame-detail')?.textContent,
@@ -105,6 +107,7 @@ async function main() {
       if (!component.startsWith(`${values.package}/`) || !/^[a-zA-Z0-9_./]+$/.test(component)) throw new Error('Could not resolve the WebAPK launcher');
       adb('shell', 'am', 'force-stop', values.package);
       adb('shell', 'am', 'start', '-n', component);
+      await pause(500);
     }
     const findInstalledApp = async () => {
       for (let attempt = 0; attempt < 30; attempt++) {
@@ -113,8 +116,11 @@ async function main() {
         catch {await pause(500); continue;} // Chrome's debugging socket starts after the Android activity.
         for (const target of targets.filter(target => target.type === 'page' && target.url.startsWith(`${origin}/frame/`))) {
           const candidate = await Cdp.connect(target.webSocketDebuggerUrl);
-          const state = await candidate.evaluate(snapshot);
-          if (state.standalone && state.ready) return candidate;
+          try {
+            // Android can freeze the background browser tab while the WebAPK starts.
+            const state = await candidate.evaluate(snapshot, 1500);
+            if (state.standalone && state.ready && state.visible) {candidate.targetId = target.id; return candidate;}
+          } catch { /* Retry targets whose document is frozen or being replaced. */ }
           candidate.close();
         }
         await pause(500);
@@ -146,9 +152,13 @@ async function main() {
       if (mobileData === '1') {restore.push(() => adb('shell', 'svc', 'data', 'enable')); adb('shell', 'svc', 'data', 'disable');}
       await pause(1000);
       if (component) {
+        // A WebAPK force-stop can retain Chrome’s document. Close that target too
+        // so this checks an actual cache load, with the marker as an independent check.
+        await fetch(`http://127.0.0.1:9222/json/close/${client.targetId}`, {signal: AbortSignal.timeout(5000)});
         client.close(); client = null;
         adb('shell', 'am', 'force-stop', values.package);
         adb('shell', 'am', 'start', '-n', component);
+        await pause(500);
         client = await findInstalledApp();
       } else {
         await client.send('Page.reload');
@@ -161,7 +171,7 @@ async function main() {
         if (newDocument && recovered.ready && recovered.draft === initial.draft && recovered.sendDisabled && !recovered.fitDisabled && (!initial.preview[0] || recovered.preview[0])) break;
         await pause(500);
       }
-      if (!newDocument || !recovered.ready || recovered.draft !== initial.draft || !recovered.sendDisabled || recovered.fitDisabled || (initial.preview[0] && recovered.preview.join() !== initial.preview.join())) throw new Error('Offline draft recovery failed');
+      if (!newDocument || !recovered.ready || recovered.draft !== initial.draft || !recovered.sendDisabled || recovered.fitDisabled || (initial.preview[0] && recovered.preview.join() !== initial.preview.join()) || JSON.stringify(recovered.settings) !== JSON.stringify(initial.settings)) throw new Error(`Offline draft recovery failed: ${JSON.stringify({newDocument, initial, recovered})}`);
       result.offlineReload = recovered;
       result.offlineMethod = {wifiDisabled: wifiEnabled, mobileDataDisabled: true, localhostForwardRemoved: Boolean(reverse), coldLaunch: Boolean(component)};
     }
@@ -176,7 +186,11 @@ async function main() {
       const failures = [];
       for (const undo of restore) {try {undo();} catch (error) {failures.push(error);}}
       if (failures.length) throw new Error('Could not restore phone networking; check WiFi/mobile data and adb reverse');
-      if (restore.length && client) await client.send('Page.reload');
+      // Reload is only a convenience after restoration; a frozen Android target
+      // must not mask the original check result or networking restoration.
+      if (restore.length && client) {
+        try {await client.send('Page.reload', {}, 3000);} catch {console.error('Networking restored; reopen the app if its debugging target is frozen.');}
+      }
     } finally {client?.close(); clearInterval(awake);}
   }
 }

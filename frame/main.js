@@ -1,9 +1,11 @@
 import './style.css';
 import {elements as el} from './core/dom.js';
-import {state, rememberFrame, savedFrame, rememberJob, savedJob} from './core/state.js';
-import {normalizeAddress, request, validateConfig, sendPhoto, getPhoto} from './services/frame-client.js';
+import {state, sessionReady, rememberFrame, savedFrame, rememberJob, savedJob} from './core/state.js';
+import {normalizeAddress, request, validateConfig, savePhoto, deletePhoto, jsonPost, getPhoto} from './services/frame-client.js';
+import {imageSettings, settingIds, validatePhoto} from './core/settings.js';
+import {processPhoto} from './services/processor.js';
 import {saveDraft, readDraft} from './services/drafts.js';
-import {activity, controls, showView, renderGallery} from './ui/render.js';
+import {activity, controls, showView, renderGallery, renderPreview, renderImports} from './ui/render.js';
 
 async function refreshGallery() {
   const base = state.frame?.base;
@@ -12,18 +14,22 @@ async function refreshGallery() {
   if (state.frame?.base !== base) return;
   if (!Array.isArray(images)) throw new Error('The frame returned an invalid gallery.');
   state.images = images;
+  el['gallery-status'].textContent = '';
   renderGallery(selectPhoto);
 }
 
 async function connectFrame() {
-  if (state.busy || state.job) return;
-  state.busy = true; controls();
+  if (!state.session || state.busy || state.job || state.connecting) return;
+  state.connecting = true; state.connected = false; controls();
+  el['frame-detail'].textContent = 'Connecting…';
   el['connection-status'].textContent = 'Finding your frame… Allow local-network access if prompted.';
   try {
     const base = normalizeAddress(el.address.value);
     const config = validateConfig(await request(base, '/api/display-config'));
     const images = await request(base, '/api/images');
     if (!Array.isArray(images)) throw new Error('The frame returned an invalid gallery.');
+    await releaseEditLock();
+    if (state.frame?.base !== base) {state.imports = []; renderImports();}
     rememberFrame({base, name: new URL(base).hostname.replace(/\.local$/, ''), config});
     state.config = config; state.images = images; state.connected = true;
     el['frame-name'].textContent = state.frame.name;
@@ -32,7 +38,7 @@ async function connectFrame() {
     el.connection.classList.add('connected'); el.connection.open = false; el.forget.hidden = false;
     el.dimensions.textContent = `${config.width} × ${config.height}`;
     renderGallery(selectPhoto);
-    if (state.draft) prepare();
+    if (state.draft) {await acquireEditLock(); prepare();}
     const previous = savedJob();
     if (previous?.base === base) { rememberJob(previous); pollJob(); }
   } catch (error) {
@@ -40,54 +46,173 @@ async function connectFrame() {
     el['connection-status'].textContent = error.message;
     el['frame-detail'].textContent = 'Not connected';
     el.connection.classList.remove('connected'); el.connection.open = true;
-  } finally { state.busy = false; controls(); }
+  } finally { state.connecting = false; controls(); }
 }
 
 async function useDraft(draft) {
+  draft = {...draft, ...imageSettings(draft)};
   state.draft = draft;
   el['draft-name'].textContent = draft.name;
-  el.fit.value = draft.fit; el.saturation.value = String(draft.saturation);
-  el.editor.hidden = false; showView('editor'); prepare();
+  for (const id of settingIds) el[id].value = String(draft[id]);
+  for (const id of ['saturation', 'brightness', 'contrast']) el[`${id}-value`].value = draft[id];
+  el.editor.hidden = false; el['photo-actions'].hidden = false; el['library-actions'].hidden = false;
+  showView('editor'); prepare();
   try { await saveDraft(draft); }
   catch { activity('Draft is open', 'This browser could not save the draft. Keep the app open until you send it.'); }
 }
 
-async function selectPhoto(image) {
-  if (state.busy || state.job) return;
+async function selectPhoto(image, base) {
+  if (state.busy || state.job || state.connecting || !state.connected || state.frame?.base !== base) return;
   state.busy = true; controls();
   try {
-    const blob = await getPhoto(state.frame.base, image.filename);
-    await useDraft({blob, sourceFrame: state.frame.base, sourceFilename: image.filename, name: image.filename, fit: image.fit_mode || 'contain', saturation: image.saturation ?? 0.5});
-  } catch (error) { activity('Could not open photo', error.message, true); }
+    const blob = await getPhoto(base, image.filename);
+    if (state.frame?.base !== base) return;
+    await releaseEditLock();
+    if (state.frame?.base !== base) return;
+    await useDraft({blob, sourceFrame: base, sourceFilename: image.filename, name: image.filename, ...imageSettings(image)});
+    await acquireEditLock();
+  } catch (error) { el['gallery-status'].textContent = `Could not open photo: ${error.message}`; }
   finally { state.busy = false; controls(); }
 }
 
-function prepare() {
+async function prepare() {
   if (!state.draft || !state.config) return;
-  state.worker?.terminate();
+  state.processor?.abort();
+  const controller = new AbortController(); state.processor = controller;
   const generation = ++state.generation;
   state.prepared = null; state.processing = true; controls();
   el['preview-status'].textContent = 'Making your color preview…';
-  const worker = new Worker('/frame/photo-worker.js'); state.worker = worker;
-  const failed = message => {
+  try {
+    const data = await processPhoto(state.draft, state.config, controller.signal);
     if (generation !== state.generation) return;
-    state.processing = false; state.prepared = null;
-    el['preview-status'].textContent = message; controls(); worker.terminate();
-  };
-  worker.onerror = () => failed('Could not process this photo. Try a JPEG, PNG, or WebP image.');
-  worker.onmessage = ({data}) => {
-    if (generation !== state.generation) return;
-    if (data.error) { failed(data.error); return; }
-    state.prepared = data; state.processing = false;
+    state.prepared = data;
     if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+    if (state.beforeUrl) URL.revokeObjectURL(state.beforeUrl);
     state.previewUrl = URL.createObjectURL(data.dithered);
-    el.preview.src = state.previewUrl; el.preview.hidden = false; el['preview-empty'].hidden = true;
+    state.beforeUrl = URL.createObjectURL(data.adjusted);
+    renderPreview(); el.preview.hidden = false; el['preview-empty'].hidden = true;
+    el['preview-tabs'].hidden = false;
     el.preview.width = data.width; el.preview.height = data.height;
     el.dimensions.textContent = `${data.width} × ${data.height}`;
     el['preview-status'].textContent = 'Ready. The screen’s ink colors may look softer than this preview.';
-    controls(); worker.terminate();
+  } catch (error) {
+    if (generation !== state.generation || error.name === 'AbortError') return;
+    el['preview-status'].textContent = error.message;
+  } finally {
+    if (generation === state.generation) {state.processing = false; controls();}
+  }
+}
+
+async function releaseEditLock() {
+  const lock = state.lock; state.lock = null;
+  if (lock) {
+    clearInterval(lock.timer);
+    await jsonPost(lock.base, '/api/unlock-image', {filename: lock.filename, session_id: state.session}).catch(() => {});
+  }
+  el['lock-notice'].hidden = true;
+}
+
+function showLock(lock, message) {
+  if (state.lock !== lock) return;
+  el['lock-notice'].hidden = false;
+  el['lock-notice'].dataset.readOnly = String(!lock.owned);
+  el['lock-status'].textContent = message;
+  el['retry-edit'].hidden = lock.owned;
+  controls();
+}
+
+async function acquireEditLock() {
+  const draft = state.draft;
+  if (!state.connected || draft?.sourceFrame !== state.frame?.base || !draft?.sourceFilename) return;
+  await releaseEditLock();
+  const lock = {base: state.frame.base, filename: draft.sourceFilename, owned: false, refreshing: false};
+  state.lock = lock;
+  const renew = async (refreshOnly) => {
+    if (state.lock !== lock || lock.refreshing) return;
+    lock.refreshing = true;
+    try {
+      const result = await jsonPost(lock.base, '/api/lock-image', {filename: lock.filename, session_id: state.session, refresh_only: refreshOnly});
+      if (state.lock !== lock) return;
+      lock.owned = result.locked;
+      showLock(lock, lock.owned ? 'Editing this photo. Your changes stay on this phone until you save.' : 'Read only: another editor has this photo, or your editing session expired.');
+    } catch {
+      lock.owned = false;
+      showLock(lock, 'Editing connection lost. Your draft is kept on this phone. Reconnect before saving.');
+    } finally {lock.refreshing = false;}
+    if (!lock.owned) clearInterval(lock.timer);
   };
-  worker.postMessage({...state.draft, config: state.config});
+  await renew(false);
+  if (state.lock === lock && lock.owned) lock.timer = setInterval(() => renew(true), 10000);
+}
+
+async function storeCurrentPhoto(display) {
+  if (el[display ? 'send' : 'save'].disabled) return;
+  state.busy = true; controls();
+  el['job-details'].hidden = true; el['retry-status'].hidden = true;
+  let revealed = false;
+  try {
+    const result = await savePhoto({base: state.frame.base, draft: state.draft, prepared: state.prepared,
+      session: state.session, display, keepLock: true,
+      onStored: async ({base, filename}) => {
+        state.draft = {...state.draft, sourceFrame: base, sourceFilename: filename};
+        await saveDraft(state.draft).catch(() => {});
+      },
+      onProgress: message => {
+        activity(message, 'Your photo stays on your local network.', false, 'busy');
+        if (!revealed) {el['send-panel'].scrollIntoView({block: 'nearest'}); revealed = true;}
+      }});
+    state.draft = {...state.draft, sourceFrame: result.base, sourceFilename: result.filename};
+    await saveDraft(state.draft).catch(() => {});
+    if (display) {rememberJob(result); pollJob();}
+    else {activity('Photo saved.', 'Your photo and adjustments are on the frame. The display has not changed.', false, 'complete'); refreshGallery().catch(() => {});}
+  } catch (error) {activity('Could not finish saving', `${error.message} Check the frame before retrying if the connection was interrupted.`, true);}
+  finally {await acquireEditLock(); state.busy = false; controls();}
+}
+
+async function importPhotos(files) {
+  if (state.busy || state.job || !state.connected) return;
+  state.busy = true; controls();
+  await releaseEditLock();
+  state.imports = files.map(file => ({draft: {blob: file, name: file.name, ...imageSettings()}, status: 'Waiting'}));
+  showView('gallery'); state.busy = false; await runImports();
+}
+
+async function runImports() {
+  if (state.busy || state.job || !state.connected) return;
+  state.busy = true; state.importing = true; controls(); renderImports();
+  for (const item of state.imports) {
+    if (item.status === 'Saved') continue;
+    item.error = null;
+    try {
+      validatePhoto(item.draft.blob);
+      item.status = 'Making preview…'; renderImports();
+      const prepared = await processPhoto(item.draft, state.config);
+      const saved = await savePhoto({base: state.frame.base, draft: item.draft, prepared, session: state.session,
+        onStored: ({base, filename}) => {item.draft.sourceFrame = base; item.draft.sourceFilename = filename;},
+        onProgress: message => {item.status = message; renderImports();}});
+      item.draft.sourceFrame = saved.base; item.draft.sourceFilename = saved.filename; item.status = 'Saved';
+    } catch (error) {item.status = 'Failed'; item.error = error.message;}
+    renderImports();
+  }
+  state.importing = false; renderImports();
+  await refreshGallery().catch(error => {el['gallery-status'].textContent = error.message;});
+  await acquireEditLock();
+  state.busy = false; controls();
+}
+
+async function chooseFiles(files) {
+  if (!files.length || state.busy || state.job || !state.config) return;
+  if (files.length > 1) {
+    if (!state.connected) {activity('Connect to add multiple photos', 'You can keep editing one photo offline. Adding photos to the frame needs WiFi.', true); return;}
+    await importPhotos(files); return;
+  }
+  const [file] = files;
+  try {validatePhoto(file);} catch (error) {activity('Could not open photo', error.message, true); return;}
+  state.busy = true; controls();
+  await releaseEditLock();
+  el.activity.hidden = true;
+  await useDraft({blob: file, name: file.name});
+  state.busy = false; controls();
 }
 
 async function pollJob() {
@@ -102,8 +227,11 @@ async function pollJob() {
       throw new Error('The frame restarted. Check the screen before sending this photo again.');
     }
     job.createdAt = current.created_at; rememberJob(job);
+    el['job-details'].hidden = false;
+    const elapsed = current.started_at ? Math.max(0, Math.round(((current.finished_at || Date.now()) - current.started_at) / 1000)) : null;
+    el['job-info'].textContent = `Job ${job.id} · ${current.status}${elapsed === null ? '' : ` · ${elapsed}s since refresh started`} · ${current.filename}`;
     if (current.status === 'Completed') {
-      activity('Your new view is ready.', 'The frame has finished refreshing.');
+      activity('Your new view is ready.', 'The frame has finished refreshing.', false, 'complete');
       rememberJob(null); controls(); refreshGallery().catch(() => {}); return;
     }
     if (current.status === 'Failed') {
@@ -111,7 +239,7 @@ async function pollJob() {
       activity('The display could not refresh.', timeout ? 'The panel did not respond. Check its connection before trying again.' : 'The frame reported a display error. Check the device before trying again.', true);
       rememberJob(null); controls(); return;
     }
-    activity(current.status === 'Queued' ? 'Waiting for your frame…' : 'Refreshing your frame…', 'The screen may flash several times. Keep the frame powered on.');
+    activity(current.status === 'Queued' ? 'Waiting for your frame…' : 'Refreshing your frame…', 'The screen may flash several times. Keep the frame powered on.', false, 'busy');
     state.pollTimer = setTimeout(pollJob, 2000);
   } catch (error) {
     activity('Refresh status unavailable', `${error.message} The job may still be running.`, true);
@@ -125,40 +253,68 @@ async function pollJob() {
 el['connect-form'].addEventListener('submit', event => {event.preventDefault(); connectFrame();});
 el['pick-photo'].addEventListener('click', () => el.photo.click());
 el.photo.addEventListener('change', async () => {
-  const file = el.photo.files[0]; el.photo.value = '';
-  if (!file || state.busy || state.job) return;
-  if (file.size > 20 * 1024 * 1024) {activity('Photo is too large', 'Choose a photo under 20 MB.', true);return;}
-  await useDraft({blob: file, name: file.name, fit: 'contain', saturation: 0.5});
+  const files = [...el.photo.files]; el.photo.value = ''; await chooseFiles(files);
 });
-for (const id of ['fit', 'saturation']) el[id].addEventListener('change', () => {
-  if (!state.draft) return;
-  useDraft({...state.draft, fit: el.fit.value, saturation: Number(el.saturation.value)});
+for (const id of settingIds) el[id].addEventListener('change', () => {
+  if (!state.draft || el[id].disabled) return;
+  const settings = Object.fromEntries(settingIds.map(key => [key, ['saturation', 'brightness', 'contrast'].includes(key) ? Number(el[key].value) : el[key].value]));
+  useDraft({...state.draft, ...settings});
 });
-el.send.addEventListener('click', async () => {
-  if (state.busy || state.job || !state.prepared || !state.connected) return;
+for (const id of ['saturation', 'brightness', 'contrast']) el[id].addEventListener('input', () => {el[`${id}-value`].value = el[id].value;});
+el.send.addEventListener('click', () => storeCurrentPhoto(true));
+el.save.addEventListener('click', () => storeCurrentPhoto(false));
+el['preview-before'].addEventListener('click', () => {state.previewMode = 'before'; renderPreview();});
+el['preview-display'].addEventListener('click', () => {state.previewMode = 'display'; renderPreview();});
+el['retry-edit'].addEventListener('click', async () => {
+  if (el['retry-edit'].disabled) return;
+  state.busy = true; controls(); await acquireEditLock(); state.busy = false; controls();
+});
+el['add-photos'].addEventListener('click', () => el['import-photos'].click());
+el['import-photos'].addEventListener('change', async () => {
+  const files = [...el['import-photos'].files]; el['import-photos'].value = '';
+  if (files.length) await importPhotos(files);
+});
+el['retry-imports'].addEventListener('click', runImports);
+for (const type of ['dragenter', 'dragover']) el['photo-stage'].addEventListener(type, event => {event.preventDefault(); el['photo-stage'].classList.add('drag-over');});
+el['photo-stage'].addEventListener('dragleave', () => el['photo-stage'].classList.remove('drag-over'));
+el['photo-stage'].addEventListener('drop', async event => {
+  event.preventDefault(); el['photo-stage'].classList.remove('drag-over'); await chooseFiles([...event.dataTransfer.files]);
+});
+el.delete.addEventListener('click', () => {
+  if (el.delete.disabled) return;
+  el['delete-name'].textContent = state.draft.name; el['delete-dialog'].showModal();
+});
+el['cancel-delete'].addEventListener('click', () => el['delete-dialog'].close());
+el['confirm-delete'].addEventListener('click', async () => {
+  el['delete-dialog'].close();
+  if (el.delete.disabled) return;
   state.busy = true; controls();
   try {
-    const job = await sendPhoto({base: state.frame.base, draft: state.draft, prepared: state.prepared,
-      session: state.session, onProgress: message => activity(message, 'Your photo stays on your local network.')});
-    rememberJob(job); pollJob();
-    state.draft = {...state.draft, sourceFrame: job.base, sourceFilename: job.filename};
-    saveDraft(state.draft).catch(() => {});
-  } catch (error) {activity('Could not finish sending', `${error.message} Check the frame before retrying if the connection was interrupted.`, true);}
+    const deleted = await deletePhoto(state.frame.base, state.draft.sourceFilename, state.session);
+    await releaseEditLock();
+    state.draft = {...state.draft, sourceFrame: null, sourceFilename: null};
+    await saveDraft(state.draft).catch(() => {});
+    activity('Photo deleted from the frame.', deleted.warnings?.length ? 'The original was deleted, but some saved versions could not be removed.' : 'A copy remains in your phone’s draft. The display has not changed.');
+    await refreshGallery();
+  } catch (error) {activity('Could not delete photo', error.message, true);}
   finally {state.busy = false; controls();}
 });
 el['retry-status'].addEventListener('click', () => state.job ? pollJob() : connectFrame());
-el['refresh-gallery'].addEventListener('click', () => refreshGallery().catch(error => activity('Could not load photos', error.message, true)));
+el['refresh-gallery'].addEventListener('click', () => refreshGallery().catch(error => {el['gallery-status'].textContent = error.message;}));
 el['choose-tab'].addEventListener('click', () => showView('editor'));
 el['gallery-tab'].addEventListener('click', () => showView('gallery'));
-el.forget.addEventListener('click', () => {
+el.forget.addEventListener('click', async () => {
   if (state.busy || state.job) return;
+  state.busy = true; controls();
+  await releaseEditLock();
   try { localStorage.removeItem('sparkle-frame'); } catch { /* Storage can be disabled. */ }
   state.frame = null; state.config = null; state.connected = false;
-  state.images = []; state.worker?.terminate(); ++state.generation; state.processing = false; state.prepared = null;
+  state.images = []; state.processor?.abort(); ++state.generation; state.processing = false; state.prepared = null;
   el.connection.open = true; el.connection.classList.remove('connected'); el.forget.hidden = true;
   el['frame-name'].textContent = 'Your frame'; el['frame-detail'].textContent = 'Connect once. Keep it close.';
   el['connection-status'].textContent = 'Frame forgotten. Your draft is still on this phone.';
-  renderGallery(selectPhoto); controls();
+  state.imports = []; renderImports();
+  state.busy = false; renderGallery(selectPhoto); controls();
 });
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault(); state.installPrompt = event; el.install.hidden = false;
@@ -170,6 +326,7 @@ el.install.addEventListener('click', async () => {
 window.addEventListener('appinstalled', () => {el.install.hidden = true;});
 
 async function start() {
+  await sessionReady;
   if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker.register('/frame/sw.js', {scope: '/frame/'}).catch(() => {});
   }
@@ -196,6 +353,15 @@ async function start() {
   controls();
   if (!handoff && remembered?.base && navigator.onLine) connectFrame();
 }
+window.addEventListener('offline', () => {
+  state.connected = false;
+  if (state.lock) {clearInterval(state.lock.timer); state.lock.owned = false;}
+  el.connection.classList.remove('connected');
+  el['frame-detail'].textContent = 'Offline · Draft saved on this phone';
+  el['connection-status'].textContent = 'You’re offline. Keep editing your draft; reconnect to send it.';
+  el['lock-notice'].hidden = true;
+  controls();
+});
 window.addEventListener('online', () => {
   if (!state.connected && !state.busy && !state.job && state.frame?.base === el.address.value) connectFrame();
 });

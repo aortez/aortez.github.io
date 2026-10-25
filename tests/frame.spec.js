@@ -65,3 +65,249 @@ test('unsafe handoff cannot make requests to a public or credentialed destinatio
   await expect(page.locator('#connection-status')).toContainText('private WiFi IP');
   expect(outgoing.some(url=>url.includes('example.com'))).toBe(false);
 });
+
+async function fixturePhoto(page) {
+  const data = await page.evaluate(() => {
+    const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 48;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0,0,64,48); gradient.addColorStop(0,'#184d85'); gradient.addColorStop(1,'#ecc989');
+    ctx.fillStyle = gradient; ctx.fillRect(0,0,64,48);
+    return canvas.toDataURL().split(',')[1];
+  });
+  return {name:'sample.png', mimeType:'image/png', buffer:Buffer.from(data,'base64')};
+}
+
+async function libraryFrame(page, {locked = false, pending = false, failThumb = false, deleteFailure = false} = {}) {
+  let images = [{filename:'saved.png',thumb_ready:true,fit_mode:'cover',filter:'lanczos',brightness:25,contrast:-20,saturation:0.7,dither_algorithm:'atkinson'}];
+  let source;
+  let thumbFailed = false;
+  let status = pending ? 'Flashing' : 'Completed';
+  const requests = [];
+  await page.route(`${base}/**`, async route => {
+    const request = route.request(); const path = new URL(request.url()).pathname;
+    const body = request.postData() || ''; requests.push({path, body});
+    let result;
+    if (path === '/api/display-config') result = config;
+    else if (path === '/api/images') result = images;
+    else if (path.startsWith('/images/')) {await route.fulfill({contentType:'image/png', body:source}); return;}
+    else if (path === '/api/lock-image') result = {locked: !locked};
+    else if (path === '/api/unlock-image') result = {success:true};
+    else if (path === '/upload') {
+      const filename = /filename="([^"]+)"/.exec(body)[1]; images.push({filename,thumb_ready:true});
+      result = {success:true,filename};
+    } else if (path === '/api/upload-thumb' && failThumb && !thumbFailed) {
+      thumbFailed = true; await route.fulfill({status:500, json:{message:'Temporary thumbnail failure'}}); return;
+    } else if (path === '/api/delete-image') {
+      if (deleteFailure) {await route.fulfill({status:409, json:{message:'This photo is queued or refreshing. Wait for the display to finish'}}); return;}
+      images = images.filter(image => image.filename !== JSON.parse(body).filename); result = {success:true};
+    } else if (path === '/flash') result = {success:true,job_id:1};
+    else if (path === '/api/flash/status/1') result = {job_id:1,filename:'saved.png',created_at:100,started_at:Date.now()-5000,status};
+    else result = {success:true};
+    await route.fulfill({json:result});
+  });
+  await page.goto('/frame/'); source = (await fixturePhoto(page)).buffer;
+  await page.locator('#connect').click(); await expect(page.locator('#frame-detail')).toContainText('Connected');
+  return {requests, unlock:()=>{locked=false;}, complete:()=>{status='Completed';}};
+}
+
+async function openSaved(page) {
+  await page.locator('#gallery-tab').click(); await page.getByRole('button',{name:'saved.png',exact:true}).click();
+  await expect(page.locator('#preview-status')).toContainText('Ready.');
+}
+
+const multipartField = (body, name) => new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]*)`).exec(body)?.[1];
+
+test('saved adjustments survive reopening, saving, and draft recovery without a display refresh', async ({page}) => {
+  const {requests} = await libraryFrame(page); await openSaved(page);
+  for (const [id,value] of Object.entries({fit:'cover',filter:'lanczos',brightness:'25',contrast:'-20',saturation:'0.7',dither:'atkinson'})) await expect(page.locator(`#${id}`)).toHaveValue(value);
+  const display = await page.locator('#preview').getAttribute('src');
+  await page.locator('#preview-before').click(); expect(await page.locator('#preview').getAttribute('src')).not.toBe(display);
+  await page.locator('#save').click(); await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+  expect(requests.filter(r=>r.path==='/flash' || r.path==='/upload')).toHaveLength(0);
+  expect(requests.some(r=>r.path==='/api/lock-image' && JSON.parse(r.body).refresh_only === true)).toBe(true);
+  const upload = requests.find(r=>r.path==='/api/upload-dithered').body;
+  for (const [key,value] of Object.entries({filter:'lanczos',brightness:'25',contrast:'-20',saturation:'0.7',dither_algorithm:'atkinson'})) expect(multipartField(upload,key)).toBe(value);
+  await page.reload(); await expect(page.locator('#send')).toBeEnabled();
+  await expect(page.locator('#brightness')).toHaveValue('25'); await expect(page.locator('#dither')).toHaveValue('atkinson');
+});
+
+test('refresh progress stays directly below Display this photo and finishes only on reported completion', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  const frame = await libraryFrame(page,{pending:true}); await openSaved(page); await page.locator('#send').click();
+  await expect(page.locator('#activity-title')).toHaveText('Refreshing your frame…');
+  await expect(page.locator('#send-progress')).toBeVisible(); await expect(page.locator('#send-progress')).not.toHaveAttribute('aria-valuenow');
+  await expect(page.locator('#send')).toBeDisabled();
+  expect(await page.locator('#activity').evaluate(el=>el.parentElement.id)).toBe('send-panel');
+  const button = await page.locator('#send').boundingBox(); const progress = await page.locator('#send-progress').boundingBox();
+  expect(progress.y).toBeGreaterThan(button.y+button.height); expect(progress.y-button.y-button.height).toBeLessThan(50);
+  await page.locator('#job-details summary').click(); await expect(page.locator('#job-info')).toContainText('Job 1 · Flashing');
+  frame.complete(); await expect(page.locator('#activity-title')).toHaveText('Your new view is ready.');
+  await expect(page.locator('#send-progress')).toHaveAttribute('aria-valuenow','1');
+  expect(frame.requests.filter(r=>r.path==='/flash')).toHaveLength(1);
+});
+
+test('read-only photo cannot save, delete, or overwrite settings until its edit lock is acquired', async ({page}) => {
+  const frame = await libraryFrame(page,{locked:true}); await openSaved(page);
+  await expect(page.locator('#lock-status')).toContainText('Read only');
+  for (const id of ['save','send','delete','brightness','fit']) await expect(page.locator(`#${id}`)).toBeDisabled();
+  frame.unlock(); await page.locator('#retry-edit').click(); await expect(page.locator('#save')).toBeEnabled();
+  await expect(page.locator('#lock-status')).toContainText('Editing this photo');
+});
+
+test('delete cancellation sends nothing; confirmation removes the library entry but preserves the phone draft', async ({page}) => {
+  const {requests} = await libraryFrame(page); await openSaved(page);
+  await page.locator('#delete').click(); await page.locator('#cancel-delete').click();
+  expect(requests.filter(r=>r.path==='/api/delete-image')).toHaveLength(0);
+  await page.locator('#delete').click(); await page.locator('#confirm-delete').click();
+  await expect(page.locator('#activity-title')).toHaveText('Photo deleted from the frame.');
+  await expect(page.locator('#delete')).toBeHidden(); await expect(page.locator('#preview')).toBeVisible();
+  await page.locator('#gallery-tab').click(); await expect(page.locator('#gallery button')).toHaveCount(0);
+  expect(requests.filter(r=>r.path==='/flash')).toHaveLength(0);
+});
+
+test('server refusal leaves a queued photo and its controls intact', async ({page}) => {
+  await libraryFrame(page,{deleteFailure:true}); await openSaved(page);
+  await page.locator('#delete').click(); await page.locator('#confirm-delete').click();
+  await expect(page.locator('#activity-title')).toHaveText('Could not delete photo');
+  await expect(page.locator('#activity-detail')).toContainText('queued or refreshing');
+  await expect(page.locator('#delete')).toBeEnabled();
+});
+
+test('batch saves photos without flashing and retries partial failures without duplicating originals', async ({page}) => {
+  const {requests} = await libraryFrame(page,{failThumb:true}); const file = await fixturePhoto(page);
+  await page.locator('#photo').setInputFiles([file,{...file,name:'second.png'}]);
+  await expect(page.locator('#import-summary')).toContainText('1 of 2 saved · 1 failed');
+  await page.locator('#retry-imports').click(); await expect(page.locator('#import-summary')).toContainText('2 of 2 saved');
+  expect(requests.filter(r=>r.path==='/upload')).toHaveLength(2); expect(requests.filter(r=>r.path==='/flash')).toHaveLength(0);
+  await expect(page.locator('#gallery button')).toHaveCount(3);
+});
+
+test('worker adjustments affect preview pixels, preserve the cache, and produce native ink colors', async ({page}) => {
+  await page.goto('/frame/');
+  const result = await page.evaluate(async () => {
+    const {processPhoto} = await import('/frame/services/processor.js');
+    const canvas = new OffscreenCanvas(8,8); const ctx = canvas.getContext('2d');ctx.fillStyle='rgb(100,100,100)';ctx.fillRect(0,0,8,8);
+    const blob = await canvas.convertToBlob();
+    const pixels = async blob => {const img=await createImageBitmap(blob);const c=new OffscreenCanvas(img.width,img.height);const x=c.getContext('2d');x.drawImage(img,0,0);img.close();return [...x.getImageData(0,0,c.width,c.height).data];};
+    const results=[];
+    for (const dither of ['floyd-steinberg','atkinson','ordered']) {
+      const output=await processPhoto({blob,fit:'cover',filter:'nearest',brightness:20,contrast:50,saturation:0.5,dither},{width:8,height:8,thumb_width:4,thumb_height:4,model:'impression-13.3-2025'});
+      const display=await pixels(output.dithered);const colors=new Set();for(let i=0;i<display.length;i+=4)colors.add(display.slice(i,i+4).join(','));
+      results.push({cache:(await pixels(output.cache)).slice(0,4),before:(await pixels(output.adjusted)).slice(0,4),colors:[...colors]});
+    }
+    return results;
+  });
+  for(const row of result){expect(row.cache).toEqual([100,100,100,255]);expect(row.before).toEqual([106,106,106,255]);for(const color of row.colors)expect(['0,0,0,255','255,255,255,255','255,255,0,255','255,0,0,255','0,0,255,255','0,255,0,255']).toContain(color);}
+});
+
+
+test('a stalled reconnect never blocks editing a restored draft', async ({page}) => {
+  await mockFrame(page); await page.goto('/frame/'); await page.locator('#connect').click();
+  await expect(page.locator('#pick-photo')).toBeEnabled(); await photo(page);
+  await page.unroute(`${base}/**`);
+  await page.route(`${base}/**`, () => {}); // Keep requests pending while the browser still reports online.
+  await page.reload(); await expect(page.locator('#preview-status')).toContainText('Ready.');
+  await expect(page.locator('#frame-detail')).toHaveText('Connecting…');
+  await expect(page.locator('#send')).toBeDisabled(); await expect(page.locator('#brightness')).toBeEnabled();
+  await page.locator('#brightness').fill('35'); await page.locator('#brightness').dispatchEvent('change');
+  await expect(page.locator('#preview-status')).toContainText('Ready.'); await expect(page.locator('#brightness')).toHaveValue('35');
+});
+
+
+test('edit ownership survives reload but is not shared with a second app tab', async ({page,context}) => {
+  await mockFrame(page); await page.goto('/frame/');
+  const session = await editSessionId(page);
+  await page.reload(); expect(await editSessionId(page)).toBe(session);
+  const other = await context.newPage(); await mockFrame(other); await other.goto('/frame/');
+  expect(await editSessionId(other)).not.toBe(session);
+  await other.close();
+});
+
+async function editSessionId(page) {
+  return page.evaluate(async () => {
+    const {state, sessionReady} = await import('/frame/core/state.js');
+    await sessionReady;
+    return state.session;
+  });
+}
+
+test('an opener window cannot inherit edit access or release the original window’s lock', async ({page, context}) => {
+  let source; let owner;
+  await context.route(`${base}/**`, async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.startsWith('/images/')) return route.fulfill({contentType:'image/png', body:source});
+    let result = {success:true};
+    if (path === '/api/display-config') result = config;
+    if (path === '/api/images') result = [{filename:'saved.png', thumb_ready:false}];
+    if (path === '/api/lock-image') {
+      const {session_id, refresh_only} = route.request().postDataJSON();
+      if (!owner && !refresh_only) owner = session_id;
+      result = {locked:owner === session_id};
+    }
+    if (path === '/api/unlock-image' && route.request().postDataJSON().session_id === owner) owner = null;
+    await route.fulfill({json:result});
+  });
+  await page.goto('/frame/'); source = (await fixturePhoto(page)).buffer;
+  await page.locator('#connect').click(); await expect(page.locator('#frame-detail')).toContainText('Connected');
+  await openSaved(page); await expect(page.locator('#save')).toBeEnabled();
+  const firstSession = await editSessionId(page);
+  const popupPromise = page.waitForEvent('popup');
+  await page.evaluate(() => window.open('/frame/'));
+  const popup = await popupPromise;
+  await expect(popup.locator('#lock-status')).toContainText('Read only');
+  expect(await editSessionId(popup)).not.toBe(firstSession);
+  await expect(popup.locator('#save')).toBeDisabled();
+  await expect(popup.locator('#delete')).toBeDisabled();
+  // Retrying drops the read-only claim without releasing the owner's lock.
+  await popup.locator('#retry-edit').click();
+  await expect(popup.locator('#retry-edit')).toBeEnabled();
+  expect(owner).toBe(firstSession);
+  await page.reload(); await expect(page.locator('#save')).toBeEnabled();
+  expect(await editSessionId(page)).toBe(firstSession);
+  await page.locator('#save').click(); await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+  await popup.close();
+});
+
+for (const unavailable of ['missing', 'denied']) {
+  test(`session identity stays separate when browser locks are ${unavailable}`, async ({page}) => {
+    await page.addInitScript(mode => {
+      Object.defineProperty(navigator, 'locks', {value:mode === 'missing' ? undefined : {request:() => Promise.reject(new Error('Denied'))}});
+    }, unavailable);
+    await page.goto('/frame/'); const firstSession = await editSessionId(page);
+    const popupPromise = page.waitForEvent('popup');
+    await page.evaluate(() => window.open('/frame/'));
+    const popup = await popupPromise;
+    expect(await editSessionId(popup)).not.toBe(firstSession);
+    await popup.close();
+    await page.reload(); expect(await editSessionId(page)).not.toBe(firstSession);
+  });
+}
+
+test('switching frames blocks old gallery selection and saves only the newly selected frame’s photo', async ({page}) => {
+  const nextBase = 'http://second-frame.local:8000';
+  const frame = await libraryFrame(page); const source = (await fixturePhoto(page)).buffer;
+  const writes = []; let releaseConfig;
+  const configPending = new Promise(resolve => {releaseConfig = resolve;});
+  await page.route(`${nextBase}/**`, async route => {
+    const request = route.request(); const path = new URL(request.url()).pathname;
+    if (request.method() === 'POST') writes.push(path);
+    if (path === '/api/display-config') await configPending;
+    if (path.startsWith('/images/')) return route.fulfill({contentType:'image/png', body:source});
+    await route.fulfill({json:path === '/api/display-config' ? config : path === '/api/images'
+      ? [{filename:'saved.png', thumb_ready:false, brightness:60}] : path === '/api/lock-image' ? {locked:true} : {success:true}});
+  });
+  await page.locator('#gallery-tab').click(); await page.locator('#connection > summary').click();
+  await page.locator('#address').fill(nextBase); await page.locator('#connect').click();
+  await expect(page.locator('#frame-detail')).toHaveText('Connecting…');
+  const oldPhoto = page.getByRole('button', {name:'saved.png', exact:true});
+  await expect(oldPhoto).toBeDisabled();
+  // The handler also guards a click queued just before the control was disabled.
+  await oldPhoto.dispatchEvent('click');
+  releaseConfig(); await expect(page.locator('#frame-name')).toHaveText('second-frame');
+  expect(frame.requests.some(request => request.path === '/images/saved.png')).toBe(false);
+  expect(await page.locator('#draft-name').textContent()).not.toBe('saved.png');
+  await openSaved(page); await expect(page.locator('#brightness')).toHaveValue('60');
+  await page.locator('#save').click(); await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+  expect(writes).toContain('/api/upload-dithered');
+  expect(frame.requests.some(request => request.path.startsWith('/api/upload-'))).toBe(false);
+});
