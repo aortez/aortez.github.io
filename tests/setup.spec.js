@@ -200,3 +200,14 @@ test('mobile layout fits and explains unsupported browsers', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Connect to a frame' })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+
+test('Bluetooth setup returns the device address to the frame app', async ({page}) => {
+  await mockBluetooth(page);
+  await page.goto('/setup/?return=frame');
+  await credentials(page);
+  await page.getByRole('button', {name: 'Connect to WiFi'}).click();
+  await expect(page.locator('#device-link')).toHaveAttribute('href', '/frame/#device=http%3A%2F%2Finky-soup.local%3A8000%2F');
+  await expect(page.locator('#frame-app-link')).toBeHidden();
+  await expect(page.locator('#password')).toHaveValue('');
+});

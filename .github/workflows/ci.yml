@@ -43,3 +43,6 @@ jobs:
 
       - name: Run browser tests
         run: npm test
+
+      - name: Test installed app and offline draft recovery
+        run: npm run test:pwa

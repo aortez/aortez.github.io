@@ -1,0 +1,24 @@
+{
+  "dimensions": [
+    1600,
+    1200
+  ],
+  "metrics": {
+    "width": 448,
+    "contentWidth": 448,
+    "secure": true
+  },
+  "errors": [],
+  "job": {
+    "success": true,
+    "message": "Flash job queued (position 1)",
+    "job_id": 1,
+    "queue_position": 1
+  },
+  "uiStatus": "Your new view is ready.",
+  "networkOrigins": [
+    "https://allan.pizza",
+    "http://inky-soup.local:8000"
+  ],
+  "testingNote": "Unpublished static assets fulfilled locally at the HTTPS origin through CDP. Real Android processing and direct WiFi API traffic to the physical Pi; no API mocks."
+}

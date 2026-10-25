@@ -26,7 +26,13 @@ function showStatus(event) {
   submit.disabled = busy;
   if (event.name) deviceName.textContent = event.name;
   link.hidden = event.state !== 'success' || !event.url;
-  if (!link.hidden) { link.href = event.url; link.textContent = `Open ${event.name}`; }
+  if (!link.hidden) {
+    const frameApp = new URLSearchParams(location.search).get('return') === 'frame';
+    link.href = frameApp ? `/frame/#device=${encodeURIComponent(event.url)}` : event.url;
+    link.textContent = `Open ${event.name}`;
+    document.querySelector('#frame-app-link').href = `/frame/#device=${encodeURIComponent(event.url)}`;
+  }
+  document.querySelector('#frame-app-link').hidden = link.hidden || new URLSearchParams(location.search).get('return') === 'frame';
   if (event.state === 'success') password.value = '';
   if (event.state === 'ready') document.querySelector('#ssid').focus();
 }
