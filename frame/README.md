@@ -65,6 +65,37 @@ isolated temporary library, which was stopped afterward; the normal service and
 its 15 photos were preserved. This orientation build has not yet been tested on
 Android hardware. [Validation results](../docs/validation/frame-orientation-pi-zero-w.json).
 
+## Photo rotation and orientation test card
+
+The Create editor has a **Photo rotation** control for new photos and photos
+opened from On frame. Angles are absolute clockwise quarter-turns relative to the
+original (after browser image-orientation decoding). Rotation happens before
+contain/cover fitting, filtering, adjustments and dithering, entirely on the
+client. Save to frame stores the angle and rebuilds previews without flashing;
+Display this photo saves and then queues a refresh. Offline drafts keep the angle.
+Mounting changes and automatic gallery recovery retain each photo's rotation.
+
+Settings → **Display orientation test card** draws a black/white edge-labeled card
+at the saved mounting dimensions and displays it as a temporary job. Save an
+orientation change first. Progress and retry status stay by that button. The card
+replaces the displayed picture, leaves the current draft intact, and adds nothing
+to the gallery. Normal job tracking/restart handling and PWA update blocking apply.
+
+These features require the paired server update for inky-soup issue #15. Config
+capabilities disable them on older servers while ordinary unrotated saves keep
+working. Photo revisions protect against stale edits, including reverting to an
+earlier angle. Accepted revisions are retained in the draft after partial upload
+failures. The Rust CLI can set a photo's angle or upload one with an angle; connect
+this app to rebuild its missing images before displaying it.
+
+![Photo rotation](../docs/screenshots/frame-photo-rotation.png)
+![Orientation card progress](../docs/screenshots/frame-orientation-test-card.png)
+
+Validation: both display sizes/all four rotations have pixel/palette tests. The
+app and CLI were exercised against the updated local Rust server with disposable
+images and a validating test display command. Physical Pi/Android validation of
+this change has not been performed.
+
 ## Offline and updates
 
 `tools/frame-pwa.js` generates a content-versioned service worker from the built
