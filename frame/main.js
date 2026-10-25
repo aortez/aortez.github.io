@@ -3,6 +3,7 @@ import {elements as el} from './core/dom.js';
 import {state, sessionReady, rememberFrame, savedFrame, rememberJob, savedJob} from './core/state.js';
 import {normalizeAddress, request, validateConfig, savePhoto, deletePhoto, jsonPost, getPhoto, sendTestCard} from './services/frame-client.js';
 import {imageSettings, settingIds, validatePhoto} from './core/settings.js';
+import {pendingPhotoRotation} from './core/photo-rotation.js';
 import {orientationTestCard} from './services/test-card.js';
 import {processPhoto} from './services/processor.js';
 import {saveDraft, readDraft} from './services/drafts.js';
@@ -157,8 +158,8 @@ async function storeCurrentPhoto(display) {
   try {
     const result = await savePhoto({base: state.frame.base, draft: state.draft, prepared: state.prepared,
       session: state.session, display, keepLock: true,
-      onStored: async ({base, filename, photo_rotation_revision}) => {
-        state.draft = {...state.draft, sourceFrame: base, sourceFilename: filename, ...(photo_rotation_revision === undefined ? {} : {photo_rotation_revision})};
+      onStored: async ({base, filename, ...checkpoint}) => {
+        state.draft = {...state.draft, sourceFrame: base, sourceFilename: filename, ...checkpoint};
         await saveDraft(state.draft).catch(() => {});
       },
       onProgress: message => {
@@ -190,7 +191,10 @@ function syncOrientation() {
 }
 
 async function regenerateGallery() {
-  const pending = state.images.filter(image => image.needs_processing);
+  // Keep an uncertain save's receipt available for retry instead of superseding it
+  // with background regeneration (including after closing/reopening the app).
+  const pending = state.images.filter(image => image.needs_processing
+    && !pendingPhotoRotation(state.draft, state.frame.base, image.filename));
   if (!pending.length || state.busy || state.job || !state.connected) return;
   state.busy = true; controls();
   await releaseEditLock();
@@ -264,7 +268,7 @@ async function runImports() {
       if (lockError) throw lockError;
       clearInterval(lockTimer);
       const saved = await savePhoto({base, draft: item.draft, prepared, session: state.session, keepLock:owned,
-        onStored: ({base, filename, photo_rotation_revision}) => {item.draft.sourceFrame = base; item.draft.sourceFilename = filename; if (photo_rotation_revision !== undefined) item.draft.photo_rotation_revision = photo_rotation_revision;},
+        onStored: ({base, filename, ...checkpoint}) => {Object.assign(item.draft, {sourceFrame:base, sourceFilename:filename}, checkpoint);},
         onProgress: message => {item.status = message; renderImports();}});
       item.draft.sourceFrame = saved.base; item.draft.sourceFilename = saved.filename; item.status = 'Saved';
     } catch (error) {item.status = 'Failed'; item.error = error.message;}
@@ -410,7 +414,8 @@ el['confirm-delete'].addEventListener('click', async () => {
   try {
     const deleted = await deletePhoto(state.frame.base, state.draft.sourceFilename, state.session);
     await releaseEditLock();
-    state.draft = {...state.draft, sourceFrame: null, sourceFilename: null};
+    state.draft = {...state.draft, sourceFrame: null, sourceFilename: null,
+      photo_rotation_revision:0, pending_photo_rotation:null};
     await saveDraft(state.draft).catch(() => {});
     activity('Photo deleted from the frame.', deleted.warnings?.length ? 'The original was deleted, but some saved versions could not be removed.' : 'A copy remains in your phone’s draft. The display has not changed.');
     await refreshGallery();

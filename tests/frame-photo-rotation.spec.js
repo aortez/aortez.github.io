@@ -17,7 +17,7 @@ async function fixture(page) {
   return {name:'corners.png',mimeType:'image/png',buffer:Buffer.from(data,'base64')};
 }
 
-async function frame(page, {pending = false, failThumb = false} = {}) {
+async function frame(page, {pending = false, failThumb = false, failRotation = null} = {}) {
   const photos = pending ? [{filename:'saved.png', photo_rotation_degrees:270, photo_rotation_revision:4, needs_processing:true, thumb_ready:false}] : [];
   let source;
   let jobStatus = 'Flashing';
@@ -36,11 +36,21 @@ async function frame(page, {pending = false, failThumb = false} = {}) {
       photos.push({filename,photo_rotation_degrees:0,photo_rotation_revision:0,needs_processing:true}); result = {success:true,filename};
     } else if (path === '/api/settings/photo-rotation') {
       const change = JSON.parse(body); const photo = photos.find(p => p.filename === change.filename);
-      if (stale || change.expected_revision !== photo.photo_rotation_revision) return route.fulfill({status:409,json:{message:'This photo was rotated elsewhere. Reopen it from the gallery before saving.'}});
+      if (failRotation === 'before') {failRotation=null;return route.abort('failed');}
+      const replayed = change.operation_id && photo.operation?.operation_id === change.operation_id;
+      if (stale || (replayed ? photo.operation.expected_revision !== change.expected_revision
+        || photo.operation.photo_rotation_degrees !== change.photo_rotation_degrees
+        : change.expected_revision !== photo.photo_rotation_revision)) {
+        return route.fulfill({status:409,json:{message:'This photo was rotated elsewhere. Reopen it from the gallery before saving.'}});
+      }
       if (photo.photo_rotation_degrees !== change.photo_rotation_degrees) {
         photo.photo_rotation_degrees = change.photo_rotation_degrees; photo.photo_rotation_revision++;
       }
+      photo.operation = change;
+      if (failRotation === 'after') {failRotation=null;return route.abort('failed');}
       result = {success:true,photo_rotation_revision:photo.photo_rotation_revision};
+    } else if (path === '/api/delete-image') {
+      photos.splice(photos.findIndex(p => p.filename === JSON.parse(body).filename),1);
     } else if (path.startsWith('/api/upload-')) {
       const photo = photos.find(p => p.filename === field(body,'filename'));
       if (Number(field(body,'photo_rotation_revision')) !== photo.photo_rotation_revision) return route.fulfill({status:409,json:{message:'Stale photo pixels'}});
@@ -52,7 +62,9 @@ async function frame(page, {pending = false, failThumb = false} = {}) {
   });
   await page.goto('/frame/'); const file = await fixture(page); source = file.buffer;
   await page.locator('#connect').click(); await expect(page.locator('#frame-detail')).toContainText('Connected');
-  return {photos,requests,file,complete:()=>{jobStatus='Completed';},stale:()=>{stale=true;}};
+  return {photos,requests,file,complete:()=>{jobStatus='Completed';},stale:()=>{stale=true;},
+    failRotation:stage=>{failRotation=stage;},
+    rotateElsewhere:()=>{photos[0].photo_rotation_degrees=270;photos[0].photo_rotation_revision++;delete photos[0].operation;}};
 }
 
 async function choose(page, file) {
@@ -92,6 +104,110 @@ test('accepted photo revision survives a partial upload and retry', async ({page
   expect(f.requests.filter(r=>r.path==='/upload')).toHaveLength(1);
   expect(f.requests.filter(r=>r.path==='/api/settings/photo-rotation').map(r=>JSON.parse(r.body).expected_revision)).toEqual([0,1]);
 });
+
+async function storedDraft(page) {
+  return page.evaluate(async () => (await import('/frame/services/drafts.js')).readDraft());
+}
+
+for (const failure of ['before', 'after']) {
+  for (const reopen of [false, true]) {
+    test(`rotation retry recovers a failure ${failure} acceptance${reopen ? ' after reopening the app' : ''}`, async ({page}) => {
+      const f = await frame(page,{failRotation:failure}); await choose(page,f.file);
+      await page.locator('#photo_rotation_degrees').selectOption('90');
+      await page.locator('#brightness').fill('15'); await page.locator('#brightness').dispatchEvent('input');
+      await expect(page.locator('#save')).toBeEnabled(); await page.locator('#save').click();
+      await expect(page.locator('#activity-detail')).toContainText('Cannot reach the frame');
+      const checkpoint = await storedDraft(page);
+      expect(checkpoint.photo_rotation_revision).toBe(0);
+      expect(checkpoint.pending_photo_rotation).toMatchObject({filename:f.photos[0].filename,expected_revision:0,photo_rotation_degrees:90});
+      if (reopen) {
+        // A new edit session must recover the persisted receipt, not just memory.
+        await page.evaluate(() => sessionStorage.clear());
+        await page.reload(); await expect(page.locator('#frame-detail')).toContainText('Connected');
+      }
+      await expect(page.locator('#save')).toBeEnabled();
+      expect(f.requests.filter(r=>r.path==='/api/settings/photo-rotation')).toHaveLength(1);
+      await expect(page.locator('#brightness')).toHaveValue('15');
+      await expect(page.locator('#photo_rotation_degrees')).toHaveValue('90');
+      await page.locator('#save').click(); await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+      const rotations = f.requests.filter(r=>r.path==='/api/settings/photo-rotation').map(r=>JSON.parse(r.body));
+      expect(rotations).toHaveLength(2);
+      expect(rotations[1]).toMatchObject({operation_id:rotations[0].operation_id,expected_revision:0});
+      if (reopen) expect(rotations[1].session_id).not.toBe(rotations[0].session_id);
+      expect(f.photos[0].photo_rotation_revision).toBe(1);
+      expect(f.requests.filter(r=>r.path==='/upload')).toHaveLength(1);
+      expect(f.requests.filter(r=>r.path==='/api/upload-cache').map(r=>field(r.body,'brightness'))).toEqual(['15']);
+      expect((await storedDraft(page)).pending_photo_rotation).toBeNull();
+    });
+  }
+}
+
+test('retry resolves a lost rotation before applying a newly chosen angle', async ({page}) => {
+  const f = await frame(page,{failRotation:'after'}); await choose(page,f.file);
+  await page.locator('#photo_rotation_degrees').selectOption('90');
+  await expect(page.locator('#save')).toBeEnabled(); await page.locator('#save').click();
+  await expect(page.locator('#activity-detail')).toContainText('Cannot reach the frame');
+  await page.locator('#photo_rotation_degrees').selectOption('180');
+  await expect(page.locator('#save')).toBeEnabled(); await page.locator('#save').click();
+  await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+  const rotations = f.requests.filter(r=>r.path==='/api/settings/photo-rotation').map(r=>JSON.parse(r.body));
+  expect(rotations.map(r=>[r.photo_rotation_degrees,r.expected_revision])).toEqual([[90,0],[90,0],[180,1]]);
+  expect(rotations[1].operation_id).toBe(rotations[0].operation_id);
+  expect(rotations[2].operation_id).not.toBe(rotations[0].operation_id);
+  expect(f.photos[0].photo_rotation_revision).toBe(2);
+  expect(f.requests.filter(r=>r.path==='/api/upload-cache').map(r=>field(r.body,'photo_rotation_revision'))).toEqual(['2']);
+});
+
+test('a lost-response retry still rejects another editor’s subsequent rotation', async ({page}) => {
+  const f = await frame(page,{failRotation:'after'}); await choose(page,f.file);
+  await page.locator('#photo_rotation_degrees').selectOption('90');
+  await expect(page.locator('#save')).toBeEnabled(); await page.locator('#save').click();
+  await expect(page.locator('#activity-detail')).toContainText('Cannot reach the frame');
+  f.rotateElsewhere();
+  await expect(page.locator('#save')).toBeEnabled(); await page.locator('#save').click();
+  await expect(page.locator('#activity-detail')).toContainText('rotated elsewhere');
+  expect(f.photos[0].photo_rotation_degrees).toBe(270);
+  expect(f.requests.filter(r=>r.path.startsWith('/api/upload-'))).toHaveLength(0);
+  await expect(page.locator('#photo_rotation_degrees')).toHaveValue('90');
+});
+
+for (const identity of ['copied', 'deleted']) {
+  test(`a ${identity} photo resets its revision before an interrupted first save`, async ({page}) => {
+    const f = await frame(page,{pending:true});
+    await expect(page.locator('#import-summary')).toContainText('1 of 1 saved');
+    await page.locator('#gallery-tab').click(); await page.getByRole('button',{name:'saved.png',exact:true}).click();
+    await expect(page.locator('#save')).toBeEnabled();
+    if (identity === 'copied') {
+      // A persisted draft copied from another frame carries that photo's revision.
+      await page.evaluate(async () => {
+        const {readDraft,saveDraft} = await import('/frame/services/drafts.js');
+        const draft = await readDraft(); draft.sourceFrame='http://other-frame.local:8000';
+        draft.pending_photo_rotation={base:draft.sourceFrame,filename:draft.sourceFilename,
+          operation_id:'old-operation',photo_rotation_degrees:270,expected_revision:3};
+        await saveDraft(draft);
+      });
+      await page.reload(); await expect(page.locator('#frame-detail')).toContainText('Connected');
+    } else {
+      await page.locator('#delete').click(); await page.locator('#confirm-delete').click();
+      await expect(page.locator('#activity-title')).toHaveText('Photo deleted from the frame.');
+      expect((await storedDraft(page)).photo_rotation_revision).toBe(0);
+    }
+    f.failRotation('before');
+    await expect(page.locator('#save')).toBeEnabled(); await page.locator('#save').click();
+    await expect(page.locator('#activity-detail')).toContainText('Cannot reach the frame');
+    const checkpoint=await storedDraft(page);
+    expect(checkpoint.photo_rotation_revision).toBe(0);
+    expect(checkpoint.sourceFilename).not.toBe('saved.png');
+    expect(checkpoint.pending_photo_rotation.expected_revision).toBe(0);
+    expect(checkpoint.pending_photo_rotation.operation_id).not.toBe('old-operation');
+    await expect(page.locator('#save')).toBeEnabled(); await page.locator('#save').click();
+    await expect(page.locator('#activity-title')).toHaveText('Photo saved.');
+    expect(f.requests.filter(r=>r.path==='/upload')).toHaveLength(1);
+    const rotations=f.requests.filter(r=>r.path==='/api/settings/photo-rotation').map(r=>JSON.parse(r.body));
+    expect(rotations.slice(-2).map(r=>r.expected_revision)).toEqual([0,0]);
+    expect(f.photos.find(p=>p.filename===checkpoint.sourceFilename).photo_rotation_degrees).toBe(270);
+  });
+}
 
 test('regenerating a saved photo keeps its source rotation and rejects stale edits', async ({page}) => {
   const f = await frame(page,{pending:true});

@@ -84,9 +84,16 @@ to the gallery. Normal job tracking/restart handling and PWA update blocking app
 These features require the paired server update for inky-soup issue #15. Config
 capabilities disable them on older servers while ordinary unrotated saves keep
 working. Photo revisions protect against stale edits, including reverting to an
-earlier angle. Accepted revisions are retained in the draft after partial upload
-failures. The Rust CLI can set a photo's angle or upload one with an angle; connect
-this app to rebuild its missing images before displaying it.
+earlier angle. Pending rotation requests and accepted revisions are retained in
+the draft after interrupted saves. Retrying after a lost response, even after
+reopening the app, recovers the accepted rotation without discarding adjustments
+or uploading another original. Background recovery leaves that pending photo for
+the editor to retry. A subsequent rotation by another editor still requires
+reopening the photo. Copying a draft to another frame or saving it after deletion
+starts the new photo at revision zero.
+
+The Rust CLI can set a photo's angle or upload one with an angle; connect this app
+to rebuild its missing images before displaying it.
 
 ![Photo rotation](../docs/screenshots/frame-photo-rotation.png)
 ![Orientation card progress](../docs/screenshots/frame-orientation-test-card.png)
