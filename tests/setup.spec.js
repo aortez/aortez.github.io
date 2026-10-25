@@ -42,6 +42,7 @@ async function mockBluetooth(page, mode = 'success') {
       async getPrimaryService() { return { getCharacteristic: async uuid => chars[Number(uuid.slice(-1))] }; },
       disconnect() { this.connected = false; device.dispatchEvent(new Event('gattserverdisconnected')); },
     };
+    window.setupDevice = device;
     Object.defineProperty(navigator, 'bluetooth', { value: {
       requestDevice: async () => {
         if (window.setupMode === 'cancel') throw new DOMException('Cancelled', 'NotFoundError');
@@ -157,6 +158,38 @@ test('old QR address redirects to setup', async ({ page }) => {
   await page.goto('/wifi/');
   await expect(page).toHaveURL(/\/setup\/$/);
   await expect(page.getByRole('heading', { name: 'Give your frame a connection.' })).toBeVisible();
+});
+
+test('a cancelled connection cannot disconnect a newer connection to the same device', async ({ page }) => {
+  await mockBluetooth(page);
+  await page.goto('/setup/');
+  const result = await page.evaluate(async () => {
+    const { ImprovClient } = await import('/setup/improv-client.js');
+    const client = new ImprovClient();
+    const gatt = window.setupDevice.gatt;
+    let finishFirst;
+    let started;
+    const firstStarted = new Promise(resolve => { started = resolve; });
+    let attempts = 0;
+    gatt.connect = async function () {
+      this.connected = true;
+      if (++attempts === 1) {
+        started();
+        await new Promise(resolve => { finishFirst = resolve; });
+      }
+      return this;
+    };
+    const first = client.connect();
+    await firstStarted;
+    client.disconnect();
+    await client.connect();
+    finishFirst();
+    await first;
+    const connected = client.device?.gatt.connected === true;
+    client.disconnect();
+    return connected;
+  });
+  expect(result).toBe(true);
 });
 
 test('mobile layout fits and explains unsupported browsers', async ({ page }) => {

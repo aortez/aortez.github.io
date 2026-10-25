@@ -78,20 +78,27 @@ export class ImprovClient {
         this.onStatus({ state: 'disconnected', message: 'Bluetooth disconnected. Reconnect to continue.' });
       });
       const connection = device.gatt.connect();
-      connection.then(() => { if (epoch !== this.epoch) device.gatt.disconnect(); }, () => {});
+      // A cancelled connect may finish after a retry has reused this BluetoothDevice.
+      // Clean up an abandoned device without closing the newer session on that device.
+      connection.then(() => {
+        if (epoch !== this.epoch && this.device !== device) device.gatt.disconnect();
+      }, () => {});
       await bounded(connection, 15000);
+      if (epoch !== this.epoch) return;
       const service = await bounded(device.gatt.getPrimaryService(SERVICE_UUID), 10000);
+      if (epoch !== this.epoch) return;
       const chars = {};
       for (const [name, suffix] of [['state', 1], ['error', 2], ['command', 3], ['result', 4]]) {
         chars[name] = await bounded(service.getCharacteristic(characteristic(suffix)), 10000);
+        if (epoch !== this.epoch) return;
       }
-      if (epoch !== this.epoch) { device.gatt.disconnect(); return; }
       this.chars = chars;
       for (const name of ['state', 'error', 'result']) {
         chars[name].addEventListener('characteristicvaluechanged', (event) => {
           if (epoch === this.epoch) this.receive(name, event.target.value);
         });
         await bounded(chars[name].startNotifications(), 10000);
+        if (epoch !== this.epoch) return;
       }
       const state = await bounded(chars.state.readValue(), 10000);
       if (epoch !== this.epoch) return;
