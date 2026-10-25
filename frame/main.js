@@ -32,6 +32,7 @@ async function connectFrame() {
     if (state.frame?.base !== base) {state.imports = []; renderImports();}
     rememberFrame({base, name: new URL(base).hostname.replace(/\.local$/, ''), config});
     state.config = config; state.images = images; state.connected = true;
+    syncOrientation();
     el['frame-name'].textContent = state.frame.name;
     el['frame-detail'].textContent = `Connected · ${config.width} × ${config.height}`;
     el['connection-status'].textContent = 'Connected directly over your local WiFi.';
@@ -41,6 +42,7 @@ async function connectFrame() {
     if (state.draft) {await acquireEditLock(); prepare();}
     const previous = savedJob();
     if (previous?.base === base) { rememberJob(previous); pollJob(); }
+    if (!state.job) await regenerateGallery();
   } catch (error) {
     state.connected = false;
     el['connection-status'].textContent = error.message;
@@ -177,22 +179,100 @@ async function importPhotos(files) {
   showView('gallery'); state.busy = false; await runImports();
 }
 
+function syncOrientation() {
+  el.orientation.value = String(state.config?.rotation_degrees ?? 0);
+  const config = state.config;
+  el['orientation-size'].textContent = config ? `${config.width} × ${config.height} preview` : 'Connect your frame to choose its orientation.';
+  el['orientation-diagram'].style.setProperty('--mount-rotation', `${config?.rotation_degrees ?? 0}deg`);
+  el['orientation-status'].textContent = config && !config.orientation_supported ? 'Update your frame software to change its orientation.' : '';
+}
+
+async function regenerateGallery() {
+  const pending = state.images.filter(image => image.needs_processing);
+  if (!pending.length || state.busy || state.job || !state.connected) return;
+  state.busy = true; controls();
+  await releaseEditLock();
+  state.imports = pending.map(image => ({regenerate:true, draft:{sourceFrame:state.frame.base,
+    sourceFilename:image.filename, name:image.filename, ...imageSettings(image)}, status:'Waiting'}));
+  showView('gallery');
+  state.busy = false;
+  await runImports();
+}
+
+async function changeOrientation() {
+  if (el['save-orientation'].disabled) return;
+  state.busy = true; controls();
+  el['orientation-status'].textContent = 'Saving orientation…';
+  try {
+    const result = await jsonPost(state.frame.base, '/api/settings/display-rotation', {
+      rotation_degrees:Number(el.orientation.value), expected_revision:state.config.rotation_revision});
+    state.config = validateConfig(result.display);
+    rememberFrame({...state.frame, config:state.config});
+    syncOrientation();
+    el['frame-detail'].textContent = `Connected · ${state.config.width} × ${state.config.height}`;
+    if (state.draft) await prepare();
+    await refreshGallery();
+    el['orientation-status'].textContent = 'Orientation saved. The screen changes when you display a photo.';
+  } catch (error) {
+    el['orientation-status'].textContent = `${error.message} Reconnect to get the frame’s current orientation.`;
+    state.busy = false; controls(); return;
+  }
+  state.busy = false; controls();
+  await regenerateGallery();
+}
+
 async function runImports() {
   if (state.busy || state.job || !state.connected) return;
   state.busy = true; state.importing = true; controls(); renderImports();
   for (const item of state.imports) {
     if (item.status === 'Saved') continue;
     item.error = null;
+    let owned = false;
+    let lockTimer;
+    let lockError;
+    let refreshing = false;
+    const base = state.frame.base;
+    const filename = item.draft.sourceFilename;
     try {
+      if (item.regenerate) {
+        const lock = await jsonPost(base, '/api/lock-image', {filename, session_id:state.session});
+        if (!lock.locked) throw new Error('This photo is being edited elsewhere. Retry after that editor finishes.');
+        owned = true;
+        lockTimer = setInterval(async () => {
+          if (refreshing) return;
+          refreshing = true;
+          try {
+            const renewed = await jsonPost(base, '/api/lock-image', {filename, session_id:state.session, refresh_only:true});
+            if (!renewed.locked) lockError = new Error('The editing session expired. Retry this photo.');
+          } catch (error) {lockError = error;}
+          finally {refreshing = false;}
+        }, 10000);
+        // Read settings after acquiring ownership: another editor may have saved
+        // newer adjustments, or already rebuilt this photo, while it was waiting.
+        const latest = (await request(base, '/api/images')).find(image => image.filename === filename);
+        if (!latest) throw new Error('This photo was removed from the frame.');
+        if (!latest.needs_processing) {item.status = 'Saved'; continue;}
+        Object.assign(item.draft, imageSettings(latest));
+        item.status = 'Loading original…'; renderImports();
+        item.draft.blob = await getPhoto(base, filename);
+      }
       validatePhoto(item.draft.blob);
       item.status = 'Making preview…'; renderImports();
       const prepared = await processPhoto(item.draft, state.config);
-      const saved = await savePhoto({base: state.frame.base, draft: item.draft, prepared, session: state.session,
+      if (lockError) throw lockError;
+      clearInterval(lockTimer);
+      const saved = await savePhoto({base, draft: item.draft, prepared, session: state.session, keepLock:owned,
         onStored: ({base, filename}) => {item.draft.sourceFrame = base; item.draft.sourceFilename = filename;},
         onProgress: message => {item.status = message; renderImports();}});
       item.draft.sourceFrame = saved.base; item.draft.sourceFilename = saved.filename; item.status = 'Saved';
     } catch (error) {item.status = 'Failed'; item.error = error.message;}
+    finally {
+      clearInterval(lockTimer);
+      if (owned) await jsonPost(base, '/api/unlock-image', {filename, session_id:state.session}).catch(() => {});
+      if (item.regenerate) delete item.draft.blob;
+    }
     renderImports();
+    if (!state.connected) break;
   }
   state.importing = false; renderImports();
   await refreshGallery().catch(error => {el['gallery-status'].textContent = error.message;});
@@ -263,6 +343,12 @@ for (const id of settingIds) el[id].addEventListener('change', () => {
 for (const id of ['saturation', 'brightness', 'contrast']) el[id].addEventListener('input', () => {el[`${id}-value`].value = el[id].value;});
 el.send.addEventListener('click', () => storeCurrentPhoto(true));
 el.save.addEventListener('click', () => storeCurrentPhoto(false));
+el['settings-tab'].addEventListener('click', () => showView('settings'));
+el.orientation.addEventListener('change', () => {
+  el['orientation-diagram'].style.setProperty('--mount-rotation', `${el.orientation.value}deg`);
+  controls();
+});
+el['save-orientation'].addEventListener('click', changeOrientation);
 el['preview-before'].addEventListener('click', () => {state.previewMode = 'before'; renderPreview();});
 el['preview-display'].addEventListener('click', () => {state.previewMode = 'display'; renderPreview();});
 el['retry-edit'].addEventListener('click', async () => {
@@ -350,7 +436,7 @@ async function start() {
     } catch { /* Ignore malformed old settings. */ }
   }
   try {const draft = await readDraft(); if (draft?.blob) await useDraft(draft);} catch { /* Storage is optional. */ }
-  controls();
+  syncOrientation(); controls();
   if (!handoff && remembered?.base && navigator.onLine) connectFrame();
 }
 window.addEventListener('offline', () => {

@@ -10,4 +10,6 @@ export const elements = Object.fromEntries([
   'lock-notice', 'lock-status', 'retry-edit', 'add-photos', 'import-photos', 'imports',
   'import-summary', 'import-list', 'import-progress', 'retry-imports', 'gallery-status',
   'forget', 'setup-link', 'choose-tab', 'gallery-tab', 'gallery-panel', 'editor-panel',
+  'settings-tab', 'settings-panel', 'orientation', 'save-orientation', 'orientation-status',
+  'orientation-size', 'orientation-diagram', 'import-heading',
 ].map(id => [id, document.getElementById(id)]));

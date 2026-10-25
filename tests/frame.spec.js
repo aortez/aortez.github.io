@@ -117,6 +117,100 @@ async function openSaved(page) {
 
 const multipartField = (body, name) => new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]*)`).exec(body)?.[1];
 
+async function orientationFrame(page, {rotation = 0, pending = false, locked = false, failThumb = false} = {}) {
+  let revision = rotation ? 1 : 0;
+  let source;
+  const saved = {filename:'saved.png',thumb_ready:!pending,needs_processing:pending,
+    fit_mode:'cover',filter:'lanczos',brightness:25,contrast:-20,saturation:0.7,dither_algorithm:'atkinson'};
+  const requests = [];
+  const display = () => ({...config,physical_width:1600,physical_height:1200,
+    width:rotation % 180 ? 1200 : 1600,height:rotation % 180 ? 1600 : 1200,
+    thumb_width:rotation % 180 ? 112 : 150,thumb_height:rotation % 180 ? 150 : 112,
+    rotation_degrees:rotation,rotation_revision:revision});
+  await page.route(`${base}/**`, async route => {
+    const req = route.request(); const path = new URL(req.url()).pathname;
+    const body = req.postData() || ''; requests.push({path,body});
+    let result = {success:true};
+    if (path === '/api/display-config') result = display();
+    else if (path === '/api/images') result = [saved];
+    else if (path.startsWith('/images/')) return route.fulfill({contentType:'image/png',body:source});
+    else if (path === '/api/lock-image') result = {locked:!locked};
+    else if (path === '/api/settings/display-rotation') {
+      const request = req.postDataJSON();
+      if (request.expected_revision !== revision) return route.fulfill({status:409,json:{message:'Orientation changed in another app.'}});
+      rotation = request.rotation_degrees; revision++;
+      saved.needs_processing = true; saved.thumb_ready = false;
+      result = {success:true,display:display(),pending_images:1};
+    } else if (path === '/api/upload-thumb' && failThumb) {
+      failThumb = false;
+      return route.fulfill({status:500,json:{message:'Temporary thumbnail failure'}});
+    } else if (path === '/api/upload-dithered') {
+      saved.needs_processing = false; saved.thumb_ready = true;
+    }
+    return route.fulfill({json:result});
+  });
+  await page.goto('/frame/'); source = (await fixturePhoto(page)).buffer;
+  await page.locator('#connect').click(); await expect(page.locator('#frame-detail')).toContainText('Connected');
+  return {requests, saved, unlock:() => {locked=false;}, change:angle => {rotation=angle; revision++; saved.needs_processing=true; saved.thumb_ready=false;}};
+}
+
+test('four mount positions rebuild saved images with their adjustments and keep the current draft upright', async ({page}) => {
+  test.setTimeout(120000);
+  await page.setViewportSize({width:390,height:844});
+  const frame = await orientationFrame(page); await openSaved(page);
+  await page.locator('#brightness').fill('35'); await page.locator('#brightness').dispatchEvent('change');
+  await expect(page.locator('#send')).toBeEnabled();
+  for (const [index,angle] of [90,180,270,0].entries()) {
+    await page.locator('#settings-tab').click(); await page.locator('#orientation').selectOption(String(angle));
+    await page.locator('#save-orientation').click();
+    await expect(page.locator('#import-summary')).toContainText('1 of 1 saved');
+    await expect(page.locator('#orientation')).toBeEnabled();
+    await page.locator('#choose-tab').click();
+    await expect(page.locator('#send')).toBeEnabled();
+    expect(await page.locator('#preview').evaluate(img => [img.naturalWidth,img.naturalHeight])).toEqual(angle % 180 ? [1200,1600] : [1600,1200]);
+    await expect(page.locator('#brightness')).toHaveValue('35');
+    const uploads = frame.requests.filter(r => r.path.startsWith('/api/upload-')).slice(-3);
+    expect(uploads.map(r=>r.path)).toEqual(['/api/upload-cache','/api/upload-thumb','/api/upload-dithered']);
+    for (const request of uploads) {
+      for (const [key,value] of Object.entries({rotation_revision:String(index+1),brightness:'25',contrast:'-20',saturation:'0.7',filter:'lanczos',fit_mode:'cover',dither_algorithm:'atkinson'})) expect(multipartField(request.body,key)).toBe(value);
+    }
+    if (angle === 90) {
+      await page.locator('#settings-tab').click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+      await page.screenshot({path:'docs/screenshots/frame-orientation-settings.png',fullPage:true});
+      await page.locator('#choose-tab').click();
+      await page.screenshot({path:'docs/screenshots/frame-orientation-portrait.png',fullPage:true});
+    }
+  }
+  expect(frame.requests.filter(r=>r.path === '/flash' || r.path === '/upload')).toHaveLength(0);
+});
+
+test('reconnect resumes orientation work, waits for other editors, and retries incomplete images', async ({page}) => {
+  test.setTimeout(90000);
+  const frame = await orientationFrame(page,{rotation:90,pending:true,locked:true,failThumb:true});
+  await expect(page.locator('#import-summary')).toContainText('1 failed');
+  expect(frame.requests.filter(r=>r.path.startsWith('/api/upload-'))).toHaveLength(0);
+  frame.saved.brightness = 40; frame.unlock();
+  await page.locator('#retry-imports').click();
+  await expect(page.locator('#import-list')).toContainText('Temporary thumbnail failure');
+  await page.locator('#retry-imports').click(); await expect(page.locator('#import-summary')).toContainText('1 of 1 saved');
+  const dither = frame.requests.find(r=>r.path === '/api/upload-dithered');
+  expect(multipartField(dither.body,'brightness')).toBe('40');
+  frame.change(270);
+  await page.reload(); await expect(page.locator('#import-summary')).toContainText('1 of 1 saved');
+  expect(frame.requests.filter(r=>r.path === '/api/upload-dithered')).toHaveLength(2);
+  expect(frame.requests.filter(r=>r.path === '/flash' || r.path === '/upload')).toHaveLength(0);
+});
+
+test('stale orientation settings cannot overwrite a change made from the CLI or another app', async ({page}) => {
+  const frame = await orientationFrame(page);
+  frame.change(180);
+  await page.locator('#settings-tab').click(); await page.locator('#orientation').selectOption('90');
+  await page.locator('#save-orientation').click();
+  await expect(page.locator('#orientation-status')).toContainText('Orientation changed in another app.');
+  expect(frame.requests.filter(r=>r.path.startsWith('/api/upload-'))).toHaveLength(0);
+});
+
 test('saved adjustments survive reopening, saving, and draft recovery without a display refresh', async ({page}) => {
   const {requests} = await libraryFrame(page); await openSaved(page);
   for (const [id,value] of Object.entries({fit:'cover',filter:'lanczos',brightness:'25',contrast:'-20',saturation:'0.7',dither:'atkinson'})) await expect(page.locator(`#${id}`)).toHaveValue(value);

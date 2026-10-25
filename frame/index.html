@@ -71,8 +71,22 @@
         <section id="imports" class="imports" hidden aria-labelledby="import-heading"><strong id="import-heading">Adding photos</strong><p id="import-summary" role="status"></p><progress id="import-progress" max="1" value="0" aria-label="Photos saved"></progress><ul id="import-list"></ul><button id="retry-imports" class="secondary" hidden>Retry failed photos</button></section>
         <p id="gallery-empty" class="gallery-empty">Connect your frame to see its photos.</p><div id="gallery" class="gallery"></div>
       </section>
+      <section id="settings-panel" hidden aria-labelledby="settings-heading">
+        <div class="section-heading"><div><p class="eyebrow">YOUR FRAME</p><h1 id="settings-heading">Make it fit.</h1></div></div>
+        <div class="orientation-card">
+          <h2>Mounting orientation</h2>
+          <p>Looking at the front, how far have you turned the frame clockwise from its normal landscape position? Your photo preview always stays upright.</p>
+          <div class="orientation-illustration" aria-hidden="true"><div id="orientation-diagram"><span>TOP ↑</span></div></div>
+          <label for="orientation">Frame position</label>
+          <select id="orientation" disabled><option value="0">Landscape · 0°</option><option value="90">Portrait · 90° clockwise</option><option value="180">Landscape · 180°</option><option value="270">Portrait · 270° clockwise</option></select>
+          <p id="orientation-size" class="status">Connect your frame to choose its orientation.</p>
+          <p>Saved photos are rebuilt on this device using their existing adjustments. Keep the app open until it finishes. The screen changes only when you display a photo.</p>
+          <button id="save-orientation" class="primary" disabled>Save orientation</button>
+          <p id="orientation-status" class="status" role="status"></p>
+        </div>
+      </section>
     </main>
-    <nav class="bottom-nav" aria-label="App views"><button id="choose-tab" aria-current="page"><span aria-hidden="true">▧</span> Create</button><button id="gallery-tab"><span aria-hidden="true">▦</span> On frame</button></nav>
+    <nav class="bottom-nav" aria-label="App views"><button id="choose-tab" aria-current="page"><span aria-hidden="true">▧</span> Create</button><button id="gallery-tab"><span aria-hidden="true">▦</span> On frame</button><button id="settings-tab"><span aria-hidden="true">⚙</span> Settings</button></nav>
   </div>
   <dialog id="delete-dialog" aria-labelledby="delete-heading"><h2 id="delete-heading">Delete this photo?</h2><p id="delete-name"></p><p>This removes the photo and its saved versions from the frame. The image currently on the display stays until the next refresh.</p><div class="dialog-actions"><button id="cancel-delete" class="secondary">Keep photo</button><button id="confirm-delete" class="danger-button">Delete photo</button></div></dialog>
 </body>

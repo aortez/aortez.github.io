@@ -45,10 +45,17 @@ export async function request(base, path, options = {}) {
 export function validateConfig(config) {
   const dimensions = {'impression-13.3-2025': [1600, 1200], 'impression-5.7': [600, 448]};
   const expected = dimensions[config.model];
-  if (!expected || expected[0] !== config.width || expected[1] !== config.height) {
+  const rotation = config.rotation_degrees ?? 0;
+  const revision = config.rotation_revision ?? 0;
+  const physical = [config.physical_width ?? config.width, config.physical_height ?? config.height];
+  const logical = [90, 270].includes(rotation) ? physical.slice().reverse() : physical;
+  if (!expected || ![0, 90, 180, 270].includes(rotation) || !Number.isSafeInteger(revision) || revision < 0
+      || expected[0] !== physical[0] || expected[1] !== physical[1]
+      || logical[0] !== config.width || logical[1] !== config.height) {
     throw new Error('This display configuration is not supported by this app yet.');
   }
-  return config;
+  return {...config, rotation_degrees:rotation, rotation_revision:revision,
+    orientation_supported:config.orientation_supported ?? config.rotation_revision !== undefined};
 }
 
 export function jsonPost(base, path, body) {
@@ -68,6 +75,7 @@ export async function savePhoto({base, draft, prepared, session, onProgress = ()
   const filename = existing || `${crypto.randomUUID()}.${extension}`;
   const settings = imageSettings(draft);
   const metadata = {filename, session_id: session, filter: settings.filter, fit_mode: settings.fit,
+    rotation_revision: prepared.rotation_revision ?? 0,
     saturation: settings.saturation, brightness: settings.brightness, contrast: settings.contrast, dither_algorithm: settings.dither};
   let owned = false;
   let lockTimer;
@@ -76,13 +84,6 @@ export async function savePhoto({base, draft, prepared, session, onProgress = ()
   const unlock = () => jsonPost(base, '/api/unlock-image', {filename, session_id: session});
   try {
     onProgress('Saving your photo…');
-    if (!existing) {
-      const original = new FormData();
-      original.append('submission.file', draft.blob, filename);
-      const uploaded = await request(base, '/upload', {method: 'POST', body: original});
-      if (uploaded.filename !== filename) throw new Error('The frame returned an unexpected image name.');
-      await onStored({base, filename});
-    }
     const lock = await jsonPost(base, '/api/lock-image', {filename, session_id: session, refresh_only: Boolean(keepLock && existing)});
     if (!lock.locked) throw new Error('This photo is being edited elsewhere.');
     owned = true;
@@ -95,6 +96,13 @@ export async function savePhoto({base, draft, prepared, session, onProgress = ()
       } catch (error) { lockError = error; }
       finally { refreshing = false; }
     }, 10000);
+    if (!existing) {
+      const original = new FormData();
+      original.append('submission.file', draft.blob, filename);
+      const uploaded = await request(base, '/upload', {method: 'POST', body: original});
+      if (uploaded.filename !== filename) throw new Error('The frame returned an unexpected image name.');
+      await onStored({base, filename});
+    }
     for (const [path, blob, label] of [
       ['/api/upload-cache', prepared.cache, 'Saving the preview…'],
       ['/api/upload-thumb', prepared.thumb, 'Saving the thumbnail…'],
@@ -109,6 +117,7 @@ export async function savePhoto({base, draft, prepared, session, onProgress = ()
     if (!display) return {filename, base};
     onProgress('Starting the display refresh…');
     const body = form({'submission.filename': filename, 'submission.image_file_path': `images/dithered/${filename}.png`,
+      'submission.rotation_revision': prepared.rotation_revision ?? 0,
       'submission.session_id': session, 'submission.flash_twice': false});
     const job = await request(base, '/flash', {method: 'POST', body});
     return {id: job.job_id, filename, base};

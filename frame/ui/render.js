@@ -34,6 +34,8 @@ export function controls() {
   el['retry-edit'].disabled = working || !state.connected;
   el['add-photos'].disabled = working || !state.connected;
   el['retry-imports'].disabled = working || !state.connected;
+  el.orientation.disabled = working || state.connecting || !state.connected || !state.config?.orientation_supported;
+  el['save-orientation'].disabled = el.orientation.disabled || Number(el.orientation.value) === state.config?.rotation_degrees;
   el['send-label'].textContent = state.job ? 'Refreshing…' : state.busy && state.view === 'editor' ? 'Working…' : 'Display this photo';
   el['send-panel'].setAttribute('aria-busy', String(working && state.view === 'editor'));
   el['setup-link'].hidden = working;
@@ -43,7 +45,8 @@ export function showView(view) {
   state.view = view;
   el['editor-panel'].hidden = view !== 'editor';
   el['gallery-panel'].hidden = view !== 'gallery';
-  for (const [id, value] of [['choose-tab', 'editor'], ['gallery-tab', 'gallery']]) {
+  el['settings-panel'].hidden = view !== 'settings';
+  for (const [id, value] of [['choose-tab', 'editor'], ['gallery-tab', 'gallery'], ['settings-tab', 'settings']]) {
     if (value === view) el[id].setAttribute('aria-current', 'page');
     else el[id].removeAttribute('aria-current');
   }
@@ -91,6 +94,7 @@ export function renderImports() {
   el.imports.hidden = !state.imports.length;
   const completed = state.imports.filter(item => item.status === 'Saved').length;
   const failed = state.imports.filter(item => item.error).length;
+  el['import-heading'].textContent = state.imports.some(item => item.regenerate) ? 'Updating orientation' : 'Adding photos';
   el['import-summary'].textContent = `${completed} of ${state.imports.length} saved${failed ? ` · ${failed} failed` : ''}. Photos are saved without refreshing the display.`;
   el['import-progress'].max = state.imports.length || 1;
   el['import-progress'].value = completed + failed;
