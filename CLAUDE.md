@@ -73,7 +73,7 @@ Previous Polymer dependencies have been completely removed.
 
 ### Go/WASM Application
 
-The `/go` route serves a pre-compiled WebAssembly binary (`main.wasm`) with `wasm_exec.js` runtime. The source code lives in a separate repository (https://github.com/aortez/pizza-pizza).
+The `/go` route serves a pre-compiled WebAssembly binary (`public/main.wasm`) with `public/wasm_exec.js` runtime. The source code lives in a separate repository (https://github.com/aortez/pizza-pizza).
 
 ### Sparkle Duck Setup
 
@@ -90,15 +90,15 @@ The `/setup` route provides a Bluetooth Low Energy (BLE) WiFi provisioning inter
 - `index.html`: Main application entry point using `<script type="module">`.
 - `go.html`: Go/WASM demo entry point.
 - `setup/`: Bluetooth provisioning UI and transport; `wifi/` redirects older QR links.
-- `main.wasm`: Pre-built Go binary (built from external repo).
+- `public/main.wasm`: Pre-built Go binary (built from external repo).
 
 ## Development Notes
 
 - This is a personal playground project (per README disclaimer) - expect experimental code.
 - Quadtree implementation is work-in-progress (see TODO file for design notes).
 - Google Analytics is configured for the allan.pizza domain.
-- The site is deployed via GitHub Pages from the master branch.
-- For GitHub Pages deployment, build output should be committed (Vite builds to `dist/` by default).
+- Pushes to `master` run CI and deploy its tested Vite `dist/` artifact to GitHub Pages using Actions.
+- Keep Pages configured for GitHub Actions (`build_type: workflow`); generated output is not committed.
 
 Setup tests in `tests/setup.spec.js` use a mock Bluetooth device to cover success,
 wrong credentials, missing notifications on older firmware, timeout, cancellation,

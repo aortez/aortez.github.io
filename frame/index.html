@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f3eb">
+  <meta name="description" content="Choose a photo. Make it yours. Send it straight to your Sparkle Duck frame.">
+  <link rel="manifest" href="/frame/manifest.webmanifest">
+  <link rel="icon" href="/frame/icon.svg" type="image/svg+xml">
+  <title>Sparkle Duck · Your frame</title>
+  <script type="module" src="./main.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <a class="brand" href="/frame/" aria-label="Sparkle Duck home"><img src="/frame/icon.svg" alt="" width="38" height="38"><span>Sparkle Duck<small>A little room for your photos.</small></span></a>
+      <button id="install" class="quiet" hidden>Install app</button>
+    </header>
+    <main>
+      <details id="connection" class="connection" open>
+        <summary><span class="connection-light" aria-hidden="true"></span><span><strong id="frame-name">Your frame</strong><small id="frame-detail">Connect once. Keep it close.</small></span><span class="chevron" aria-hidden="true">⌄</span></summary>
+        <form id="connect-form">
+          <label for="address">Frame address</label>
+          <div class="address-row"><input id="address" type="text" inputmode="url" value="inky-soup.local:8000" autocomplete="off" autocapitalize="none" spellcheck="false" required><button id="connect" type="submit">Connect</button></div>
+          <p id="connection-status" role="status">Keep your phone and frame on the same WiFi.</p>
+        </form>
+        <div class="connection-actions"><a id="setup-link" href="/setup/?return=frame">Set up WiFi over Bluetooth</a><button id="forget" class="text-button" type="button" hidden>Forget frame</button></div>
+        <details class="help"><summary>Need a hand connecting?</summary><p>Allow the browser to access devices on your local network. On Android, Chrome also needs Nearby devices permission. Guest WiFi may prevent your phone and frame from finding each other.</p><p>Your frame may need a software update to connect here. You can still open its address directly to use the original interface.</p></details>
+      </details>
+      <section id="activity" class="activity" hidden aria-live="polite"><span class="activity-dot" aria-hidden="true"></span><div><strong id="activity-title"></strong><p id="activity-detail"></p><button id="retry-status" class="text-button" hidden>Check again</button></div></section>
+      <section id="editor-panel" aria-labelledby="editor-heading">
+        <div class="section-heading"><div><p class="eyebrow">MAKE IT YOURS</p><h1 id="editor-heading">A new view.</h1></div><button id="pick-photo" class="secondary" disabled>Choose photo <span aria-hidden="true">＋</span></button></div>
+        <input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+        <div class="photo-stage">
+          <div id="preview-empty" class="empty-preview"><svg viewBox="0 0 180 120" aria-hidden="true"><rect x="9" y="9" width="162" height="102" rx="4"/><circle cx="120" cy="38" r="12"/><path d="M22 98 67 51 98 82 121 62 158 98"/></svg><h2>Something worth looking at.</h2><p>Choose a photo for your frame.<br>The color preview is made on your phone.</p></div>
+          <img id="preview" alt="Preview of the image that will be sent to your frame" hidden>
+        </div>
+        <div class="preview-caption"><span id="draft-name">Your next favorite view</span><span id="dimensions"></span></div>
+        <p id="preview-status" class="status" role="status"></p>
+        <div id="editor" hidden>
+          <div class="adjustments"><label>Composition<select id="fit"><option value="contain">Show whole photo</option><option value="cover">Fill the frame</option></select></label><label for="saturation">Color matching<input id="saturation" type="range" min="0" max="1" step="0.1" value="0.5"></label></div>
+          <button id="send" class="primary send" disabled>Display this photo <span aria-hidden="true">↗</span></button>
+          <p class="privacy">Processed on your phone. Sent directly to your frame.</p>
+        </div>
+      </section>
+      <section id="gallery-panel" hidden aria-labelledby="gallery-heading">
+        <div class="section-heading"><div><p class="eyebrow">ON YOUR FRAME</p><h1 id="gallery-heading">Your photos.</h1></div><button id="refresh-gallery" class="quiet" disabled>Refresh</button></div>
+        <p id="gallery-empty" class="gallery-empty">Connect your frame to see its photos.</p><div id="gallery" class="gallery"></div>
+      </section>
+    </main>
+    <nav class="bottom-nav" aria-label="App views"><button id="choose-tab" aria-current="page"><span aria-hidden="true">▧</span> Create</button><button id="gallery-tab"><span aria-hidden="true">▦</span> On frame</button></nav>
+  </div>
+</body>
+</html>
