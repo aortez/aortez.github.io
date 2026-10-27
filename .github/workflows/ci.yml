@@ -38,14 +38,14 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
-      - name: Build production site
+      - name: Build production site with the pinned Frame app
         run: npm run build
 
       - name: Run browser tests
         run: npm test
 
-      - name: Test installed app and offline draft recovery
-        run: npm run test:pwa
+      - name: Check the Frame app pages in the built site
+        run: npm run test:frame
 
       - name: Upload production site
         if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
