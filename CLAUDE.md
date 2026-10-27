@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a personal GitHub Pages site (allan.pizza) hosting two interactive web applications:
+This is a personal GitHub Pages site (allan.pizza) hosting these web applications:
 
 1. **Canvas Ball Physics Simulation** (main site): A JavaScript/Canvas-based physics simulation featuring colliding balls that explode and subdivide. Built with ES6 modules and native HTML5 controls.
 2. **Go/WASM Triangles Demo** (`/go` route): A Go-based WebAssembly application demonstrating graphics rendering.
-3. **Sparkle Duck Setup** (`/setup` route): A Bluetooth-based WiFi provisioning interface for embedded devices using the Improv WiFi protocol.
+3. **Sparkle Duck frame app and setup** (`/frame/`, `/setup/`, `/wifi/`): Deployed from a pinned [inky-soup](https://github.com/aortez/inky-soup) release; the source and tests live there.
 
 ## Build System
 
@@ -75,12 +75,15 @@ Previous Polymer dependencies have been completely removed.
 
 The `/go` route serves a pre-compiled WebAssembly binary (`public/main.wasm`) with `public/wasm_exec.js` runtime. The source code lives in a separate repository (https://github.com/aortez/pizza-pizza).
 
-### Sparkle Duck Setup
+### Sparkle Duck frame app and setup
 
-The `/setup` route provides a Bluetooth Low Energy (BLE) WiFi provisioning interface:
-- Uses the repo-owned Improv BLE client in `setup/improv-client.js`; no remote runtime SDK.
-- Mobile setup form with connection status, retry/cancel, and an explicit device link.
-- Only works in browsers with Web Bluetooth support (Chrome, Edge) over HTTPS.
+The frame app (`/frame/`), its Bluetooth WiFi setup (`/setup/`), and the `/wifi/`
+redirect for older QR links are built and tested in inky-soup's `app/` directory,
+which attaches them to each `app-v*` release as `frame-web.tar.gz`. `frame-app.json`
+pins the release tag and the archive's SHA-256. `npm run build` runs
+`tools/frame-app.mjs`, which downloads that archive, refuses a checksum mismatch,
+and adds its files to `dist/`, failing if the site's own build already has any of
+them. Change these pages in inky-soup, then update the pin here.
 
 ## Key Files
 
@@ -89,7 +92,7 @@ The `/setup` route provides a Bluetooth Low Energy (BLE) WiFi provisioning inter
 - `src/scripts/*.js`: ES6 module source files with proper imports/exports.
 - `index.html`: Main application entry point using `<script type="module">`.
 - `go.html`: Go/WASM demo entry point.
-- `setup/`: Bluetooth provisioning UI and transport; `wifi/` redirects older QR links.
+- `frame-app.json`: The inky-soup release that supplies `/frame/`, `/setup/`, and `/wifi/`; `tools/frame-app.mjs` adds it to the build.
 - `public/main.wasm`: Pre-built Go binary (built from external repo).
 
 ## Development Notes
@@ -100,12 +103,12 @@ The `/setup` route provides a Bluetooth Low Energy (BLE) WiFi provisioning inter
 - Pushes to `master` run CI and deploy its tested Vite `dist/` artifact to GitHub Pages using Actions.
 - Keep Pages configured for GitHub Actions (`build_type: workflow`); generated output is not committed.
 
-Setup tests in `tests/setup.spec.js` use a mock Bluetooth device to cover success,
-wrong credentials, missing notifications on older firmware, timeout, cancellation,
-unsafe links, unsupported browsers, and the legacy QR URL. No test uses real WiFi
-credentials. The page stores no credentials and sends them only over Bluetooth.
+inky-soup's CI tests the frame and setup pages, and each release tests its own build
+before publishing it. Here, `npm run test:frame` only checks that the built site
+serves the pinned release. `docs/validation/` and `docs/screenshots/` keep the
+records from when this repository held copies of those pages.
 
-A physical Pixel 9 Pro XL (Android 17, Chrome 156) also passed discovery, BLE
+Before the move, a physical Pixel 9 Pro XL (Android 17, Chrome 156) passed discovery, BLE
 connection, an absent-network error, retry to the saved network, password
 clearing, and opening the Pi's app over WiFi. The unmerged production build was
 served through `adb reverse tcp:8080 tcp:8080` at `http://localhost:8080/setup/`,
